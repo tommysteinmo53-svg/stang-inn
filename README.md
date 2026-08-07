@@ -11,41 +11,60 @@ Stang Inn skal erstatte Excel-arket med en mobilvennlig webapp der deltakerne ka
 - levere tabelltips
 - se statistikk, streaks og poengutvikling
 - kåre månedsvinner, Sniper, Ukens bom og flere awards
-- hente terminliste, resultater og tabell automatisk fra EHL/HockeyLive når datatilgangen er på plass
+- hente terminliste, resultater og tabell automatisk fra EHL/HockeyLive
 
 ## Teknologi
 
 - Next.js + React + TypeScript
 - Supabase for database og e-postinnlogging
 - Vercel for hosting
+- NIF Data API / HockeyLive for EHL-data
 
-## Supabase-oppsett
+## Supabase
 
-1. Kopier `.env.example` til `.env.local` ved lokal utvikling.
-2. Legg inn `NEXT_PUBLIC_SUPABASE_URL` og `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` fra Supabase-prosjektet.
-3. Åpne Supabase → SQL Editor og kjør `supabase/schema.sql` på et nytt prosjekt. Eksisterende prosjekt kan migreres separat.
-4. Sørg for at Email-provider er aktivert under Authentication.
-5. Hver deltaker logger inn én gang med e-post. Appen oppretter en rad i `players` automatisk hvis den mangler.
-6. Endre `display_name` i `players`-tabellen og sett `admin = true` på administratoren.
-
-**Ikke legg hemmelige nøkler i GitHub.** Til første deploy trenger nettleserappen bare Project URL og Publishable key. Eventuelle secret/service-role-nøkler kommer senere på serversiden.
-
-Hvis Supabase-miljøvariablene ikke er satt, kjører appen i demo-modus slik at designet fortsatt kan testes.
-
-## Vercel
-
-Sett disse to miljøvariablene før deploy:
+Nettleserappen bruker:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 
-Framework preset skal være Next.js og Root Directory skal være `./`.
+Serversynk bruker i tillegg:
+
+- `SUPABASE_SECRET_KEY` — Supabase sin nye `sb_secret_...`-nøkkel. Skal bare ligge i Vercel/servermiljø.
+
+Kjør SQL-filene i rekkefølge i Supabase SQL Editor. På det eksisterende prosjektet er `v0.3.sql` og deretter `v0.4.sql` aktuelle migrasjoner.
+
+## EHL / HockeyLive-synk
+
+EHL 2026/27 bruker som standard:
+
+- Tournament ID: `448981`
+- Season label: `2026/27`
+
+Server-endepunktet ligger på `/api/sync-ehl` og henter kamper/resultater via NIF `TournamentMatches`.
+
+Miljøvariabler:
+
+- `NIF_TOURNAMENT_ID=448981`
+- `NIF_SEASON_LABEL=2026/27`
+- `NIF_DATA_TOKEN` hvis NIF krever partner-token med `data_ta_read`
+- `CRON_SECRET` før automatisk planlagt synk aktiveres
+
+Hvis NIF returnerer 401/403 trenger prosjektet partner/API-tilgang fra NIF. Tokenet skal aldri ligge i GitHub eller klientkode.
+
+## Vercel
+
+Framework preset: Next.js  
+Root Directory: `./`
+
+Etter miljøvariabelendringer må prosjektet redeployes.
 
 ## Status
 
 - ✅ v0.1: design, dashboard og fungerende navigasjon
-- ✅ v0.2 kode: Supabase-klient, magic-link-innlogging, spillerprofil, adminfelt og RLS
-- ⏳ v0.2b: koble miljøvariabler i Vercel og teste første innlogging
-- 🚧 v0.3: kamptips, poengsystem og EHL-synk
+- ✅ v0.2: Supabase, magic-link-innlogging, spillerprofiler og RLS
+- ✅ v0.2b: Supabase + Vercel-produksjonsdeploy
+- 🚧 v0.3: ekte kamptips, poengsystem og EHL-synk
+- ✅ serverside EHL-importkode og TournamentMatches-klient
+- ⏳ kjør `supabase/v0.4.sql`, legg inn server-secret og test NIF-tilgang
 
 Se [roadmap](docs/roadmap.md) for planen videre.
