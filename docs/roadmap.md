@@ -14,10 +14,12 @@
 - [ ] Logo og appikon
 
 ## v0.2 – Brukere og database
-- [ ] Supabase-oppsett
-- [ ] Innlogging med e-post
-- [ ] Fire deltakerprofiler
-- [ ] Adminrolle
+- [x] Supabase-klient og databaseskjema
+- [x] Innlogging med e-post / magic link
+- [x] Profilmodell for fire deltakere
+- [x] Adminrolle i profilmodellen
+- [x] Row Level Security for profiler
+- [ ] Koble faktiske Supabase-miljøvariabler og kjøre schema (#4)
 
 ## v0.3 – Tipping
 - [ ] Terminliste
