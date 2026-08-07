@@ -43,11 +43,9 @@ export function createNifProvider(): MatchProvider {
   return {
     name: "nif",
     async fetchMatches() {
-      const tournamentId = process.env.NIF_TOURNAMENT_ID;
+      const tournamentId = process.env.NIF_TOURNAMENT_ID || "448981";
       const season = process.env.NIF_SEASON_LABEL || "2026/27";
       const token = process.env.NIF_DATA_TOKEN;
-
-      if (!tournamentId) throw new Error("NIF_TOURNAMENT_ID mangler.");
 
       const headers: Record<string, string> = { Accept: "application/json" };
       if (token) headers.Authorization = `Bearer ${token}`;
