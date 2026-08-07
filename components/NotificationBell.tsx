@@ -51,18 +51,8 @@ export default function NotificationBell() {
     return stored + (missing > 0 ? 1 : 0);
   }, [uid, reads, notifications, matches, tips]);
 
-  return <a
-    href="/notifications"
-    aria-label="Åpne varsler"
-    style={{
-      position: "fixed", right: 14, bottom: 14, zIndex: 85,
-      width: 48, height: 48, borderRadius: 999, display: "grid", placeItems: "center",
-      background: "rgba(8,23,41,.96)", border: "1px solid rgba(245,196,81,.38)",
-      color: "#f8d982", textDecoration: "none", fontSize: 21,
-      boxShadow: "0 10px 28px rgba(0,0,0,.32)",
-    }}
-  >
-    🔔
-    {unread > 0 && <span style={{ position: "absolute", top: -4, right: -4, minWidth: 20, height: 20, padding: "0 5px", borderRadius: 999, background: "#ff5d73", color: "white", fontSize: 11, fontWeight: 900, display: "grid", placeItems: "center", border: "2px solid #081729" }}>{unread > 99 ? "99+" : unread}</span>}
+  return <a href="/notifications" aria-label="Åpne varsler" className="topNotificationBell">
+    <span aria-hidden>🔔</span>
+    {unread > 0 && <b>{unread > 99 ? "99+" : unread}</b>}
   </a>;
 }
