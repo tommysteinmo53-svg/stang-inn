@@ -3,8 +3,13 @@
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../lib/supabase";
 
+type SessionProfile = { display_name: string; is_admin: boolean } | null;
+
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(!isSupabaseConfigured);
+  const [profile, setProfile] = useState<SessionProfile>(null);
+  const [email, setEmail] = useState("");
+  const [onLoginPage, setOnLoginPage] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -13,7 +18,9 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
     const check = async () => {
       const path = window.location.pathname;
-      if (path === "/login") {
+      const loginPage = path === "/login";
+      setOnLoginPage(loginPage);
+      if (loginPage) {
         setReady(true);
         return;
       }
@@ -23,15 +30,42 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         window.location.replace("/login");
         return;
       }
+
+      setEmail(data.session.user.email ?? "");
+      const { data: p } = await supabase
+        .from("profiles")
+        .select("display_name,is_admin")
+        .eq("id", data.session.user.id)
+        .maybeSingle();
+      setProfile(p ?? null);
       setReady(true);
     };
 
     check();
   }, []);
 
-  if (!ready) {
-    return <main className="authLoading">Laster Stang Inn …</main>;
+  async function signOut() {
+    const supabase = getSupabaseBrowserClient();
+    await supabase?.auth.signOut();
+    window.location.replace("/login");
   }
 
-  return <>{children}</>;
+  if (!ready) {
+    return <main style={{ padding: 32, color: "#f4f8ff" }}>Laster Stang Inn …</main>;
+  }
+
+  return (
+    <>
+      {children}
+      {isSupabaseConfigured && !onLoginPage && (
+        <aside style={{ position: "fixed", right: 12, bottom: 12, zIndex: 50, display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", borderRadius: 13, background: "rgba(8,20,37,.96)", border: "1px solid #223a5d", boxShadow: "0 12px 28px rgba(0,0,0,.3)", color: "#f4f8ff", fontSize: 12 }}>
+          <div>
+            <strong style={{ display: "block" }}>{profile?.display_name || email || "Spiller"}{profile?.is_admin ? " · Admin" : ""}</strong>
+            <span style={{ color: "#96a9c5" }}>Innlogget</span>
+          </div>
+          <button onClick={signOut} style={{ border: 0, borderRadius: 9, padding: "7px 9px", background: "#142640", color: "#d9e8fb", cursor: "pointer", fontWeight: 800 }}>Logg ut</button>
+        </aside>
+      )}
+    </>
+  );
 }
