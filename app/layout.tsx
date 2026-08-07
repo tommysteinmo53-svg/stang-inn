@@ -3,10 +3,9 @@ import "./navigation.css";
 import "./premium-polish.css";
 import AuthGate from "../components/AuthGate";
 import AnnouncementBanner from "../components/AnnouncementBanner";
-import NotificationBell from "../components/NotificationBell";
 import GlobalMobileNav from "../components/GlobalMobileNav";
 import PremiumPolish from "../components/PremiumPolish";
-import SystemStatus from "../components/SystemStatus";
+import TopStatusBar from "../components/TopStatusBar";
 
 export const metadata = {
   title: "Stang Inn",
@@ -20,8 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthGate>{children}</AuthGate>
         <AnnouncementBanner />
         <PremiumPolish />
-        <SystemStatus />
-        <NotificationBell />
+        <TopStatusBar />
         <GlobalMobileNav />
       </body>
     </html>
