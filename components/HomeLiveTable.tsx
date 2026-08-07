@@ -15,6 +15,7 @@ export default function HomeLiveTable() {
   const [tips, setTips] = useState<Tip[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [moves, setMoves] = useState<Record<string, number>>({});
   const previousPositions = useRef<Record<string, number>>({});
 
@@ -22,7 +23,7 @@ export default function HomeLiveTable() {
     if (pathname !== "/") return;
     const load = async () => {
       const supabase = getSupabaseBrowserClient();
-      if (!supabase) return;
+      if (!supabase) { setLoaded(true); return; }
       const [p, t, m] = await Promise.all([
         supabase.from("players").select("id,display_name").order("created_at"),
         supabase.from("tips").select("id,player_id,match_id,points"),
@@ -32,6 +33,7 @@ export default function HomeLiveTable() {
       setTips((t.data || []) as Tip[]);
       setMatches((m.data || []) as Match[]);
       setUpdatedAt(new Date());
+      setLoaded(true);
     };
     load();
     const timer = window.setInterval(load, 30_000);
@@ -62,10 +64,10 @@ export default function HomeLiveTable() {
     previousPositions.current = current;
   }, [rows]);
 
-  if (pathname !== "/" || !rows.length) return null;
+  if (pathname !== "/") return null;
 
   return (
-    <section className="homeLiveTableWrap">
+    <section className="homeLiveTableWrap" aria-label="Live-tabell">
       <article className={`homeLiveTableCard ${liveNow ? "isLive" : ""}`}>
         <div className="homeLiveTableHead">
           <div>
@@ -74,7 +76,7 @@ export default function HomeLiveTable() {
           </div>
           <a href="/leaderboard">Hele tabellen →</a>
         </div>
-        <div className="homeLiveRows">
+        {!loaded ? <p className="muted" style={{ margin: 0 }}>Laster live-tabellen …</p> : rows.length === 0 ? <p className="muted" style={{ margin: 0 }}>Ingen spillere er registrert ennå.</p> : <div className="homeLiveRows">
           {rows.slice(0,5).map((row, i) => {
             const move = moves[row.id] || 0;
             return <a href={`/player/${row.id}`} className="homeLiveRow" key={row.id}>
@@ -84,7 +86,7 @@ export default function HomeLiveTable() {
               <strong className="homeLivePoints">{row.points} p</strong>
             </a>;
           })}
-        </div>
+        </div>}
         <div className="homeLiveFooter">
           <span>{liveNow ? "Oppdateres automatisk hvert 30. sekund" : "Ingen livekamper akkurat nå"}</span>
           <span>{updatedAt ? `Oppdatert ${updatedAt.toLocaleTimeString("no-NO", { hour:"2-digit", minute:"2-digit" })}` : ""}</span>
