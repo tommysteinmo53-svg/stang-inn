@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { getSupabaseBrowserClient } from "../lib/supabase";
 
@@ -23,54 +23,49 @@ type Tip = {
 function shortTeam(name: string) {
   const n = name.trim();
   const replacements: Array<[RegExp, string]> = [
-    [/Storhamar\s+Elite$/i, "Storhamar"],
+    [/Storhamar.*$/i, "Storhamar"],
     [/Frisk\s+Asker.*$/i, "Frisk Asker"],
-    [/Stavanger\s+Oilers.*$/i, "Oilers"],
-    [/Vålerenga\s+Ishockey.*$/i, "Vålerenga"],
-    [/Narvik\s+Hockey.*$/i, "Narvik"],
-    [/Sparta\s+Sarpsborg.*$/i, "Sparta"],
-    [/Stjernen\s+Hockey.*$/i, "Stjernen"],
-    [/Lillehammer\s+IK.*$/i, "Lillehammer"],
-    [/Nidaros\s+Hockey.*$/i, "Nidaros"],
-    [/Ringerike\s+Panthers.*$/i, "Ringerike"],
+    [/Stavanger.*$/i, "Oilers"],
+    [/Vålerenga.*$/i, "Vålerenga"],
+    [/Narvik.*$/i, "Narvik"],
+    [/Sparta.*$/i, "Sparta"],
+    [/Stjernen.*$/i, "Stjernen"],
+    [/Lillehammer.*$/i, "Lillehammer"],
+    [/Nidaros.*$/i, "Nidaros"],
+    [/Ringerike.*$/i, "Ringerike"],
   ];
-  for (const [pattern, replacement] of replacements) {
-    if (pattern.test(n)) return replacement;
-  }
-  return n.replace(/\s+(Elite|Ishockey|Hockey|IK)\b.*$/i, "").trim();
+  for (const [pattern, replacement] of replacements) if (pattern.test(n)) return replacement;
+  return n
+    .replace(/\bElitehockeyligaen\b/gi, "")
+    .replace(/\bIshockeyklubb\b/gi, "")
+    .replace(/\bIshockey\b/gi, "")
+    .replace(/\bHockey\b/gi, "")
+    .replace(/\s*-?\s*MEN\s*1\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 function initials(name: string) {
-  return shortTeam(name)
-    .split(/\s+/)
-    .map(part => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  return shortTeam(name).split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
 }
 
 function formatKickoff(value: string | null) {
   if (!value) return "Tidspunkt ikke satt";
-  return new Date(value).toLocaleString("no-NO", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return new Date(value).toLocaleString("no-NO", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 }
 
-function timeLeft(value: string | null) {
+function timeLeft(value: string | null, finished = false) {
+  if (finished) return { main: "Ferdig", sub: "Kampen er avsluttet", soon: false, locked: true };
   if (!value) return { main: "–", sub: "Tidspunkt ikke satt", soon: false, locked: false };
   const ms = new Date(value).getTime() - Date.now();
-  if (ms <= 0) return { main: "Låst", sub: "Kampen har startet", soon: false, locked: true };
+  if (ms <= 0) return { main: "I gang", sub: "Tips er låst", soon: false, locked: true };
   const totalHours = Math.floor(ms / 3_600_000);
   const days = Math.floor(totalHours / 24);
   const hours = totalHours % 24;
   const minutes = Math.floor((ms % 3_600_000) / 60_000);
   if (days > 0) return { main: `${days} dager`, sub: hours ? `${hours} timer i tillegg` : "til kampstart", soon: days <= 1, locked: false };
   if (totalHours > 0) return { main: `${totalHours}t ${minutes}m`, sub: "til kampstart", soon: totalHours < 6, locked: false };
-  return { main: `${minutes} min`, sub: "til kampstart", soon: true, locked: false };
+  return { main: `${Math.max(0, minutes)} min`, sub: "til kampstart", soon: true, locked: false };
 }
 
 function resultKind(tip: Tip) {
@@ -84,7 +79,9 @@ export default function PremiumNextMatch() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [tips, setTips] = useState<Tip[]>([]);
   const [uid, setUid] = useState<string | null>(null);
+  const [index, setIndex] = useState(0);
   const [, setTick] = useState(0);
+  const rail = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (pathname !== "/") return;
@@ -92,10 +89,9 @@ export default function PremiumNextMatch() {
       const supabase = getSupabaseBrowserClient();
       if (!supabase) return;
       const { data: session } = await supabase.auth.getSession();
-      const userId = session.session?.user.id || null;
-      setUid(userId);
+      setUid(session.session?.user.id || null);
       const [m, t] = await Promise.all([
-        supabase.from("matches").select("id,home_team,away_team,match_time,finished,round").eq("finished", false).order("match_time", { ascending: true }),
+        supabase.from("matches").select("id,home_team,away_team,match_time,finished,round").order("match_time", { ascending: true }),
         supabase.from("tips").select("player_id,match_id,home_tip,away_tip"),
       ]);
       setMatches((m.data || []) as Match[]);
@@ -107,89 +103,118 @@ export default function PremiumNextMatch() {
     return () => { window.clearInterval(refresh); window.clearInterval(clock); };
   }, [pathname]);
 
-  const next = useMemo(() => {
+  const currentRound = useMemo(() => {
     const now = Date.now();
-    return matches.find(m => !m.match_time || new Date(m.match_time).getTime() > now) || matches[0] || null;
+    const active = matches.find(m => !m.finished && !!m.match_time && new Date(m.match_time).getTime() <= now && m.round !== null);
+    if (active?.round !== null && active?.round !== undefined) return active.round;
+    const next = matches.find(m => !m.finished && (!m.match_time || new Date(m.match_time).getTime() > now) && m.round !== null);
+    return next?.round ?? matches.find(m => m.round !== null)?.round ?? null;
   }, [matches]);
 
-  const matchTips = useMemo(() => next ? tips.filter(t => t.match_id === next.id) : [], [tips, next]);
-  const ownTip = useMemo(() => uid && next ? matchTips.find(t => t.player_id === uid) : undefined, [uid, next, matchTips]);
+  const roundMatches = useMemo(() => {
+    if (currentRound === null) return [];
+    return matches.filter(m => m.round === currentRound).sort((a, b) => (a.match_time || "").localeCompare(b.match_time || ""));
+  }, [matches, currentRound]);
 
-  const distribution = useMemo(() => {
-    const total = matchTips.length;
-    const home = matchTips.filter(t => resultKind(t) === "home").length;
-    const draw = matchTips.filter(t => resultKind(t) === "draw").length;
-    const away = matchTips.filter(t => resultKind(t) === "away").length;
-    const pct = (n: number) => total ? Math.round((n / total) * 100) : 0;
-    return { total, home: pct(home), draw: pct(draw), away: pct(away) };
-  }, [matchTips]);
+  const defaultIndex = useMemo(() => {
+    if (!roundMatches.length) return 0;
+    const now = Date.now();
+    const liveIndex = roundMatches.findIndex(m => !m.finished && !!m.match_time && new Date(m.match_time).getTime() <= now);
+    if (liveIndex >= 0) return liveIndex;
+    const upcomingIndex = roundMatches.findIndex(m => !m.finished && (!m.match_time || new Date(m.match_time).getTime() > now));
+    return upcomingIndex >= 0 ? upcomingIndex : roundMatches.length - 1;
+  }, [roundMatches]);
 
-  if (pathname !== "/" || !next) return null;
+  useEffect(() => {
+    setIndex(defaultIndex);
+    requestAnimationFrame(() => {
+      const r = rail.current;
+      if (r) r.scrollTo({ left: defaultIndex * r.clientWidth, behavior: "auto" });
+    });
+  }, [defaultIndex, currentRound]);
 
-  const left = timeLeft(next.match_time);
-  const locked = left.locked;
-  const statusClass = locked ? "locked" : left.soon ? "soon" : "open";
-  const statusText = locked ? "🔴 Låst" : left.soon ? "🟡 Låser snart" : "🟢 Åpen for tips";
-  const home = shortTeam(next.home_team);
-  const away = shortTeam(next.away_team);
+  function go(nextIndex: number) {
+    const r = rail.current;
+    if (!r || !roundMatches.length) return;
+    const target = Math.max(0, Math.min(roundMatches.length - 1, nextIndex));
+    setIndex(target);
+    r.scrollTo({ left: target * r.clientWidth, behavior: "smooth" });
+  }
+
+  function handleScroll() {
+    const r = rail.current;
+    if (!r || !roundMatches.length || !r.clientWidth) return;
+    const nextIndex = Math.max(0, Math.min(roundMatches.length - 1, Math.round(r.scrollLeft / r.clientWidth)));
+    setIndex(nextIndex);
+  }
+
+  if (pathname !== "/" || !roundMatches.length) return null;
 
   return (
-    <section className="premiumNextWrap">
-      <article className="premiumNextCard">
-        <div className="premiumNextTopline">
-          <span className={`premiumGameStatus ${statusClass}`}>{statusText}</span>
-          <span className="premiumRoundLabel">{next.round ? `Runde ${next.round}` : "EHL 2026/27"}</span>
+    <section className="premiumNextWrap premiumRoundSwipeWrap">
+      <div className="premiumSwipeHeader">
+        <div>
+          <span className="premiumSwipeEyebrow">Kamper i runden</span>
+          <strong>Runde {currentRound}</strong>
         </div>
+        <span className="premiumSwipeCount">{index + 1} / {roundMatches.length}</span>
+      </div>
 
-        <div className="premiumTeams">
-          <div className="premiumTeam">
-            <div className="premiumTeamLogo" aria-hidden>{initials(home)}</div>
-            <strong>{home}</strong>
-            <small>Hjemme</small>
-          </div>
-          <div className="premiumVs">
-            <span>VS</span>
-            <b>{left.main}</b>
-            <small>{left.sub}</small>
-          </div>
-          <div className="premiumTeam">
-            <div className="premiumTeamLogo" aria-hidden>{initials(away)}</div>
-            <strong>{away}</strong>
-            <small>Borte</small>
-          </div>
-        </div>
+      <div className="premiumSwipeFrame">
+        <button type="button" className="premiumSwipeArrow left" onClick={() => go(index - 1)} disabled={index === 0} aria-label="Forrige kamp">‹</button>
+        <div className="premiumSwipeRail" ref={rail} onScroll={handleScroll}>
+          {roundMatches.map(match => {
+            const matchTips = tips.filter(t => t.match_id === match.id);
+            const ownTip = uid ? matchTips.find(t => t.player_id === uid) : undefined;
+            const total = matchTips.length;
+            const homeCount = matchTips.filter(t => resultKind(t) === "home").length;
+            const drawCount = matchTips.filter(t => resultKind(t) === "draw").length;
+            const awayCount = matchTips.filter(t => resultKind(t) === "away").length;
+            const pct = (n: number) => total ? Math.round(n / total * 100) : 0;
+            const distribution = { total, home: pct(homeCount), draw: pct(drawCount), away: pct(awayCount) };
+            const left = timeLeft(match.match_time, match.finished);
+            const locked = left.locked;
+            const statusClass = match.finished || locked ? "locked" : left.soon ? "soon" : "open";
+            const statusText = match.finished ? "🏁 Ferdig" : locked ? "🔴 Låst" : left.soon ? "🟡 Låser snart" : "🟢 Åpen for tips";
+            const home = shortTeam(match.home_team);
+            const away = shortTeam(match.away_team);
 
-        <div className="premiumGameMeta">
-          <span>📅 {formatKickoff(next.match_time)}</span>
-          {next.round && <span>🏒 EHL · Runde {next.round}</span>}
-        </div>
+            return <article className="premiumNextCard premiumSwipeSlide" key={match.id}>
+              <div className="premiumNextTopline">
+                <span className={`premiumGameStatus ${statusClass}`}>{statusText}</span>
+                <span className="premiumRoundLabel">Runde {match.round ?? currentRound}</span>
+              </div>
 
-        <div className="premiumPrediction">
-          <div className="premiumPredictionHead">
-            <span>📊 Tipsfordeling</span>
-            <small>{distribution.total} levert</small>
-          </div>
-          {distribution.total > 0 ? <>
-            <div className="premiumPredictionBar" aria-label={`Hjemme ${distribution.home} prosent, uavgjort ${distribution.draw} prosent, borte ${distribution.away} prosent`}>
-              <i className="home" style={{ width: `${distribution.home}%` }} />
-              <i className="draw" style={{ width: `${distribution.draw}%` }} />
-              <i className="away" style={{ width: `${distribution.away}%` }} />
-            </div>
-            <div className="premiumPredictionLabels">
-              <span>{home} <b>{distribution.home}%</b></span>
-              <span>X <b>{distribution.draw}%</b></span>
-              <span>{away} <b>{distribution.away}%</b></span>
-            </div>
-          </> : <p className="premiumNoTips">Ingen har levert tips på kampen ennå.</p>}
-        </div>
+              <div className="premiumTeams">
+                <div className="premiumTeam"><div className="premiumTeamLogo" aria-hidden>{initials(home)}</div><strong>{home}</strong><small>Hjemme</small></div>
+                <div className="premiumVs"><span>VS</span><b>{left.main}</b><small>{left.sub}</small></div>
+                <div className="premiumTeam"><div className="premiumTeamLogo" aria-hidden>{initials(away)}</div><strong>{away}</strong><small>Borte</small></div>
+              </div>
 
-        <div className="premiumNextActions">
-          <a href={`/match/${next.id}`} className="premiumSecondaryAction">Se kampside</a>
-          <a href={locked ? `/match/${next.id}` : "/tips"} className="premiumMainAction">
-            {locked ? "Se kampen" : ownTip ? `Endre tips · ${ownTip.home_tip}–${ownTip.away_tip}` : "Lever tips"}
-          </a>
+              <div className="premiumGameMeta"><span>📅 {formatKickoff(match.match_time)}</span><span>🏒 EHL · Runde {match.round ?? currentRound}</span></div>
+
+              <div className="premiumPrediction">
+                <div className="premiumPredictionHead"><span>📊 Tipsfordeling</span><small>{distribution.total} levert</small></div>
+                {distribution.total > 0 ? <>
+                  <div className="premiumPredictionBar"><i className="home" style={{ width: `${distribution.home}%` }} /><i className="draw" style={{ width: `${distribution.draw}%` }} /><i className="away" style={{ width: `${distribution.away}%` }} /></div>
+                  <div className="premiumPredictionLabels"><span>{home} <b>{distribution.home}%</b></span><span>X <b>{distribution.draw}%</b></span><span>{away} <b>{distribution.away}%</b></span></div>
+                </> : <p className="premiumNoTips">Ingen har levert tips på kampen ennå.</p>}
+              </div>
+
+              <div className="premiumNextActions">
+                <a href={`/match/${match.id}`} className="premiumSecondaryAction">Se kampside</a>
+                <a href={locked ? `/match/${match.id}` : "/tips"} className="premiumMainAction">{locked ? "Se kampen" : ownTip ? `Endre tips · ${ownTip.home_tip}–${ownTip.away_tip}` : "Lever tips"}</a>
+              </div>
+            </article>;
+          })}
         </div>
-      </article>
+        <button type="button" className="premiumSwipeArrow right" onClick={() => go(index + 1)} disabled={index >= roundMatches.length - 1} aria-label="Neste kamp">›</button>
+      </div>
+
+      <div className="premiumSwipeDots" aria-label="Velg kamp">
+        {roundMatches.map((match, i) => <button type="button" key={match.id} onClick={() => go(i)} className={i === index ? "active" : ""} aria-label={`Kamp ${i + 1}`} />)}
+      </div>
+      <p className="premiumSwipeHint">← Sveip mellom kampene →</p>
     </section>
   );
 }
