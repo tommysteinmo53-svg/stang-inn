@@ -105,15 +105,15 @@ function extractScriptUrls(html: string, pageUrl: string): string[] {
 }
 
 function compactContext(value: string): string {
-  return value.replace(/\s+/g, " ").replace(/[\r\n\t]/g, " ").slice(0, 460);
+  return value.replace(/\s+/g, " ").replace(/[\r\n\t]/g, " ").slice(0, 700);
 }
 
-function contextsAround(js: string, needle: string, radius = 220): string[] {
+function contextsAround(js: string, needle: string, radius = 340): string[] {
   const results: string[] = [];
   let from = 0;
   const lower = js.toLowerCase();
   const target = needle.toLowerCase();
-  while (results.length < 4) {
+  while (results.length < 5) {
     const index = lower.indexOf(target, from);
     if (index < 0) break;
     const start = Math.max(0, index - radius);
@@ -124,33 +124,40 @@ function contextsAround(js: string, needle: string, radius = 220): string[] {
   return results;
 }
 
-function extractTargetedDiagnostics(js: string) {
-  const urls = new Set<string>();
+function extractProxyDiagnostics(js: string) {
   const contexts = new Set<string>();
-
-  for (const match of js.matchAll(/https?:\\?\/\\?\/[^"'`\\\s,;)}]+/gi)) {
-    const candidate = match[0]
-      .replace(/\\\//g, "/")
-      .replace(/\\u002F/gi, "/")
-      .replace(/\\x2F/gi, "/");
-    if (/(api|data|hockey|nif)/i.test(candidate) && candidate.length < 220) urls.add(candidate);
-  }
+  const quotedUrls = new Set<string>();
 
   const needles = [
+    "taReqUrl",
     "TournamentMatches/?tournamentId=",
-    "TournamentStandings/?tournamentId=",
-    "baseURL",
-    "axios.create",
-    "create({baseURL",
     "tm.post",
+    "axios.create",
+    "baseURL",
+    "baseUrl",
+    "fetch(",
   ];
   for (const needle of needles) {
     for (const value of contextsAround(js, needle)) contexts.add(`${needle} => ${value}`);
   }
 
+  for (const match of js.matchAll(/["'`]([^"'`]{1,180})["'`]/g)) {
+    const value = match[1]
+      .replace(/\\\//g, "/")
+      .replace(/\\u002F/gi, "/")
+      .replace(/\\x2F/gi, "/");
+    if (
+      value.length <= 180 &&
+      !/\s/.test(value) &&
+      (/(api|proxy|request|ta)/i.test(value) || /^https?:\/\//i.test(value))
+    ) {
+      quotedUrls.add(value);
+    }
+  }
+
   return {
-    urls: [...urls].slice(0, 15),
-    contexts: [...contexts].slice(0, 14),
+    contexts: [...contexts].slice(0, 22),
+    quotedUrls: [...quotedUrls].slice(0, 35),
   };
 }
 
@@ -186,8 +193,8 @@ export function createHockeyLiveProvider(): MatchProvider {
       }
 
       const scriptUrls = extractScriptUrls(html, url);
-      const foundUrls = new Set<string>();
       const foundContexts = new Set<string>();
+      const foundQuotedUrls = new Set<string>();
 
       for (const scriptUrl of scriptUrls.slice(0, 8)) {
         try {
@@ -197,15 +204,15 @@ export function createHockeyLiveProvider(): MatchProvider {
           });
           if (!jsResponse.ok) continue;
           const js = await jsResponse.text();
-          const diagnostics = extractTargetedDiagnostics(js);
-          diagnostics.urls.forEach((x) => foundUrls.add(x));
+          const diagnostics = extractProxyDiagnostics(js);
           diagnostics.contexts.forEach((x) => foundContexts.add(x));
+          diagnostics.quotedUrls.forEach((x) => foundQuotedUrls.add(x));
         } catch { /* diagnostic fetch only */ }
       }
 
       throw new Error(
-        `HockeyLive målrettet diagnostikk: JS-filer=${scriptUrls.length}. ` +
-        `URL-kandidater=[${[...foundUrls].join(" | ") || "ingen"}]. ` +
+        `HockeyLive proxy-diagnostikk: JS-filer=${scriptUrls.length}. ` +
+        `Strenger=[${[...foundQuotedUrls].join(" | ") || "ingen"}]. ` +
         `Kontekst=[${[...foundContexts].join(" || ") || "ingen"}].`,
       );
     },
