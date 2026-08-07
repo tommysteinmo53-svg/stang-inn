@@ -10,7 +10,7 @@ export type SyncResult = {
   error?: string;
 };
 
-export async function syncMatches(providerName: ProviderName = "nif", manualMatches: ImportedMatch[] = []): Promise<SyncResult> {
+export async function syncMatches(providerName: ProviderName = "hockeylive", manualMatches: ImportedMatch[] = []): Promise<SyncResult> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const secretKey = process.env.SUPABASE_SECRET_KEY;
   if (!supabaseUrl || !secretKey) {
