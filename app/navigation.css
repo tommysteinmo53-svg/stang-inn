@@ -1,0 +1,125 @@
+.mobileNav { display: none !important; }
+
+.topNotificationBell {
+  position: fixed;
+  top: 22px;
+  right: 82px;
+  z-index: 90;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 23, 41, .88);
+  border: 1px solid rgba(97,196,255,.28);
+  color: #f8d982;
+  text-decoration: none;
+  font-size: 19px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.3);
+  backdrop-filter: blur(16px);
+}
+.topNotificationBell b {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #ff6077;
+  color: white;
+  font-size: 10px;
+  border: 2px solid #071421;
+}
+
+.globalMobileNav { display: none; }
+
+.profileActionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.profileActionCard {
+  min-height: 116px;
+  padding: 17px;
+  border-radius: 16px;
+  border: 1px solid rgba(99,157,218,.18);
+  background: linear-gradient(180deg, rgba(13,31,53,.82), rgba(6,19,34,.78));
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: transform .17s ease, border-color .17s ease, background .17s ease;
+}
+.profileActionCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(97,196,255,.38);
+  background: linear-gradient(180deg, rgba(17,40,67,.9), rgba(7,23,40,.88));
+}
+.profileActionCard > span { font-size: 25px; margin-bottom: 9px; }
+.profileActionCard strong { font-size: 16px; }
+.profileActionCard small { color: var(--muted); margin-top: 5px; line-height: 1.35; }
+.adminHub { border-color: rgba(246,202,97,.2); }
+
+@media (max-width: 580px) {
+  .appShell { padding-bottom: 104px !important; }
+
+  .topNotificationBell {
+    position: fixed;
+    top: 145px;
+    right: 78px;
+    width: 40px;
+    height: 40px;
+    font-size: 17px;
+  }
+
+  .globalMobileNav {
+    position: fixed;
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    z-index: 88;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    padding: 7px;
+    border: 1px solid rgba(112,179,255,.26);
+    border-radius: 22px;
+    background: rgba(5,17,30,.94);
+    box-shadow: 0 20px 55px rgba(0,0,0,.52);
+    backdrop-filter: blur(22px) saturate(145%);
+  }
+  .globalMobileNav a {
+    min-width: 0;
+    min-height: 54px;
+    border-radius: 15px;
+    color: var(--muted);
+    text-decoration: none;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 3px;
+    transition: background .17s ease, color .17s ease, transform .17s ease;
+  }
+  .globalMobileNav a:active { transform: scale(.97); }
+  .globalMobileNav a span { font-size: 19px; line-height: 1; }
+  .globalMobileNav a small { font-size: 9px; font-weight: 850; white-space: nowrap; }
+  .globalMobileNav a.active {
+    color: var(--ice);
+    background: linear-gradient(180deg, rgba(34,83,128,.5), rgba(18,48,80,.5));
+    box-shadow: inset 0 0 0 1px rgba(97,196,255,.13);
+  }
+
+  .profileActionGrid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .profileActionCard { min-height: 108px; padding: 14px; }
+  .profileActionCard > span { font-size: 22px; }
+  .profileActionCard strong { font-size: 14px; }
+  .profileActionCard small { font-size: 10px; }
+  .premiumProfileHero { margin-top: 14px; }
+}
+
+@media (min-width: 581px) {
+  .topNotificationBell { top: 30px; right: 30px; }
+}
