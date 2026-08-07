@@ -1,5 +1,6 @@
 import "./globals.css";
 import AuthGate from "../components/AuthGate";
+import SystemStatus from "../components/SystemStatus";
 
 export const metadata = {
   title: "Stang Inn",
@@ -9,7 +10,10 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="no">
-      <body><AuthGate>{children}</AuthGate></body>
+      <body>
+        <AuthGate>{children}</AuthGate>
+        <SystemStatus />
+      </body>
     </html>
   );
 }
