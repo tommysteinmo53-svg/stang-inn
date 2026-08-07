@@ -154,6 +154,7 @@ export default function TipsPage() {
                   : isLocked
                     ? <span className="delivery">🔒 Ingen tips levert</span>
                     : <span className="delivery">⚠ Ikke tippet · låses om {countdown(match.match_time)}</span>}
+              <div style={{ marginTop: 8 }}><a href={`/match/${match.id}`} className="textButton" style={{ textDecoration: "none" }}>Åpne kampside →</a></div>
             </div>
             {me && <TipEditor match={match} existing={existing} playerId={me.id} onSaved={load} />}
           </article>;
