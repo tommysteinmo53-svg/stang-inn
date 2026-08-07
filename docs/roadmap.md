@@ -5,7 +5,12 @@
 - [x] Mørkt hockeytema
 - [x] Dashboard
 - [x] Responsivt mobiloppsett
-- [ ] Fungerende navigasjon mellom sider
+- [x] Fungerende navigasjon mellom sider
+- [x] Kamper-visning
+- [x] Tabelltips-visning
+- [x] Statistikk-visning
+- [x] Awards-visning
+- [x] Profil-visning
 - [ ] Logo og appikon
 
 ## v0.2 – Brukere og database
