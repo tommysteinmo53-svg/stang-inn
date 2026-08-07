@@ -95,6 +95,59 @@ function extractJsonScripts(html: string): unknown[] {
   return payloads;
 }
 
+function extractScriptUrls(html: string): string[] {
+  const urls = new Set<string>();
+  const re = /<script[^>]+src=["']([^"']+)["']/gi;
+  for (const match of html.matchAll(re)) {
+    try { urls.add(new URL(match[1], HOCKEYLIVE_BASE).toString()); } catch { /* ignore */ }
+  }
+  return [...urls];
+}
+
+function extractApiCandidates(source: string): string[] {
+  const found = new Set<string>();
+  const patterns = [
+    /https?:\\?\/\\?\/[^"'`\s]{5,180}/g,
+    /["'`]([^"'`]{0,80}(?:api|schedule|match|tournament|season)[^"'`]{0,120})["'`]/gi,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) {
+      const raw = (match[1] || match[0]).replace(/\\\//g, "/");
+      if (raw.length < 5 || raw.length > 220) continue;
+      if (/sourceMappingURL|webpack|google|sentry|favicon|manifest/i.test(raw)) continue;
+      if (/(api|schedule|match|tournament|season)/i.test(raw)) found.add(raw);
+      if (found.size >= 20) break;
+    }
+    if (found.size >= 20) break;
+  }
+  return [...found];
+}
+
+async function diagnoseBundles(html: string): Promise<{ scripts: string[]; candidates: string[] }> {
+  const scripts = extractScriptUrls(html).slice(0, 16);
+  const candidates = new Set<string>();
+
+  await Promise.all(scripts.map(async (url) => {
+    try {
+      const response = await fetch(url, {
+        headers: { "User-Agent": "StangInn/0.7 (+https://stang-inn-xi.vercel.app)" },
+        cache: "no-store",
+      });
+      if (!response.ok) return;
+      const text = await response.text();
+      for (const candidate of extractApiCandidates(text)) {
+        candidates.add(candidate);
+        if (candidates.size >= 20) break;
+      }
+    } catch {
+      // Diagnostics are best-effort only.
+    }
+  }));
+
+  return { scripts, candidates: [...candidates].slice(0, 20) };
+}
+
 export function createHockeyLiveProvider(): MatchProvider {
   return {
     name: "hockeylive",
@@ -107,7 +160,7 @@ export function createHockeyLiveProvider(): MatchProvider {
       const response = await fetch(url, {
         headers: {
           Accept: "text/html,application/xhtml+xml",
-          "User-Agent": "StangInn/0.6 (+https://stang-inn-xi.vercel.app)",
+          "User-Agent": "StangInn/0.7 (+https://stang-inn-xi.vercel.app)",
         },
         cache: "no-store",
       });
@@ -123,9 +176,13 @@ export function createHockeyLiveProvider(): MatchProvider {
 
       const unique = new Map(normalized.map((match) => [match.externalId, match]));
       if (unique.size === 0) {
+        const diagnostics = await diagnoseBundles(html);
+        const candidateText = diagnostics.candidates.length
+          ? diagnostics.candidates.join(" | ")
+          : "ingen kandidater funnet";
         throw new Error(
-          "HockeyLive-siden svarte, men ingen kampdata ble funnet i innebygd JSON. " +
-          "Provider-diagnostikk må utvides mot HockeyLive sitt interne dataendepunkt.",
+          `HockeyLive diagnostikk: fant ${diagnostics.scripts.length} JS-filer. ` +
+          `Mulige dataendepunkter: ${candidateText}`,
         );
       }
 
