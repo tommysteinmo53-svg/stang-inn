@@ -7,19 +7,22 @@ const items = [
   { href: "/tips", icon: "🏒", label: "Kamper", match: (p: string) => p.startsWith("/tips") || p.startsWith("/match/") },
   { href: "/round", icon: "▤", label: "Runde", match: (p: string) => p.startsWith("/round") },
   { href: "/leaderboard", icon: "🏆", label: "Tabell", match: (p: string) => p.startsWith("/leaderboard") || p.startsWith("/player/") },
-  { href: "/profile", icon: "●", label: "Profil", match: (p: string) => p.startsWith("/profile") || p.startsWith("/admin") },
+  { href: "/profile", icon: "👤", label: "Profil", match: (p: string) => p.startsWith("/profile") || p.startsWith("/admin") },
 ];
 
 export default function GlobalMobileNav() {
   const pathname = usePathname();
   return (
     <nav className="globalMobileNav" aria-label="Hovedmeny">
-      {items.map(item => (
-        <a key={item.href} href={item.href} className={item.match(pathname) ? "active" : ""}>
-          <span>{item.icon}</span>
-          <small>{item.label}</small>
-        </a>
-      ))}
+      {items.map(item => {
+        const active = item.match(pathname);
+        return (
+          <a key={item.href} href={item.href} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
+            <span aria-hidden>{item.icon}</span>
+            <small>{item.label}</small>
+          </a>
+        );
+      })}
     </nav>
   );
 }
