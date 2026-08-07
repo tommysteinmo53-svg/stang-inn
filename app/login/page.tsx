@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../../lib/supabase";
+import styles from "./page.module.css";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -37,21 +38,21 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="loginShell">
-      <section className="loginCard">
-        <div className="brandMark loginMark">🏒</div>
-        <p className="eyebrow">EHL 2026/27</p>
-        <h1>Stang Inn</h1>
-        <p className="muted">Logg inn med e-post for å levere tips og følge ligaen.</p>
+    <main className={styles.shell}>
+      <section className={styles.card}>
+        <div className={styles.mark}>🏒</div>
+        <p className={styles.eyebrow}>EHL 2026/27</p>
+        <h1 className={styles.title}>Stang Inn</h1>
+        <p className={styles.muted}>Logg inn med e-post for å levere tips og følge ligaen.</p>
 
-        <form className="loginForm" onSubmit={submit}>
+        <form className={styles.form} onSubmit={submit}>
           <label htmlFor="email">E-post</label>
           <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="navn@epost.no" />
-          <button className="primaryButton" type="submit" disabled={loading}>{loading ? "Sender …" : "Send innloggingslenke"}</button>
+          <button className={styles.button} type="submit" disabled={loading}>{loading ? "Sender …" : "Send innloggingslenke"}</button>
         </form>
 
-        {!isSupabaseConfigured && <div className="setupNotice">Demo-modus: Supabase-miljøvariablene mangler. Appen kan fortsatt vises lokalt, men innlogging er ikke aktivert.</div>}
-        {message && <p className="loginMessage">{message}</p>}
+        {!isSupabaseConfigured && <div className={styles.notice}>Demo-modus: Supabase-miljøvariablene mangler. Appen kan fortsatt vises lokalt, men innlogging er ikke aktivert.</div>}
+        {message && <p className={styles.message}>{message}</p>}
       </section>
     </main>
   );
