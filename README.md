@@ -21,23 +21,31 @@ Stang Inn skal erstatte Excel-arket med en mobilvennlig webapp der deltakerne ka
 
 ## Supabase-oppsett
 
-1. Kopier `.env.example` til `.env.local`.
-2. Legg inn `NEXT_PUBLIC_SUPABASE_URL` og `NEXT_PUBLIC_SUPABASE_ANON_KEY` fra Supabase-prosjektet.
-3. Åpne Supabase → SQL Editor og kjør hele `supabase/schema.sql`.
+1. Kopier `.env.example` til `.env.local` ved lokal utvikling.
+2. Legg inn `NEXT_PUBLIC_SUPABASE_URL` og `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` fra Supabase-prosjektet.
+3. Åpne Supabase → SQL Editor og kjør `supabase/schema.sql` på et nytt prosjekt. Eksisterende prosjekt kan migreres separat.
 4. Sørg for at Email-provider er aktivert under Authentication.
-5. Start appen med `npm install` og `npm run dev`.
-6. Hver deltaker logger inn én gang med e-post. Profil opprettes automatisk.
-7. Endre `display_name` i `profiles`-tabellen og sett `is_admin = true` på administratoren.
+5. Hver deltaker logger inn én gang med e-post. Appen oppretter en rad i `players` automatisk hvis den mangler.
+6. Endre `display_name` i `players`-tabellen og sett `admin = true` på administratoren.
 
-**Ikke legg hemmelige nøkler i GitHub.** `.env.local` skal forbli lokal og miljøvariabler settes separat i Vercel ved deploy.
+**Ikke legg hemmelige nøkler i GitHub.** Til første deploy trenger nettleserappen bare Project URL og Publishable key. Eventuelle secret/service-role-nøkler kommer senere på serversiden.
 
-Hvis Supabase-miljøvariablene ikke er satt, kjører appen fortsatt i demo-modus slik at designet kan testes.
+Hvis Supabase-miljøvariablene ikke er satt, kjører appen i demo-modus slik at designet fortsatt kan testes.
+
+## Vercel
+
+Sett disse to miljøvariablene før deploy:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+
+Framework preset skal være Next.js og Root Directory skal være `./`.
 
 ## Status
 
 - ✅ v0.1: design, dashboard og fungerende navigasjon
-- ✅ v0.2 kode: Supabase-klient, magic-link-innlogging, profiler, adminrolle og RLS
-- ⏳ Supabase-prosjektet må kobles til med miljøvariabler og SQL-skjema (#4)
+- ✅ v0.2 kode: Supabase-klient, magic-link-innlogging, spillerprofil, adminfelt og RLS
+- ⏳ v0.2b: koble miljøvariabler i Vercel og teste første innlogging
 - 🚧 v0.3: kamptips, poengsystem og EHL-synk
 
 Se [roadmap](docs/roadmap.md) for planen videre.
