@@ -6,6 +6,7 @@ import AnnouncementBanner from "../components/AnnouncementBanner";
 import GlobalMobileNav from "../components/GlobalMobileNav";
 import PremiumPolish from "../components/PremiumPolish";
 import TopStatusBar from "../components/TopStatusBar";
+import PremiumNextMatch from "../components/PremiumNextMatch";
 
 export const metadata = {
   title: "Stang Inn",
@@ -17,7 +18,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="no">
       <body>
         <TopStatusBar />
-        <AuthGate>{children}</AuthGate>
+        <AuthGate>
+          <PremiumNextMatch />
+          {children}
+        </AuthGate>
         <AnnouncementBanner />
         <PremiumPolish />
         <GlobalMobileNav />
