@@ -32,6 +32,6 @@ export async function POST(request: NextRequest) {
 
   if (!player?.admin) return NextResponse.json({ ok: false, error: "Kun admin kan synkronisere." }, { status: 403 });
 
-  const result = await syncMatches("nif");
+  const result = await syncMatches("hockeylive");
   return NextResponse.json(result, { status: result.ok ? 200 : 500 });
 }
