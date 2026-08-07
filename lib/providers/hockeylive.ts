@@ -22,6 +22,18 @@ function teamName(value: any): string | null {
   return first(value.name, value.teamName, value.shortName, value.clubName);
 }
 
+function parseRound(raw: Row): number | null {
+  const direct = numberOrNull(first(raw.round, raw.Round, raw.roundNumber, raw.RoundNumber, raw.roundNo));
+  if (direct !== null) return direct;
+
+  const roundName = first(raw.roundName, raw.RoundName);
+  if (roundName) {
+    const match = String(roundName).match(/\d+/);
+    if (match) return Number(match[0]);
+  }
+  return null;
+}
+
 function matchDateTime(raw: Row): string | null {
   const direct = first(raw.matchStartDate, raw.MatchStartDate, raw.startDate, raw.StartDate, raw.dateTime, raw.startTimeUtc);
   if (direct) {
@@ -32,7 +44,11 @@ function matchDateTime(raw: Row): string | null {
   const dateValue = first(raw.matchDate, raw.MatchDate, raw.date, raw.Date);
   if (!dateValue) return null;
 
-  const dateText = String(dateValue).slice(0, 10);
+  const parsedDate = new Date(String(dateValue));
+  const ymd = !Number.isNaN(parsedDate.getTime())
+    ? `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, "0")}-${String(parsedDate.getDate()).padStart(2, "0")}`
+    : String(dateValue).slice(0, 10);
+
   const timeValue = first(raw.matchStartTime, raw.MatchStartTime, raw.startTime);
   let timeText = "00:00";
 
@@ -41,13 +57,22 @@ function matchDateTime(raw: Row): string | null {
     if (digits.length >= 4) timeText = `${digits.slice(-4, -2)}:${digits.slice(-2)}`;
   }
 
-  const date = new Date(`${dateText}T${timeText}:00+02:00`);
+  // EHL-kampene er oppgitt i norsk lokal tid. September–oktober er normalt UTC+2,
+  // resten av vinteren UTC+1. Date håndteres her konservativt med +02:00; vi kan
+  // senere flytte dette til Europe/Oslo-tidssone dersom API-et ikke allerede gir ISO-tid.
+  const date = new Date(`${ymd}T${timeText}:00+02:00`);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
 function normalize(raw: Row, season: string): ImportedMatch | null {
   const id = first(raw.matchId, raw.MatchId, raw.matchID, raw.id, raw.Id);
+
+  // HockeyLive/Azure bruker lowercase feltnavn: hometeam / awayteam.
+  // OverriddenName brukes først hvis arrangøren har publisert et eget visningsnavn.
   const home = first(
+    raw.hometeamOverriddenName,
+    raw.hometeam,
+    raw.hometeamOrgName,
     raw.homeTeamName,
     raw.HomeTeamName,
     teamName(raw.homeTeam),
@@ -56,6 +81,9 @@ function normalize(raw: Row, season: string): ImportedMatch | null {
     raw.teamNameHome,
   );
   const away = first(
+    raw.awayteamOverriddenName,
+    raw.awayteam,
+    raw.awayteamOrgName,
     raw.awayTeamName,
     raw.AwayTeamName,
     teamName(raw.awayTeam),
@@ -63,19 +91,38 @@ function normalize(raw: Row, season: string): ImportedMatch | null {
     teamName(raw.away),
     raw.teamNameAway,
   );
-  const time = matchDateTime(raw);
 
+  const time = matchDateTime(raw);
   if (!id || !home || !away || !time) return null;
 
-  const homeScore = numberOrNull(first(raw.homeTeamGoals, raw.HomeTeamGoals, raw.homeScore, raw.HomeScore, raw.homeGoals));
-  const awayScore = numberOrNull(first(raw.awayTeamGoals, raw.AwayTeamGoals, raw.awayScore, raw.AwayScore, raw.awayGoals));
+  const homeScore = numberOrNull(first(
+    raw.hometeamScore,
+    raw.homeTeamScore,
+    raw.hometeamGoals,
+    raw.homeTeamGoals,
+    raw.HomeTeamGoals,
+    raw.homeScore,
+    raw.HomeScore,
+    raw.homeGoals,
+  ));
+  const awayScore = numberOrNull(first(
+    raw.awayteamScore,
+    raw.awayTeamScore,
+    raw.awayteamGoals,
+    raw.awayTeamGoals,
+    raw.AwayTeamGoals,
+    raw.awayScore,
+    raw.AwayScore,
+    raw.awayGoals,
+  ));
+
   const statusTypeId = numberOrNull(raw.statusTypeId);
   const finishedByStatus = statusTypeId !== null && statusTypeId >= 4;
 
   return {
     externalId: `hockeylive:${id}`,
     season,
-    round: numberOrNull(first(raw.round, raw.Round, raw.roundNumber, raw.RoundNumber, raw.roundNo)),
+    round: parseRound(raw),
     homeTeam: String(home),
     awayTeam: String(away),
     matchTime: time,
@@ -115,7 +162,8 @@ export function createHockeyLiveProvider(): MatchProvider {
       const unique = new Map(normalized.map((match) => [match.externalId, match]));
 
       if (!unique.size) {
-        const sampleKeys = rows[0] ? Object.keys(rows[0]).slice(0, 30).join(", ") : "ingen rader";
+        const sample = rows[0] ?? {};
+        const sampleKeys = Object.keys(sample).slice(0, 45).join(", ") || "ingen rader";
         throw new Error(`HockeyLive API svarte med ${rows.length} kamper, men 0 kunne normaliseres. Første rad-felter: ${sampleKeys}`);
       }
 
