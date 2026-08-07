@@ -1,0 +1,191 @@
+.premiumNextWrap {
+  width: min(1160px, calc(100% - 32px));
+  margin: 16px auto 0;
+}
+
+.premiumNextCard {
+  position: relative;
+  overflow: hidden;
+  padding: 22px;
+  border-radius: 26px;
+  border: 1px solid rgba(97,196,255,.28);
+  background:
+    radial-gradient(circle at 15% 15%, rgba(97,196,255,.12), transparent 28%),
+    radial-gradient(circle at 85% 10%, rgba(196,168,255,.10), transparent 30%),
+    linear-gradient(135deg, rgba(12,33,56,.96), rgba(7,20,35,.96));
+  box-shadow: 0 26px 70px rgba(0,0,0,.34), inset 0 1px rgba(255,255,255,.04);
+  backdrop-filter: blur(18px) saturate(145%);
+}
+
+.premiumNextTopline,
+.premiumPredictionHead,
+.premiumNextActions,
+.premiumPredictionLabels,
+.premiumGameMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.premiumGameStatus,
+.premiumRoundLabel {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.premiumGameStatus.open { color: #8ff0c5; background: rgba(84,222,168,.08); border: 1px solid rgba(84,222,168,.22); }
+.premiumGameStatus.soon { color: #f6d77a; background: rgba(246,202,97,.08); border: 1px solid rgba(246,202,97,.22); }
+.premiumGameStatus.locked { color: #ff9aaa; background: rgba(255,96,119,.08); border: 1px solid rgba(255,96,119,.22); }
+.premiumRoundLabel { color: var(--muted); border: 1px solid rgba(99,157,218,.16); background: rgba(255,255,255,.02); }
+
+.premiumTeams {
+  display: grid;
+  grid-template-columns: 1fr minmax(120px, .7fr) 1fr;
+  gap: 18px;
+  align-items: center;
+  margin: 24px 0 18px;
+}
+
+.premiumTeam {
+  min-width: 0;
+  text-align: center;
+}
+.premiumTeamLogo {
+  width: 82px;
+  height: 82px;
+  margin: 0 auto 11px;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  color: #eaf7ff;
+  font-size: 25px;
+  font-weight: 950;
+  letter-spacing: -.04em;
+  border: 1px solid rgba(97,196,255,.28);
+  background: linear-gradient(145deg, rgba(31,79,123,.96), rgba(8,28,47,.96));
+  box-shadow: 0 16px 32px rgba(0,0,0,.24), inset 0 1px rgba(255,255,255,.07);
+}
+.premiumTeam strong {
+  display: block;
+  font-size: clamp(20px, 3vw, 30px);
+  line-height: 1.05;
+  letter-spacing: -.035em;
+}
+.premiumTeam small { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 850; }
+
+.premiumVs { text-align: center; }
+.premiumVs > span {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid rgba(97,196,255,.24);
+  background: rgba(5,17,30,.72);
+  color: var(--ice);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .1em;
+}
+.premiumVs b {
+  display: block;
+  margin-top: 10px;
+  color: var(--gold);
+  font-size: clamp(25px, 4vw, 38px);
+  line-height: 1;
+  letter-spacing: -.045em;
+}
+.premiumVs small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+
+.premiumGameMeta {
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 12px 0 16px;
+  color: #b7c9dd;
+  font-size: 11px;
+  font-weight: 800;
+  border-top: 1px solid rgba(99,157,218,.12);
+}
+.premiumGameMeta span { padding: 0 6px; }
+
+.premiumPrediction {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(4,16,29,.62);
+  border: 1px solid rgba(99,157,218,.14);
+}
+.premiumPredictionHead { margin-bottom: 10px; }
+.premiumPredictionHead span { font-size: 12px; font-weight: 900; }
+.premiumPredictionHead small { color: var(--muted); font-size: 10px; }
+.premiumPredictionBar {
+  height: 10px;
+  overflow: hidden;
+  display: flex;
+  border-radius: 999px;
+  background: rgba(255,255,255,.05);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.28);
+}
+.premiumPredictionBar i { display: block; height: 100%; transition: width .35s ease; }
+.premiumPredictionBar .home { background: linear-gradient(90deg, #54dea8, #79efbf); }
+.premiumPredictionBar .draw { background: linear-gradient(90deg, #f6ca61, #f7dc91); }
+.premiumPredictionBar .away { background: linear-gradient(90deg, #61c4ff, #8ed7ff); }
+.premiumPredictionLabels { margin-top: 8px; font-size: 10px; color: var(--muted); }
+.premiumPredictionLabels span { min-width: 0; text-align: center; }
+.premiumPredictionLabels b { color: var(--text); }
+.premiumNoTips { margin: 0; color: var(--muted); font-size: 11px; text-align: center; }
+
+.premiumNextActions { margin-top: 14px; }
+.premiumNextActions a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 15px;
+  border-radius: 13px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 950;
+  transition: transform .16s ease, filter .16s ease, border-color .16s ease;
+}
+.premiumNextActions a:active { transform: scale(.98); }
+.premiumSecondaryAction {
+  color: #b6c9df;
+  border: 1px solid rgba(99,157,218,.2);
+  background: rgba(255,255,255,.025);
+}
+.premiumMainAction {
+  min-width: 160px;
+  color: #04101c;
+  background: linear-gradient(180deg, #74d0ff, #3aafea);
+  box-shadow: 0 10px 26px rgba(49,169,241,.18), inset 0 1px rgba(255,255,255,.3);
+}
+
+/* Hide only the legacy home hero; the new component sits immediately before main.appShell. */
+.premiumNextWrap + main.appShell > .topbar + .heroCard,
+.premiumNextWrap + main.appShell > .topbar + .navTabs + .heroCard {
+  display: none !important;
+}
+
+@media (max-width: 580px) {
+  .premiumNextWrap { width: calc(100% - 18px); margin-top: 10px; }
+  .premiumNextCard { padding: 16px; border-radius: 22px; }
+  .premiumTeams { grid-template-columns: 1fr 86px 1fr; gap: 8px; margin: 18px 0 14px; }
+  .premiumTeamLogo { width: 64px; height: 64px; border-radius: 19px; font-size: 20px; margin-bottom: 8px; }
+  .premiumTeam strong { font-size: clamp(18px, 5.7vw, 24px); overflow-wrap: anywhere; }
+  .premiumVs > span { width: 40px; height: 40px; }
+  .premiumVs b { font-size: 24px; }
+  .premiumVs small { font-size: 9px; line-height: 1.25; }
+  .premiumGameMeta { align-items: flex-start; flex-direction: column; gap: 4px; font-size: 10px; }
+  .premiumPredictionLabels { align-items: flex-start; }
+  .premiumPredictionLabels span:first-child { text-align: left; }
+  .premiumPredictionLabels span:last-child { text-align: right; }
+  .premiumNextActions { display: grid; grid-template-columns: 1fr 1.35fr; }
+  .premiumNextActions a { width: 100%; min-width: 0; padding-inline: 10px; }
+}
