@@ -3,12 +3,14 @@ import "./navigation.css";
 import "./premium-polish.css";
 import "./premium-next-match.css";
 import "./round-carousel.css";
+import "./home-live-table.css";
 import AuthGate from "../components/AuthGate";
 import AnnouncementBanner from "../components/AnnouncementBanner";
 import GlobalMobileNav from "../components/GlobalMobileNav";
 import PremiumPolish from "../components/PremiumPolish";
 import TopStatusBar from "../components/TopStatusBar";
 import PremiumNextMatch from "../components/PremiumNextMatch";
+import HomeLiveTable from "../components/HomeLiveTable";
 
 export const metadata = {
   title: "Stang Inn",
@@ -22,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <TopStatusBar />
         <AuthGate>
           <PremiumNextMatch />
+          <HomeLiveTable />
           {children}
         </AuthGate>
         <AnnouncementBanner />
