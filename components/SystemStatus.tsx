@@ -20,7 +20,6 @@ function Dot({ ok }: { ok: boolean }) {
 export default function SystemStatus() {
   const [data, setData] = useState<StatusPayload | null>(null);
   const [open, setOpen] = useState(false);
-  const [clicks, setClicks] = useState(0);
 
   useEffect(() => {
     fetch("/api/system-status", { cache: "no-store" })
@@ -29,11 +28,6 @@ export default function SystemStatus() {
       .catch(() => setData(null));
   }, []);
 
-  function toggle() {
-    setClicks((value) => value + 1);
-    setOpen(true);
-  }
-
   const commit = data?.commit || "…";
   const version = data?.version || "0.7.0";
 
@@ -41,24 +35,27 @@ export default function SystemStatus() {
     <>
       <button
         type="button"
-        onClick={toggle}
+        onClick={() => setOpen(true)}
         title="Åpne systemstatus"
+        aria-label={`Stang Inn versjon ${version}, commit ${commit}`}
         style={{
           position: "fixed",
-          left: 12,
-          bottom: 12,
-          zIndex: 80,
-          border: "1px solid #223a5d",
-          borderRadius: 12,
-          padding: "8px 10px",
-          background: "rgba(8,20,37,.94)",
-          color: "#dbe8f8",
-          fontSize: 11,
-          fontWeight: 800,
-          boxShadow: "0 10px 28px rgba(0,0,0,.28)",
+          top: 116,
+          left: 14,
+          zIndex: 74,
+          border: "1px solid rgba(97,196,255,.22)",
+          borderRadius: 999,
+          padding: "6px 9px",
+          background: "rgba(5,15,27,.78)",
+          backdropFilter: "blur(14px)",
+          color: "#90a6c2",
+          fontSize: 10,
+          fontWeight: 850,
+          letterSpacing: ".01em",
+          boxShadow: "0 8px 22px rgba(0,0,0,.18)",
         }}
       >
-        🏒 Stang Inn · v{version} · {commit}
+        v{version} · {commit}
       </button>
 
       {open && (
@@ -77,7 +74,7 @@ export default function SystemStatus() {
               <div>
                 <div style={{ color: "#55b8ff", textTransform: "uppercase", letterSpacing: ".12em", fontSize: 11, fontWeight: 900 }}>Utviklerpanel</div>
                 <h2 style={{ margin: "6px 0 4px" }}>Stang Inn systemstatus</h2>
-                <p style={{ color: "#96a9c5", margin: 0, fontSize: 13 }}>Trygt diagnosepanel uten hemmelige nøkler.</p>
+                <p style={{ color: "#96a9c5", margin: 0, fontSize: 13 }}>Versjon, commit og tjenestestatus.</p>
               </div>
               <button onClick={() => setOpen(false)} style={{ border: 0, borderRadius: 10, padding: "7px 10px", background: "#142640", color: "white" }}>✕</button>
             </div>
@@ -104,13 +101,6 @@ export default function SystemStatus() {
                 </div>
               )) : <p style={{ color: "#96a9c5" }}>Laster status …</p>}
             </div>
-
-            {clicks >= 5 && (
-              <div style={{ marginTop: 18, padding: 14, borderRadius: 12, border: "1px solid rgba(245,196,81,.35)", background: "rgba(245,196,81,.08)" }}>
-                <strong style={{ color: "#f5c451" }}>🛠 Developer mode aktiv</strong>
-                <p style={{ color: "#c9d6e8", fontSize: 12, margin: "6px 0 0" }}>Fem klikk er registrert. Vi kan senere legge inn provider-test, loggvisning og cache-verktøy her.</p>
-              </div>
-            )}
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 18 }}>
               <a href="/admin" style={{ textDecoration: "none", padding: "9px 12px", borderRadius: 10, background: "#55b8ff", color: "#06101d", fontWeight: 900 }}>Åpne Admin</a>
