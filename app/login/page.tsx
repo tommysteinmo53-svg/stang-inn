@@ -29,12 +29,13 @@ export default function LoginPage() {
 
     setLoading(true);
     setMessage("");
+
     const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin },
+      email: email.trim(),
     });
+
     setLoading(false);
-    setMessage(error ? error.message : "Innloggingslenken er sendt. Sjekk e-posten din 🏒");
+    setMessage(error ? `${error.message}${error.status ? ` (HTTP ${error.status})` : ""}` : "Innloggingslenken er sendt. Sjekk e-posten din 🏒");
   }
 
   return (
@@ -47,7 +48,7 @@ export default function LoginPage() {
 
         <form className={styles.form} onSubmit={submit}>
           <label htmlFor="email">E-post</label>
-          <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="navn@epost.no" />
+          <input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="navn@epost.no" />
           <button className={styles.button} type="submit" disabled={loading}>{loading ? "Sender …" : "Send innloggingslenke"}</button>
         </form>
 
