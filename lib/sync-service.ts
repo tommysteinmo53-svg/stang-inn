@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { getMatchProvider, type ProviderName } from "./providers";
+import { scoreFinishedMatches } from "./score-engine";
 import type { ImportedMatch } from "../types/data-provider";
 
 export type SyncResult = {
@@ -7,6 +8,8 @@ export type SyncResult = {
   provider: string;
   imported: number;
   finished: number;
+  tipsScored: number;
+  tipsChanged: number;
   error?: string;
 };
 
@@ -14,7 +17,15 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const secretKey = process.env.SUPABASE_SECRET_KEY;
   if (!supabaseUrl || !secretKey) {
-    return { ok: false, provider: providerName, imported: 0, finished: 0, error: "Supabase server-variabler mangler." };
+    return {
+      ok: false,
+      provider: providerName,
+      imported: 0,
+      finished: 0,
+      tipsScored: 0,
+      tipsChanged: 0,
+      error: "Supabase server-variabler mangler.",
+    };
   }
 
   const provider = getMatchProvider(providerName, manualMatches);
@@ -42,11 +53,17 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
       if (error) throw error;
     }
 
-    const result = {
+    // Idempotent poengmotor: kjøres etter hver synk. Dersom HockeyLive korrigerer
+    // et resultat senere, korrigeres også tips-poengene automatisk neste gang.
+    const scoring = await scoreFinishedMatches(supabase);
+
+    const result: SyncResult = {
       ok: true,
       provider: provider.name,
       imported: rows.length,
       finished: rows.filter((row) => row.finished).length,
+      tipsScored: scoring.tipsScored,
+      tipsChanged: scoring.tipsChanged,
     };
 
     await supabase.from("sync_runs").insert({
@@ -70,6 +87,14 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
       finished_count: 0,
       error_message: message,
     });
-    return { ok: false, provider: provider.name, imported: 0, finished: 0, error: message };
+    return {
+      ok: false,
+      provider: provider.name,
+      imported: 0,
+      finished: 0,
+      tipsScored: 0,
+      tipsChanged: 0,
+      error: message,
+    };
   }
 }
