@@ -1,163 +1,87 @@
 import type { ImportedMatch, MatchProvider } from "../../types/data-provider";
 
-const HOCKEYLIVE_BASE = "https://live.hockey.no";
-const DEFAULT_SEASON_ID = "201071";
+const API_BASE = "https://sf34-terminlister-prod-app.azurewebsites.net/";
 const DEFAULT_TOURNAMENT_ID = "448981";
 const DEFAULT_SEASON_LABEL = "2026/27";
 
-type AnyObject = Record<string, any>;
+type Row = Record<string, any>;
 
-function first<T>(...values: T[]): T | null {
-  for (const value of values) {
-    if (value !== undefined && value !== null && value !== "") return value;
-  }
-  return null;
+function first(...values: any[]) {
+  return values.find((value) => value !== undefined && value !== null && value !== "") ?? null;
 }
 
-function asNumber(value: unknown): number | null {
+function numberOrNull(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
 
-function asIsoDate(value: unknown): string | null {
+function teamName(value: any): string | null {
   if (!value) return null;
-  const date = new Date(String(value));
+  if (typeof value === "string") return value;
+  return first(value.name, value.teamName, value.shortName, value.clubName);
+}
+
+function matchDateTime(raw: Row): string | null {
+  const direct = first(raw.matchStartDate, raw.MatchStartDate, raw.startDate, raw.StartDate, raw.dateTime, raw.startTimeUtc);
+  if (direct) {
+    const date = new Date(String(direct));
+    if (!Number.isNaN(date.getTime())) return date.toISOString();
+  }
+
+  const dateValue = first(raw.matchDate, raw.MatchDate, raw.date, raw.Date);
+  if (!dateValue) return null;
+
+  const dateText = String(dateValue).slice(0, 10);
+  const timeValue = first(raw.matchStartTime, raw.MatchStartTime, raw.startTime);
+  let timeText = "00:00";
+
+  if (timeValue !== null) {
+    const digits = String(timeValue).replace(/\D/g, "").padStart(4, "0");
+    if (digits.length >= 4) timeText = `${digits.slice(-4, -2)}:${digits.slice(-2)}`;
+  }
+
+  const date = new Date(`${dateText}T${timeText}:00+02:00`);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-function looksLikeMatch(obj: AnyObject) {
-  const home = first(obj.homeTeamName, obj.HomeTeamName, obj.homeTeam?.name, obj.HomeTeam?.name, obj.home?.name);
-  const away = first(obj.awayTeamName, obj.AwayTeamName, obj.awayTeam?.name, obj.AwayTeam?.name, obj.away?.name);
-  const id = first(obj.matchId, obj.MatchId, obj.MatchID, obj.id, obj.Id);
-  return Boolean(home && away && id);
-}
+function normalize(raw: Row, season: string): ImportedMatch | null {
+  const id = first(raw.matchId, raw.MatchId, raw.matchID, raw.id, raw.Id);
+  const home = first(
+    raw.homeTeamName,
+    raw.HomeTeamName,
+    teamName(raw.homeTeam),
+    teamName(raw.HomeTeam),
+    teamName(raw.home),
+    raw.teamNameHome,
+  );
+  const away = first(
+    raw.awayTeamName,
+    raw.AwayTeamName,
+    teamName(raw.awayTeam),
+    teamName(raw.AwayTeam),
+    teamName(raw.away),
+    raw.teamNameAway,
+  );
+  const time = matchDateTime(raw);
 
-function normalize(raw: AnyObject, seasonLabel: string): ImportedMatch | null {
-  const externalId = String(first(raw.matchId, raw.MatchId, raw.MatchID, raw.id, raw.Id) ?? "");
-  const homeTeam = first(raw.homeTeamName, raw.HomeTeamName, raw.homeTeam?.name, raw.HomeTeam?.name, raw.home?.name);
-  const awayTeam = first(raw.awayTeamName, raw.AwayTeamName, raw.awayTeam?.name, raw.AwayTeam?.name, raw.away?.name);
-  const matchTime = asIsoDate(first(
-    raw.matchStartDate,
-    raw.MatchStartDate,
-    raw.matchDate,
-    raw.MatchDate,
-    raw.startDate,
-    raw.StartDate,
-    raw.date,
-    raw.Date,
-    raw.startTime,
-  ));
-  const round = asNumber(first(raw.round, raw.Round, raw.roundNumber, raw.RoundNumber, raw.roundNo, raw.RoundNo));
-  const homeScore = asNumber(first(raw.homeTeamGoals, raw.HomeTeamGoals, raw.homeScore, raw.HomeScore, raw.homeGoals));
-  const awayScore = asNumber(first(raw.awayTeamGoals, raw.AwayTeamGoals, raw.awayScore, raw.AwayScore, raw.awayGoals));
+  if (!id || !home || !away || !time) return null;
 
-  if (!externalId || !homeTeam || !awayTeam || !matchTime) return null;
+  const homeScore = numberOrNull(first(raw.homeTeamGoals, raw.HomeTeamGoals, raw.homeScore, raw.HomeScore, raw.homeGoals));
+  const awayScore = numberOrNull(first(raw.awayTeamGoals, raw.AwayTeamGoals, raw.awayScore, raw.AwayScore, raw.awayGoals));
+  const statusTypeId = numberOrNull(raw.statusTypeId);
+  const finishedByStatus = statusTypeId !== null && statusTypeId >= 4;
 
   return {
-    externalId: `hockeylive:${externalId}`,
-    season: seasonLabel,
-    round,
-    homeTeam: String(homeTeam),
-    awayTeam: String(awayTeam),
-    matchTime,
+    externalId: `hockeylive:${id}`,
+    season,
+    round: numberOrNull(first(raw.round, raw.Round, raw.roundNumber, raw.RoundNumber, raw.roundNo)),
+    homeTeam: String(home),
+    awayTeam: String(away),
+    matchTime: time,
     homeScore,
     awayScore,
-    finished: homeScore !== null && awayScore !== null,
-  };
-}
-
-function collectMatchObjects(value: unknown, output: AnyObject[] = [], seen = new Set<unknown>()): AnyObject[] {
-  if (!value || typeof value !== "object" || seen.has(value)) return output;
-  seen.add(value);
-
-  if (!Array.isArray(value) && looksLikeMatch(value as AnyObject)) output.push(value as AnyObject);
-
-  if (Array.isArray(value)) {
-    for (const item of value) collectMatchObjects(item, output, seen);
-  } else {
-    for (const child of Object.values(value as AnyObject)) collectMatchObjects(child, output, seen);
-  }
-  return output;
-}
-
-function extractJsonScripts(html: string): unknown[] {
-  const payloads: unknown[] = [];
-  const scriptRegex = /<script[^>]*type=["']application\/json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  for (const match of html.matchAll(scriptRegex)) {
-    try { payloads.push(JSON.parse(match[1])); } catch { /* ignore non-JSON */ }
-  }
-
-  const nextData = html.match(/<script[^>]*id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i);
-  if (nextData?.[1]) {
-    try { payloads.push(JSON.parse(nextData[1])); } catch { /* ignore */ }
-  }
-  return payloads;
-}
-
-function extractScriptUrls(html: string, pageUrl: string): string[] {
-  const urls = new Set<string>();
-  const regex = /<script[^>]+src=["']([^"']+\.js(?:\?[^"']*)?)["']/gi;
-  for (const match of html.matchAll(regex)) {
-    try { urls.add(new URL(match[1], pageUrl).toString()); } catch { /* ignore */ }
-  }
-  return [...urls];
-}
-
-function compactContext(value: string): string {
-  return value.replace(/\s+/g, " ").replace(/[\r\n\t]/g, " ").slice(0, 700);
-}
-
-function contextsAround(js: string, needle: string, radius = 340): string[] {
-  const results: string[] = [];
-  let from = 0;
-  const lower = js.toLowerCase();
-  const target = needle.toLowerCase();
-  while (results.length < 5) {
-    const index = lower.indexOf(target, from);
-    if (index < 0) break;
-    const start = Math.max(0, index - radius);
-    const end = Math.min(js.length, index + target.length + radius);
-    results.push(compactContext(js.slice(start, end)));
-    from = index + target.length;
-  }
-  return results;
-}
-
-function extractProxyDiagnostics(js: string) {
-  const contexts = new Set<string>();
-  const quotedUrls = new Set<string>();
-
-  const needles = [
-    "taReqUrl",
-    "TournamentMatches/?tournamentId=",
-    "tm.post",
-    "axios.create",
-    "baseURL",
-    "baseUrl",
-    "fetch(",
-  ];
-  for (const needle of needles) {
-    for (const value of contextsAround(js, needle)) contexts.add(`${needle} => ${value}`);
-  }
-
-  for (const match of js.matchAll(/["'`]([^"'`]{1,180})["'`]/g)) {
-    const value = match[1]
-      .replace(/\\\//g, "/")
-      .replace(/\\u002F/gi, "/")
-      .replace(/\\x2F/gi, "/");
-    if (
-      value.length <= 180 &&
-      !/\s/.test(value) &&
-      (/(api|proxy|request|ta)/i.test(value) || /^https?:\/\//i.test(value))
-    ) {
-      quotedUrls.add(value);
-    }
-  }
-
-  return {
-    contexts: [...contexts].slice(0, 22),
-    quotedUrls: [...quotedUrls].slice(0, 35),
+    finished: finishedByStatus || (homeScore !== null && awayScore !== null),
   };
 }
 
@@ -165,56 +89,37 @@ export function createHockeyLiveProvider(): MatchProvider {
   return {
     name: "hockeylive",
     async fetchMatches() {
-      const seasonId = process.env.HOCKEYLIVE_SEASON_ID || DEFAULT_SEASON_ID;
       const tournamentId = process.env.HOCKEYLIVE_TOURNAMENT_ID || DEFAULT_TOURNAMENT_ID;
-      const seasonLabel = process.env.NIF_SEASON_LABEL || DEFAULT_SEASON_LABEL;
-      const url = `${HOCKEYLIVE_BASE}/schedule?seasonId=${encodeURIComponent(seasonId)}&tournamentId=${encodeURIComponent(tournamentId)}`;
+      const season = process.env.NIF_SEASON_LABEL || DEFAULT_SEASON_LABEL;
+      const endpoint = `${API_BASE}ta/TournamentMatches/?tournamentId=${encodeURIComponent(tournamentId)}`;
 
-      const response = await fetch(url, {
+      const response = await fetch(endpoint, {
         headers: {
-          Accept: "text/html,application/xhtml+xml",
-          "User-Agent": "StangInn/0.7 (+https://stang-inn-xi.vercel.app)",
+          Accept: "application/json",
+          "User-Agent": "StangInn/0.8 (+https://stang-inn-xi.vercel.app)",
         },
         cache: "no-store",
       });
 
-      if (!response.ok) throw new Error(`HockeyLive svarte ${response.status}`);
-      const html = await response.text();
+      if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`HockeyLive API svarte ${response.status}: ${body.slice(0, 180)}`);
+      }
 
-      const payloads = extractJsonScripts(html);
-      const rawMatches = payloads.flatMap((payload) => collectMatchObjects(payload));
-      const normalized = rawMatches
-        .map((raw) => normalize(raw, seasonLabel))
-        .filter(Boolean) as ImportedMatch[];
+      const payload = await response.json();
+      const rows: Row[] = Array.isArray(payload) ? payload : payload?.matches ?? payload?.data?.matches ?? [];
 
+      // Samme statusfilter som HockeyLive-klienten bruker.
+      const published = rows.filter((row) => row.statusTypeId == null || (row.statusTypeId >= 1 && row.statusTypeId <= 5));
+      const normalized = published.map((row) => normalize(row, season)).filter(Boolean) as ImportedMatch[];
       const unique = new Map(normalized.map((match) => [match.externalId, match]));
-      if (unique.size > 0) {
-        return [...unique.values()].sort((a, b) => a.matchTime.localeCompare(b.matchTime));
+
+      if (!unique.size) {
+        const sampleKeys = rows[0] ? Object.keys(rows[0]).slice(0, 30).join(", ") : "ingen rader";
+        throw new Error(`HockeyLive API svarte med ${rows.length} kamper, men 0 kunne normaliseres. Første rad-felter: ${sampleKeys}`);
       }
 
-      const scriptUrls = extractScriptUrls(html, url);
-      const foundContexts = new Set<string>();
-      const foundQuotedUrls = new Set<string>();
-
-      for (const scriptUrl of scriptUrls.slice(0, 8)) {
-        try {
-          const jsResponse = await fetch(scriptUrl, {
-            headers: { "User-Agent": "StangInn/0.7 (+https://stang-inn-xi.vercel.app)" },
-            cache: "no-store",
-          });
-          if (!jsResponse.ok) continue;
-          const js = await jsResponse.text();
-          const diagnostics = extractProxyDiagnostics(js);
-          diagnostics.contexts.forEach((x) => foundContexts.add(x));
-          diagnostics.quotedUrls.forEach((x) => foundQuotedUrls.add(x));
-        } catch { /* diagnostic fetch only */ }
-      }
-
-      throw new Error(
-        `HockeyLive proxy-diagnostikk: JS-filer=${scriptUrls.length}. ` +
-        `Strenger=[${[...foundQuotedUrls].join(" | ") || "ingen"}]. ` +
-        `Kontekst=[${[...foundContexts].join(" || ") || "ingen"}].`,
-      );
+      return [...unique.values()].sort((a, b) => a.matchTime.localeCompare(b.matchTime));
     },
   };
 }
