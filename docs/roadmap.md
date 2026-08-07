@@ -18,15 +18,14 @@
 - [x] Innlogging med e-post / magic link
 - [x] Profilmodell for fire deltakere
 - [x] Adminrolle i profilmodellen
-- [x] Row Level Security for profiler
-- [ ] Koble faktiske Supabase-miljøvariabler og kjøre schema (#4)
+- [x] Row Level Security
+- [x] Supabase + Vercel produksjonsdeploy
 
 ## v0.3 – Tipping
-- [ ] Terminliste
-- [ ] Kamptips
-- [ ] Tips låses ved kampstart
-- [ ] 5 poeng eksakt / 3 poeng riktig utfall
-- [ ] Sammenlagttabell
+- [x] Kamptips lagres i Supabase
+- [x] Tips låses ved kampstart
+- [x] 5 poeng eksakt / 3 poeng riktig utfall
+- [x] Sammenlagttabell fra ekte data
 - [ ] Historikk
 
 ## v0.4 – Tabelltips
@@ -49,13 +48,17 @@
 - [ ] Troféskap / Hall of Fame
 
 ## v0.6 – EHL-automatikk
-- [ ] HockeyLive/NIF terminliste
-- [ ] Automatisk resultatoppdatering
+- [x] Utskiftbart dataprovider-lag
+- [x] NIF TournamentMatches-provider
+- [x] Felles importservice
+- [x] Adminside for manuell EHL-synk
+- [x] Synklogg / audit trail
+- [ ] Bekreftet NIF API-tilgang i produksjon
+- [ ] Automatisk resultatoppdatering / cron
 - [ ] Automatisk EHL-tabell
-- [ ] Planlagt synkronisering
 
 ## v1.0 – Sesongklar
 - [ ] PWA / legg til på hjemskjerm
 - [ ] Påminnelse om manglende tips
-- [ ] Produksjonsdeploy på Vercel
+- [x] Produksjonsdeploy på Vercel
 - [ ] Sesongarkiv og rekorder
