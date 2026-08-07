@@ -20,8 +20,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             zIndex: 80,
             display: "flex",
             gap: 8,
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+            maxWidth: "calc(100vw - 28px)",
           }}
         >
+          <a
+            href="/tips"
+            aria-label="Åpne tipssiden"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 11px",
+              borderRadius: 999,
+              border: "1px solid rgba(245,196,81,.32)",
+              background: "rgba(8,23,41,.94)",
+              color: "#f8d982",
+              textDecoration: "none",
+              fontSize: 12,
+              fontWeight: 900,
+              boxShadow: "0 8px 24px rgba(0,0,0,.25)",
+            }}
+          >
+            ✍️ Tips
+          </a>
           <a
             href="/leaderboard"
             aria-label="Åpne sammenlagt-tabellen"
