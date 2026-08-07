@@ -16,10 +16,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="no">
       <body>
+        <TopStatusBar />
         <AuthGate>{children}</AuthGate>
         <AnnouncementBanner />
         <PremiumPolish />
-        <TopStatusBar />
         <GlobalMobileNav />
       </body>
     </html>
