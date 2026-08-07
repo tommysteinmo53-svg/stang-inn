@@ -1,0 +1,109 @@
+/* Focused polish pass for the mobile premium UI */
+
+.premiumRoundMeta {
+  margin-top: 10px;
+  color: var(--ice);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.topNotificationBell {
+  position: fixed !important;
+  z-index: 92 !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  background: rgba(8, 23, 41, .94) !important;
+  border: 1px solid rgba(246, 202, 97, .34) !important;
+  color: #f8d982 !important;
+  text-decoration: none !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,.28) !important;
+}
+.topNotificationBell b {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ff5d73;
+  color: white;
+  border: 2px solid #081729;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.globalMobileNav a.active span {
+  width: 44px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: linear-gradient(180deg, rgba(97,196,255,.2), rgba(49,169,241,.12));
+  border: 1px solid rgba(97,196,255,.3);
+  box-shadow: 0 8px 22px rgba(49,169,241,.13), inset 0 1px rgba(255,255,255,.05);
+}
+.globalMobileNav a.active small { color: var(--ice); }
+
+@media (min-width: 581px) {
+  .topNotificationBell { top: 24px !important; right: 84px !important; bottom: auto !important; }
+}
+
+@media (max-width: 580px) {
+  .topNotificationBell {
+    top: 145px !important;
+    right: 94px !important;
+    bottom: auto !important;
+  }
+
+  main.appShell .topbar { padding-right: 56px; }
+
+  main.appShell .heroCard h2 {
+    font-size: clamp(30px, 9.2vw, 42px);
+    line-height: 1.03;
+    overflow-wrap: anywhere;
+  }
+
+  main.appShell .heroCard .countdown {
+    margin-top: 6px;
+  }
+  main.appShell .heroCard .countdown strong {
+    font-size: 34px;
+    letter-spacing: -.04em;
+  }
+  main.appShell .heroCard .countdown span {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 850;
+  }
+
+  .statsGrid { gap: 8px !important; }
+  .statsGrid .miniCard {
+    padding: 12px 13px !important;
+    min-height: 116px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .statsGrid .miniCard strong {
+    font-size: 18px !important;
+    line-height: 1.05;
+    margin: 6px 0 4px !important;
+    overflow-wrap: anywhere;
+  }
+  .statsGrid .miniCard span,
+  .statsGrid .miniCard small { font-size: 10px !important; }
+
+  .globalMobileNav a span {
+    transition: background .16s ease, border-color .16s ease, transform .16s ease;
+  }
+  .globalMobileNav a.active span { transform: translateY(-1px); }
+}
