@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await syncMatches("nif");
-  return NextResponse.json(result, { status: result.ok ? 200 : 500 });
+  const result = await syncMatches("hockeylive");
+  return NextResponse.json(
+    { ...result, syncedAt: new Date().toISOString() },
+    { status: result.ok ? 200 : 500 },
+  );
 }
