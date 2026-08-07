@@ -2,6 +2,7 @@ import "./globals.css";
 import "./navigation.css";
 import "./premium-polish.css";
 import "./premium-next-match.css";
+import "./round-carousel.css";
 import AuthGate from "../components/AuthGate";
 import AnnouncementBanner from "../components/AnnouncementBanner";
 import GlobalMobileNav from "../components/GlobalMobileNav";
