@@ -28,7 +28,6 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
       const { data } = await supabase.auth.getSession();
       const session = data.session;
-
       if (!session) {
         window.location.replace("/login");
         return;
@@ -53,17 +52,11 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         const { data: created } = await supabase
           .from("players")
           .upsert(
-            {
-              id: user.id,
-              display_name: suggestedName,
-              email: userEmail || null,
-              admin: false,
-            },
+            { id: user.id, display_name: suggestedName, email: userEmail || null, admin: false },
             { onConflict: "id" },
           )
           .select("display_name,admin")
           .single();
-
         player = created;
       }
 
@@ -80,53 +73,19 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     window.location.replace("/login");
   }
 
-  if (!ready) {
-    return <main style={{ padding: 32, color: "#f4f8ff" }}>Laster Stang Inn …</main>;
-  }
+  if (!ready) return <main style={{ padding: 32, color: "#f4f8ff" }}>Laster Stang Inn …</main>;
 
   return (
     <>
       {children}
       {isSupabaseConfigured && !onLoginPage && (
-        <aside
-          style={{
-            position: "fixed",
-            right: 12,
-            bottom: 12,
-            zIndex: 50,
-            display: "flex",
-            alignItems: "center",
-            gap: 9,
-            padding: "9px 10px",
-            borderRadius: 13,
-            background: "rgba(8,20,37,.96)",
-            border: "1px solid #223a5d",
-            boxShadow: "0 12px 28px rgba(0,0,0,.3)",
-            color: "#f4f8ff",
-            fontSize: 12,
-          }}
-        >
+        <aside style={{ position: "fixed", right: 12, bottom: 12, zIndex: 50, display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", borderRadius: 13, background: "rgba(8,20,37,.96)", border: "1px solid #223a5d", boxShadow: "0 12px 28px rgba(0,0,0,.3)", color: "#f4f8ff", fontSize: 12 }}>
           <div>
-            <strong style={{ display: "block" }}>
-              {profile?.display_name || email || "Spiller"}
-              {profile?.admin ? " · Admin" : ""}
-            </strong>
+            <strong style={{ display: "block" }}>{profile?.display_name || email || "Spiller"}{profile?.admin ? " · Admin" : ""}</strong>
             <span style={{ color: "#96a9c5" }}>Innlogget</span>
           </div>
-          <button
-            onClick={signOut}
-            style={{
-              border: 0,
-              borderRadius: 9,
-              padding: "7px 9px",
-              background: "#142640",
-              color: "#d9e8fb",
-              cursor: "pointer",
-              fontWeight: 800,
-            }}
-          >
-            Logg ut
-          </button>
+          {profile?.admin && <a href="/admin" style={{ borderRadius: 9, padding: "7px 9px", background: "#1d3658", color: "#d9e8fb", textDecoration: "none", fontWeight: 800 }}>Admin</a>}
+          <button onClick={signOut} style={{ border: 0, borderRadius: 9, padding: "7px 9px", background: "#142640", color: "#d9e8fb", cursor: "pointer", fontWeight: 800 }}>Logg ut</button>
         </aside>
       )}
     </>
