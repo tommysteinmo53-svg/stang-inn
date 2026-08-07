@@ -10,13 +10,11 @@
 }
 
 .topStatusBar {
-  position: fixed;
-  left: 50%;
-  top: 116px;
-  transform: translateX(-50%);
-  z-index: 96;
-  width: min(740px, calc(100% - 34px));
+  position: relative;
+  z-index: 20;
+  width: min(1160px, calc(100% - 32px));
   min-height: 48px;
+  margin: 14px auto 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -25,7 +23,7 @@
   border: 1px solid rgba(97,196,255,.22);
   border-radius: 18px;
   background: rgba(6,18,32,.9);
-  box-shadow: 0 14px 36px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.04);
+  box-shadow: 0 14px 36px rgba(0,0,0,.22), inset 0 1px rgba(255,255,255,.04);
   backdrop-filter: blur(18px) saturate(145%);
 }
 .topStatusItem {
@@ -76,26 +74,20 @@
 }
 .globalMobileNav a.active small { color: var(--ice); }
 
-@media (min-width: 581px) {
-  .topStatusBar { top: 18px; }
-  body { padding-top: 58px; }
-}
-
 @media (max-width: 580px) {
-  body { padding-top: 62px; }
   .topStatusBar {
-    top: 116px;
-    width: calc(100% - 28px);
+    width: calc(100% - 18px);
     min-height: 46px;
+    margin-top: 8px;
     border-radius: 17px;
   }
   .topStatusItem { padding: 6px 8px; font-size: 10px; }
-  .topStatusVersion { max-width: 68%; overflow: hidden; white-space: nowrap; }
+  .topStatusVersion { max-width: 72%; overflow: hidden; white-space: nowrap; }
   .topStatusVersion strong { overflow: hidden; text-overflow: ellipsis; }
   .topStatusNotifications span:nth-child(2) { display: none; }
 
-  main.appShell { padding-top: 18px; }
-  main.appShell .topbar { margin-top: 6px; }
+  main.appShell { padding-top: 14px; }
+  main.appShell .topbar { margin-top: 0; }
 
   main.appShell .heroCard h2 {
     font-size: clamp(30px, 9.2vw, 42px);
