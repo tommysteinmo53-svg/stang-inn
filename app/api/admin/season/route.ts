@@ -10,7 +10,6 @@ async function adminClients(request: NextRequest) {
   const publicKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const secretKey = process.env.SUPABASE_SECRET_KEY;
   if (!url || !publicKey || !secretKey) return { error: "Supabase-konfigurasjon mangler.", status: 503 } as const;
-
   const authHeader = request.headers.get("authorization");
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
   if (!token) return { error: "Mangler innlogging.", status: 401 } as const;
@@ -40,6 +39,26 @@ export async function POST(request: NextRequest) {
     } catch (e: any) {
       return NextResponse.json({ ok: false, error: e?.message || "Kunne ikke beregne poeng." }, { status: 500 });
     }
+  }
+
+  if (body.action === "save_points") {
+    const exact = Number(body.exact);
+    const outcome = Number(body.outcome);
+    if (!Number.isFinite(exact) || !Number.isFinite(outcome) || exact < 0 || outcome < 0) {
+      return NextResponse.json({ ok: false, error: "Poengverdiene må være positive tall." }, { status: 400 });
+    }
+    const { error } = await ctx.service.from("app_settings").upsert({ key: "points", value: { exact, outcome }, updated_at: new Date().toISOString() });
+    if (error) return NextResponse.json({ ok: false, error: `${error.message} Kjør supabase/v0.7-admin-tools.sql hvis tabellen mangler.` }, { status: 400 });
+    const scored = await scoreFinishedMatches(ctx.service);
+    return NextResponse.json({ ok: true, ...scored });
+  }
+
+  if (body.action === "announce") {
+    const message = String(body.message || "").trim();
+    if (!message) return NextResponse.json({ ok: false, error: "Meldingen kan ikke være tom." }, { status: 400 });
+    const { error } = await ctx.service.from("announcements").insert({ message, active: true, created_by: ctx.userId });
+    if (error) return NextResponse.json({ ok: false, error: `${error.message} Kjør supabase/v0.7-admin-tools.sql hvis tabellen mangler.` }, { status: 400 });
+    return NextResponse.json({ ok: true });
   }
 
   const home = String(body.home_team || "").trim();
