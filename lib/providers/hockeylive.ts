@@ -104,46 +104,53 @@ function extractScriptUrls(html: string, pageUrl: string): string[] {
   return [...urls];
 }
 
-function cleanCandidate(value: string): string | null {
-  const cleaned = value
-    .replace(/\\\//g, "/")
-    .replace(/\\u002F/gi, "/")
-    .replace(/\\x2F/gi, "/")
-    .trim();
-  if (cleaned.length < 4 || cleaned.length > 180) return null;
-  if (/\s/.test(cleaned)) return null;
-  return cleaned;
+function compactContext(value: string): string {
+  return value.replace(/\s+/g, " ").replace(/[\r\n\t]/g, " ").slice(0, 460);
 }
 
-function extractApiDiagnostics(js: string): { baseUrls: string[]; paths: string[]; keywords: string[] } {
-  const baseUrls = new Set<string>();
-  const paths = new Set<string>();
-  const keywords = new Set<string>();
+function contextsAround(js: string, needle: string, radius = 220): string[] {
+  const results: string[] = [];
+  let from = 0;
+  const lower = js.toLowerCase();
+  const target = needle.toLowerCase();
+  while (results.length < 4) {
+    const index = lower.indexOf(target, from);
+    if (index < 0) break;
+    const start = Math.max(0, index - radius);
+    const end = Math.min(js.length, index + target.length + radius);
+    results.push(compactContext(js.slice(start, end)));
+    from = index + target.length;
+  }
+  return results;
+}
+
+function extractTargetedDiagnostics(js: string) {
+  const urls = new Set<string>();
+  const contexts = new Set<string>();
 
   for (const match of js.matchAll(/https?:\\?\/\\?\/[^"'`\\\s,;)}]+/gi)) {
-    const candidate = cleanCandidate(match[0]);
-    if (candidate && /(api|hockey|data|ta)/i.test(candidate)) baseUrls.add(candidate);
+    const candidate = match[0]
+      .replace(/\\\//g, "/")
+      .replace(/\\u002F/gi, "/")
+      .replace(/\\x2F/gi, "/");
+    if (/(api|data|hockey|nif)/i.test(candidate) && candidate.length < 220) urls.add(candidate);
   }
 
-  for (const match of js.matchAll(/(?:baseURL|baseUrl)\s*[:=]\s*["'`]([^"'`]+)["'`]/gi)) {
-    const candidate = cleanCandidate(match[1]);
-    if (candidate) baseUrls.add(candidate);
-  }
-
-  for (const match of js.matchAll(/["'`]((?:\/?)(?:api|ta)\/[A-Za-z0-9_?=&/${}.:+-]+)["'`]/g)) {
-    const candidate = cleanCandidate(match[1]);
-    if (candidate) paths.add(candidate);
-  }
-
-  for (const match of js.matchAll(/["'`]([^"'`]{0,70}(?:TournamentMatches|Matches|Schedule|Scheduler|Tournaments|Standings)[^"'`]{0,70})["'`]/gi)) {
-    const candidate = cleanCandidate(match[1]);
-    if (candidate) keywords.add(candidate);
+  const needles = [
+    "TournamentMatches/?tournamentId=",
+    "TournamentStandings/?tournamentId=",
+    "baseURL",
+    "axios.create",
+    "create({baseURL",
+    "tm.post",
+  ];
+  for (const needle of needles) {
+    for (const value of contextsAround(js, needle)) contexts.add(`${needle} => ${value}`);
   }
 
   return {
-    baseUrls: [...baseUrls].slice(0, 12),
-    paths: [...paths].slice(0, 30),
-    keywords: [...keywords].slice(0, 20),
+    urls: [...urls].slice(0, 15),
+    contexts: [...contexts].slice(0, 14),
   };
 }
 
@@ -159,7 +166,7 @@ export function createHockeyLiveProvider(): MatchProvider {
       const response = await fetch(url, {
         headers: {
           Accept: "text/html,application/xhtml+xml",
-          "User-Agent": "StangInn/0.6 (+https://stang-inn-xi.vercel.app)",
+          "User-Agent": "StangInn/0.7 (+https://stang-inn-xi.vercel.app)",
         },
         cache: "no-store",
       });
@@ -179,34 +186,27 @@ export function createHockeyLiveProvider(): MatchProvider {
       }
 
       const scriptUrls = extractScriptUrls(html, url);
-      const foundBaseUrls = new Set<string>();
-      const foundPaths = new Set<string>();
-      const foundKeywords = new Set<string>();
+      const foundUrls = new Set<string>();
+      const foundContexts = new Set<string>();
 
-      for (const scriptUrl of scriptUrls.slice(0, 12)) {
+      for (const scriptUrl of scriptUrls.slice(0, 8)) {
         try {
           const jsResponse = await fetch(scriptUrl, {
-            headers: { "User-Agent": "StangInn/0.6 (+https://stang-inn-xi.vercel.app)" },
+            headers: { "User-Agent": "StangInn/0.7 (+https://stang-inn-xi.vercel.app)" },
             cache: "no-store",
           });
           if (!jsResponse.ok) continue;
           const js = await jsResponse.text();
-          const diagnostics = extractApiDiagnostics(js);
-          diagnostics.baseUrls.forEach((x) => foundBaseUrls.add(x));
-          diagnostics.paths.forEach((x) => foundPaths.add(x));
-          diagnostics.keywords.forEach((x) => foundKeywords.add(x));
+          const diagnostics = extractTargetedDiagnostics(js);
+          diagnostics.urls.forEach((x) => foundUrls.add(x));
+          diagnostics.contexts.forEach((x) => foundContexts.add(x));
         } catch { /* diagnostic fetch only */ }
       }
 
-      const bases = [...foundBaseUrls].slice(0, 10);
-      const paths = [...foundPaths].slice(0, 25);
-      const keywords = [...foundKeywords].slice(0, 15);
-
       throw new Error(
-        `HockeyLive API-diagnostikk: JS-filer=${scriptUrls.length}. ` +
-        `Base-URLer=[${bases.join(" | ") || "ingen"}]. ` +
-        `API-stier=[${paths.join(" | ") || "ingen"}]. ` +
-        `Relevante strenger=[${keywords.join(" | ") || "ingen"}].`,
+        `HockeyLive målrettet diagnostikk: JS-filer=${scriptUrls.length}. ` +
+        `URL-kandidater=[${[...foundUrls].join(" | ") || "ingen"}]. ` +
+        `Kontekst=[${[...foundContexts].join(" || ") || "ingen"}].`,
       );
     },
   };
