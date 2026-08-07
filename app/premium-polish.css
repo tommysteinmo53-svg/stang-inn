@@ -9,33 +9,57 @@
   text-transform: uppercase;
 }
 
-.topNotificationBell {
-  position: fixed !important;
-  z-index: 92 !important;
-  display: grid !important;
-  place-items: center !important;
-  width: 44px !important;
-  height: 44px !important;
-  border-radius: 50% !important;
-  background: rgba(8, 23, 41, .94) !important;
-  border: 1px solid rgba(246, 202, 97, .34) !important;
-  color: #f8d982 !important;
-  text-decoration: none !important;
-  box-shadow: 0 12px 30px rgba(0,0,0,.28) !important;
+.topStatusBar {
+  position: fixed;
+  left: 50%;
+  top: 116px;
+  transform: translateX(-50%);
+  z-index: 96;
+  width: min(740px, calc(100% - 34px));
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 9px;
+  border: 1px solid rgba(97,196,255,.22);
+  border-radius: 18px;
+  background: rgba(6,18,32,.9);
+  box-shadow: 0 14px 36px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.04);
+  backdrop-filter: blur(18px) saturate(145%);
 }
-.topNotificationBell b {
-  position: absolute;
-  top: -5px;
-  right: -5px;
+.topStatusItem {
+  min-width: 0;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  color: #a9bdd7;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 850;
+}
+.topStatusVersion strong { color: #dce9f8; font-weight: 950; }
+.topStatusLogo { font-size: 14px; }
+.topStatusDivider { opacity: .45; }
+.topStatusNotifications {
+  position: relative;
+  color: #f6d77a;
+  border: 1px solid rgba(246,202,97,.18);
+  background: rgba(246,202,97,.045);
+}
+.topStatusBadge {
   min-width: 20px;
   height: 20px;
   padding: 0 5px;
   border-radius: 999px;
+  display: grid;
+  place-items: center;
   background: #ff5d73;
   color: white;
   border: 2px solid #081729;
-  display: grid;
-  place-items: center;
   font-size: 10px;
   font-weight: 950;
 }
@@ -53,17 +77,25 @@
 .globalMobileNav a.active small { color: var(--ice); }
 
 @media (min-width: 581px) {
-  .topNotificationBell { top: 24px !important; right: 84px !important; bottom: auto !important; }
+  .topStatusBar { top: 18px; }
+  body { padding-top: 58px; }
 }
 
 @media (max-width: 580px) {
-  .topNotificationBell {
-    top: 145px !important;
-    right: 94px !important;
-    bottom: auto !important;
+  body { padding-top: 62px; }
+  .topStatusBar {
+    top: 116px;
+    width: calc(100% - 28px);
+    min-height: 46px;
+    border-radius: 17px;
   }
+  .topStatusItem { padding: 6px 8px; font-size: 10px; }
+  .topStatusVersion { max-width: 68%; overflow: hidden; white-space: nowrap; }
+  .topStatusVersion strong { overflow: hidden; text-overflow: ellipsis; }
+  .topStatusNotifications span:nth-child(2) { display: none; }
 
-  main.appShell .topbar { padding-right: 56px; }
+  main.appShell { padding-top: 18px; }
+  main.appShell .topbar { margin-top: 6px; }
 
   main.appShell .heroCard h2 {
     font-size: clamp(30px, 9.2vw, 42px);
@@ -71,9 +103,7 @@
     overflow-wrap: anywhere;
   }
 
-  main.appShell .heroCard .countdown {
-    margin-top: 6px;
-  }
+  main.appShell .heroCard .countdown { margin-top: 6px; }
   main.appShell .heroCard .countdown strong {
     font-size: 34px;
     letter-spacing: -.04em;
