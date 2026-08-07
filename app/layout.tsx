@@ -1,4 +1,5 @@
 import "./globals.css";
+import "./navigation.css";
 import AuthGate from "../components/AuthGate";
 import AnnouncementBanner from "../components/AnnouncementBanner";
 import NotificationBell from "../components/NotificationBell";
