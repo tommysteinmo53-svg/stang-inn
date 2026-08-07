@@ -30,10 +30,18 @@ type Row = Player & {
   hitRate: number;
 };
 
+function medal(index: number) {
+  if (index === 0) return "🥇";
+  if (index === 1) return "🥈";
+  if (index === 2) return "🥉";
+  return String(index + 1);
+}
+
 export default function LeaderboardPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [tips, setTips] = useState<Tip[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
 
@@ -44,12 +52,14 @@ export default function LeaderboardPage() {
       return;
     }
 
-    const [p, t, m] = await Promise.all([
+    const [{ data: sessionData }, p, t, m] = await Promise.all([
+      supabase.auth.getSession(),
       supabase.from("players").select("id,display_name").order("created_at"),
       supabase.from("tips").select("id,player_id,match_id,points"),
       supabase.from("matches").select("id,finished,home_score,away_score"),
     ]);
 
+    setCurrentUserId(sessionData.session?.user.id ?? null);
     if (p.data) setPlayers(p.data as Player[]);
     if (t.data) setTips(t.data as Tip[]);
     if (m.data) setMatches(m.data as Match[]);
@@ -105,23 +115,31 @@ export default function LeaderboardPage() {
       <section className="pageStack" style={{ marginTop: 24 }}>
         <div className="pageHeading">
           <div>
-            <p className="eyebrow">Poengmotor</p>
+            <p className="eyebrow">Ligaen</p>
             <h2>Sammenlagt</h2>
-            <p className="muted">Poengene leses direkte fra <code>tips.points</code> og oppdateres automatisk.</p>
+            <p className="muted">Oppdateres automatisk når nye kampresultater er synkronisert.</p>
           </div>
-          <span className="statusPill">{matches.filter(m => m.finished).length} ferdigspilt</span>
+          <span className="statusPill">{finishedMatchIds.size} ferdigspilt</span>
         </div>
 
         <article className="panel standings">
-          <div className="tableHead" style={{ gridTemplateColumns: "42px 1fr 72px 72px 72px" }}>
+          <div className="tableHead" style={{ gridTemplateColumns: "52px 1fr 72px 72px 72px" }}>
             <span>#</span><span>Spiller</span><span>Eksakt</span><span>Utfall</span><span>Poeng</span>
           </div>
           {rows.map((row, index) => (
-            <div className="tableRow" style={{ gridTemplateColumns: "42px 1fr 72px 72px 72px" }} key={row.id}>
-              <span className="rank">{index + 1}</span>
+            <div
+              className="tableRow"
+              style={{
+                gridTemplateColumns: "52px 1fr 72px 72px 72px",
+                borderRadius: 12,
+                background: row.id === currentUserId ? "rgba(85,184,255,.08)" : undefined,
+              }}
+              key={row.id}
+            >
+              <span className="rank" style={{ fontSize: index < 3 ? 22 : undefined }}>{medal(index)}</span>
               <span>
-                <b>{row.display_name}</b>
-                <small>{row.hitRate}% treff · {row.scoredTips} avgjorte tips</small>
+                <b>{row.display_name}{row.id === currentUserId ? " · deg" : ""}</b>
+                <small>{row.hitRate}% treff · {row.scoredTips} avgitte tips</small>
               </span>
               <span>{row.exact}</span>
               <span>{row.correctOutcome}</span>
