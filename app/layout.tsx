@@ -1,6 +1,8 @@
 import "./globals.css";
 import AuthGate from "../components/AuthGate";
 import SystemStatus from "../components/SystemStatus";
+import AdminShortcut from "../components/AdminShortcut";
+import AnnouncementBanner from "../components/AnnouncementBanner";
 
 export const metadata = {
   title: "Stang Inn",
@@ -25,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="no">
       <body>
         <AuthGate>{children}</AuthGate>
+        <AnnouncementBanner />
         <div
           style={{
             position: "fixed",
@@ -45,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#4fd69c" }} />Live
           </a>
         </div>
+        <AdminShortcut />
         <SystemStatus />
       </body>
     </html>
