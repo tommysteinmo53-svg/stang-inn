@@ -6,13 +6,6 @@ type FinishedMatch = {
   away_score: number;
 };
 
-type MatchState = {
-  id: number;
-  finished: boolean;
-  home_score: number | null;
-  away_score: number | null;
-};
-
 type TipRow = {
   id: number;
   match_id: number;
@@ -60,74 +53,22 @@ async function loadPointRules(supabase: SupabaseClient): Promise<PointRules> {
 }
 
 /**
- * Recalculates points for every tip belonging to a valid finished match.
- * If a previously finished match is reopened, postponed or loses its final score,
- * stale points are cleared again. This keeps sync idempotent in both directions.
+ * Recalculates points for every tip belonging to a finished match.
+ * This is intentionally idempotent and safe to run after every sync.
  */
 export async function scoreFinishedMatches(supabase: SupabaseClient): Promise<ScoreResult> {
   const rules = await loadPointRules(supabase);
-  const { data: allMatchRows, error: matchError } = await supabase
+  const { data: matchRows, error: matchError } = await supabase
     .from("matches")
-    .select("id,finished,home_score,away_score");
+    .select("id,home_score,away_score")
+    .eq("finished", true)
+    .not("home_score", "is", null)
+    .not("away_score", "is", null);
 
   if (matchError) throw matchError;
 
-  const matches = (allMatchRows ?? []) as MatchState[];
-  const finishedMatches: FinishedMatch[] = matches
-    .filter(
-      (match) =>
-        match.finished === true &&
-        match.home_score !== null &&
-        match.away_score !== null,
-    )
-    .map((match) => ({
-      id: match.id,
-      home_score: match.home_score as number,
-      away_score: match.away_score as number,
-    }));
-
-  const invalidMatchIds = matches
-    .filter(
-      (match) =>
-        match.finished !== true ||
-        match.home_score === null ||
-        match.away_score === null,
-    )
-    .map((match) => match.id);
-
-  let tipsChanged = 0;
-
-  // Reopened/postponed matches must never keep previously awarded points.
-  // Clear one row at a time and verify the write, so a silent no-op can never
-  // masquerade as success.
-  if (invalidMatchIds.length) {
-    const { data: staleTips, error: staleTipError } = await supabase
-      .from("tips")
-      .select("id,match_id,points")
-      .in("match_id", invalidMatchIds)
-      .not("points", "is", null);
-
-    if (staleTipError) throw staleTipError;
-
-    for (const staleTip of staleTips ?? []) {
-      const { data: cleared, error: clearError } = await supabase
-        .from("tips")
-        .update({ points: null })
-        .eq("id", staleTip.id)
-        .select("id,points")
-        .maybeSingle();
-
-      if (clearError) throw clearError;
-      if (!cleared || cleared.points !== null) {
-        throw new Error(`Kunne ikke nullstille poeng for tips ${staleTip.id} på kamp ${staleTip.match_id}.`);
-      }
-      tipsChanged++;
-    }
-  }
-
-  if (!finishedMatches.length) {
-    return { finishedMatches: 0, tipsScored: 0, tipsChanged };
-  }
+  const finishedMatches = (matchRows ?? []) as FinishedMatch[];
+  if (!finishedMatches.length) return { finishedMatches: 0, tipsScored: 0, tipsChanged: 0 };
 
   const matchIds = finishedMatches.map((match) => match.id);
   const matchMap = new Map(finishedMatches.map((match) => [match.id, match]));
@@ -138,6 +79,7 @@ export async function scoreFinishedMatches(supabase: SupabaseClient): Promise<Sc
 
   if (tipError) throw tipError;
   const tips = (tipRows ?? []) as TipRow[];
+  let tipsChanged = 0;
 
   for (const tip of tips) {
     const match = matchMap.get(tip.match_id);
