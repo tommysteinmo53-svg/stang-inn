@@ -8,7 +8,6 @@ import "./awards.css";
 import AuthGate from "../components/AuthGate";
 import AnnouncementBanner from "../components/AnnouncementBanner";
 import GlobalMobileNav from "../components/GlobalMobileNav";
-import PremiumPolish from "../components/PremiumPolish";
 import TopStatusBar from "../components/TopStatusBar";
 import PremiumNextMatch from "../components/PremiumNextMatch";
 import HomeLiveTable from "../components/HomeLiveTable";
@@ -29,7 +28,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </AuthGate>
         <AnnouncementBanner />
-        <PremiumPolish />
         <GlobalMobileNav />
       </body>
     </html>
