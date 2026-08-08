@@ -49,6 +49,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Testkampen mangler external_id eller kampstart." }, { status: 400 });
     }
 
+    // Testmodus toggler status gjennom nøyaktig samme sync-service som ekte import.
+    // Dermed kan vi teste både ferdig -> åpnet og åpnet -> ferdig uten å røre andre kamper.
+    const targetFinished = !match.finished;
     const manualMatch: ImportedMatch = {
       externalId: match.external_id,
       season: match.season || "TEST",
@@ -58,11 +61,11 @@ export async function POST(request: NextRequest) {
       matchTime: match.match_time,
       homeScore: match.home_score,
       awayScore: match.away_score,
-      finished: false,
+      finished: targetFinished,
     };
 
     const result = await syncMatches("manual", [manualMatch]);
-    return NextResponse.json({ ...result, testMatchId }, { status: result.ok ? 200 : 500 });
+    return NextResponse.json({ ...result, testMatchId, testFinished: targetFinished }, { status: result.ok ? 200 : 500 });
   }
 
   const result = await syncMatches("hockeylive");
