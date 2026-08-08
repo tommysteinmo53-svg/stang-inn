@@ -25,7 +25,6 @@ function teamName(value: any): string | null {
 function parseRound(raw: Row): number | null {
   const direct = numberOrNull(first(raw.round, raw.Round, raw.roundNumber, raw.RoundNumber, raw.roundNo));
   if (direct !== null) return direct;
-
   const roundName = first(raw.roundName, raw.RoundName);
   if (roundName) {
     const match = String(roundName).match(/\d+/);
@@ -34,102 +33,71 @@ function parseRound(raw: Row): number | null {
   return null;
 }
 
+function osloOffsetForDate(year: number, month: number, day: number) {
+  // Europe/Oslo: CET (UTC+1) in winter, CEST (UTC+2) between the last
+  // Sunday in March and the last Sunday in October. Hockey season crosses
+  // both offsets, so a fixed +02:00 would shift winter matches by one hour.
+  const lastSunday = (y: number, m: number) => {
+    const d = new Date(Date.UTC(y, m, 0));
+    return d.getUTCDate() - d.getUTCDay();
+  };
+  if (month < 3 || month > 10) return "+01:00";
+  if (month > 3 && month < 10) return "+02:00";
+  if (month === 3) return day >= lastSunday(year, 3) ? "+02:00" : "+01:00";
+  return day < lastSunday(year, 10) ? "+02:00" : "+01:00";
+}
+
 function matchDateTime(raw: Row): string | null {
   const direct = first(raw.matchStartDate, raw.MatchStartDate, raw.startDate, raw.StartDate, raw.dateTime, raw.startTimeUtc);
   if (direct) {
-    const date = new Date(String(direct));
-    if (!Number.isNaN(date.getTime())) return date.toISOString();
+    const text = String(direct);
+    // Only trust a direct timestamp as absolute time when it actually contains
+    // a timezone. A bare local timestamp must be interpreted as Europe/Oslo.
+    if (/Z$|[+-]\d{2}:?\d{2}$/.test(text)) {
+      const date = new Date(text);
+      if (!Number.isNaN(date.getTime())) return date.toISOString();
+    }
   }
 
-  const dateValue = first(raw.matchDate, raw.MatchDate, raw.date, raw.Date);
+  const dateValue = first(raw.matchDate, raw.MatchDate, raw.date, raw.Date, direct);
   if (!dateValue) return null;
-
-  const parsedDate = new Date(String(dateValue));
-  const ymd = !Number.isNaN(parsedDate.getTime())
-    ? `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, "0")}-${String(parsedDate.getDate()).padStart(2, "0")}`
-    : String(dateValue).slice(0, 10);
-
-  const timeValue = first(raw.matchStartTime, raw.MatchStartTime, raw.startTime);
-  let timeText = "00:00";
-
-  if (timeValue !== null) {
-    const digits = String(timeValue).replace(/\D/g, "").padStart(4, "0");
-    if (digits.length >= 4) timeText = `${digits.slice(-4, -2)}:${digits.slice(-2)}`;
+  const dateText = String(dateValue).slice(0, 10);
+  const parts = dateText.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  let year:number, month:number, day:number;
+  if (parts) {
+    year=Number(parts[1]); month=Number(parts[2]); day=Number(parts[3]);
+  } else {
+    const parsed = new Date(String(dateValue));
+    if (Number.isNaN(parsed.getTime())) return null;
+    year=parsed.getFullYear(); month=parsed.getMonth()+1; day=parsed.getDate();
   }
-
-  // EHL-kampene er oppgitt i norsk lokal tid. September–oktober er normalt UTC+2,
-  // resten av vinteren UTC+1. Date håndteres her konservativt med +02:00; vi kan
-  // senere flytte dette til Europe/Oslo-tidssone dersom API-et ikke allerede gir ISO-tid.
-  const date = new Date(`${ymd}T${timeText}:00+02:00`);
+  const ymd=`${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+  const timeValue = first(raw.matchStartTime, raw.MatchStartTime, raw.startTime, direct && String(direct).slice(11,16));
+  let timeText = "00:00";
+  if (timeValue !== null) {
+    const rawTime=String(timeValue);
+    const colon=rawTime.match(/(\d{1,2}):(\d{2})/);
+    if(colon) timeText=`${colon[1].padStart(2,"0")}:${colon[2]}`;
+    else { const digits=rawTime.replace(/\D/g,"").padStart(4,"0"); if(digits.length>=4) timeText=`${digits.slice(-4,-2)}:${digits.slice(-2)}`; }
+  }
+  const date = new Date(`${ymd}T${timeText}:00${osloOffsetForDate(year,month,day)}`);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
 function normalize(raw: Row, season: string): ImportedMatch | null {
   const id = first(raw.matchId, raw.MatchId, raw.matchID, raw.id, raw.Id);
-
-  // HockeyLive/Azure bruker lowercase feltnavn: hometeam / awayteam.
-  // OverriddenName brukes først hvis arrangøren har publisert et eget visningsnavn.
-  const home = first(
-    raw.hometeamOverriddenName,
-    raw.hometeam,
-    raw.hometeamOrgName,
-    raw.homeTeamName,
-    raw.HomeTeamName,
-    teamName(raw.homeTeam),
-    teamName(raw.HomeTeam),
-    teamName(raw.home),
-    raw.teamNameHome,
-  );
-  const away = first(
-    raw.awayteamOverriddenName,
-    raw.awayteam,
-    raw.awayteamOrgName,
-    raw.awayTeamName,
-    raw.AwayTeamName,
-    teamName(raw.awayTeam),
-    teamName(raw.AwayTeam),
-    teamName(raw.away),
-    raw.teamNameAway,
-  );
-
+  const home = first(raw.hometeamOverriddenName,raw.hometeam,raw.hometeamOrgName,raw.homeTeamName,raw.HomeTeamName,teamName(raw.homeTeam),teamName(raw.HomeTeam),teamName(raw.home),raw.teamNameHome);
+  const away = first(raw.awayteamOverriddenName,raw.awayteam,raw.awayteamOrgName,raw.awayTeamName,raw.AwayTeamName,teamName(raw.awayTeam),teamName(raw.AwayTeam),teamName(raw.away),raw.teamNameAway);
   const time = matchDateTime(raw);
   if (!id || !home || !away || !time) return null;
-
-  const homeScore = numberOrNull(first(
-    raw.hometeamScore,
-    raw.homeTeamScore,
-    raw.hometeamGoals,
-    raw.homeTeamGoals,
-    raw.HomeTeamGoals,
-    raw.homeScore,
-    raw.HomeScore,
-    raw.homeGoals,
-  ));
-  const awayScore = numberOrNull(first(
-    raw.awayteamScore,
-    raw.awayTeamScore,
-    raw.awayteamGoals,
-    raw.awayTeamGoals,
-    raw.AwayTeamGoals,
-    raw.awayScore,
-    raw.AwayScore,
-    raw.awayGoals,
-  ));
-
+  const homeScore = numberOrNull(first(raw.hometeamScore,raw.homeTeamScore,raw.hometeamGoals,raw.homeTeamGoals,raw.HomeTeamGoals,raw.homeScore,raw.HomeScore,raw.homeGoals));
+  const awayScore = numberOrNull(first(raw.awayteamScore,raw.awayTeamScore,raw.awayteamGoals,raw.awayTeamGoals,raw.AwayTeamGoals,raw.awayScore,raw.AwayScore,raw.awayGoals));
   const statusTypeId = numberOrNull(raw.statusTypeId);
+  // Do not infer finished merely because a live match has a score. HockeyLive
+  // exposes running scores before final status; only final status may award points.
   const finishedByStatus = statusTypeId !== null && statusTypeId >= 4;
-
-  return {
-    externalId: `hockeylive:${id}`,
-    season,
-    round: parseRound(raw),
-    homeTeam: String(home),
-    awayTeam: String(away),
-    matchTime: time,
-    homeScore,
-    awayScore,
-    finished: finishedByStatus || (homeScore !== null && awayScore !== null),
-  };
+  const finishedFallback = statusTypeId === null && Boolean(first(raw.finished,raw.isFinished,raw.matchFinished));
+  return {externalId:`hockeylive:${id}`,season,round:parseRound(raw),homeTeam:String(home),awayTeam:String(away),matchTime:time,homeScore,awayScore,finished:finishedByStatus||finishedFallback};
 }
 
 export function createHockeyLiveProvider(): MatchProvider {
@@ -139,35 +107,15 @@ export function createHockeyLiveProvider(): MatchProvider {
       const tournamentId = process.env.HOCKEYLIVE_TOURNAMENT_ID || DEFAULT_TOURNAMENT_ID;
       const season = process.env.NIF_SEASON_LABEL || DEFAULT_SEASON_LABEL;
       const endpoint = `${API_BASE}ta/TournamentMatches/?tournamentId=${encodeURIComponent(tournamentId)}`;
-
-      const response = await fetch(endpoint, {
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "StangInn/0.8 (+https://stang-inn-xi.vercel.app)",
-        },
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        const body = await response.text();
-        throw new Error(`HockeyLive API svarte ${response.status}: ${body.slice(0, 180)}`);
-      }
-
-      const payload = await response.json();
-      const rows: Row[] = Array.isArray(payload) ? payload : payload?.matches ?? payload?.data?.matches ?? [];
-
-      // Samme statusfilter som HockeyLive-klienten bruker.
-      const published = rows.filter((row) => row.statusTypeId == null || (row.statusTypeId >= 1 && row.statusTypeId <= 5));
-      const normalized = published.map((row) => normalize(row, season)).filter(Boolean) as ImportedMatch[];
-      const unique = new Map(normalized.map((match) => [match.externalId, match]));
-
-      if (!unique.size) {
-        const sample = rows[0] ?? {};
-        const sampleKeys = Object.keys(sample).slice(0, 45).join(", ") || "ingen rader";
-        throw new Error(`HockeyLive API svarte med ${rows.length} kamper, men 0 kunne normaliseres. Første rad-felter: ${sampleKeys}`);
-      }
-
-      return [...unique.values()].sort((a, b) => a.matchTime.localeCompare(b.matchTime));
+      const response = await fetch(endpoint,{headers:{Accept:"application/json","User-Agent":"StangInn/0.8 (+https://stang-inn-xi.vercel.app)"},cache:"no-store"});
+      if (!response.ok) { const body=await response.text(); throw new Error(`HockeyLive API svarte ${response.status}: ${body.slice(0,180)}`); }
+      const payload=await response.json();
+      const rows:Row[]=Array.isArray(payload)?payload:payload?.matches??payload?.data?.matches??[];
+      const published=rows.filter(row=>row.statusTypeId==null||(row.statusTypeId>=1&&row.statusTypeId<=5));
+      const normalized=published.map(row=>normalize(row,season)).filter(Boolean) as ImportedMatch[];
+      const unique=new Map(normalized.map(match=>[match.externalId,match]));
+      if(!unique.size){const sample=rows[0]??{};const sampleKeys=Object.keys(sample).slice(0,45).join(", ")||"ingen rader";throw new Error(`HockeyLive API svarte med ${rows.length} kamper, men 0 kunne normaliseres. Første rad-felter: ${sampleKeys}`)}
+      return [...unique.values()].sort((a,b)=>a.matchTime.localeCompare(b.matchTime));
     },
   };
 }
