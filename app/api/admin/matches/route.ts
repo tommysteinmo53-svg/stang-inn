@@ -31,7 +31,12 @@ export async function PATCH(request:NextRequest){
  if(finished&&(home===null||away===null))return NextResponse.json({ok:false,error:"En ferdig kamp må ha både hjemme- og bortescore."},{status:400});
  const update:Record<string,unknown>={finished,home_score:home,away_score:away};if(matchTime)update.match_time=matchTime;
  const{data:match,error}=await context.admin.from("matches").update(update).eq("id",id).select("id,home_team,away_team,match_time,home_score,away_score,finished").maybeSingle();if(error)return NextResponse.json({ok:false,error:error.message},{status:400});if(!match)return NextResponse.json({ok:false,error:"Kampen ble ikke funnet."},{status:404});
- if(!finished){const{error:clearError}=await context.admin.from("tips").update({points:null}).eq("match_id",id);if(clearError)return NextResponse.json({ok:false,error:clearError.message},{status:400});}
+ if(!finished){
+  const{data:clearedTips,error:clearError}=await context.admin.from("tips").update({points:null}).eq("match_id",id).select("id,points");
+  if(clearError)return NextResponse.json({ok:false,error:`Kunne ikke nullstille poeng: ${clearError.message}`},{status:400});
+  const stale=(clearedTips||[]).filter(t=>t.points!==null);
+  if(stale.length)return NextResponse.json({ok:false,error:`Poeng ble ikke nullstilt for ${stale.length} tips på kamp ${id}.`},{status:409});
+ }
  const scoring=await scoreFinishedMatches(context.admin);
  let{data:verified,error:verifyError}=await context.admin.from("matches").select("id,home_team,away_team,match_time,home_score,away_score,finished").eq("id",id).maybeSingle();
  if(verifyError)return NextResponse.json({ok:false,error:`Kunne ikke kontrollere kampkorrigeringen: ${verifyError.message}`},{status:500});
