@@ -57,22 +57,34 @@ export default function TopStatusBar() {
     return stored + (missing > 0 ? 1 : 0);
   }, [uid, notifications, reads, matches, tips]);
 
+  const liveCount = useMemo(() => {
+    const now = Date.now();
+    return matches.filter(m => !m.finished && !!m.match_time && new Date(m.match_time).getTime() <= now).length;
+  }, [matches]);
+
   const version = status?.version || "0.7.0";
   const commit = status?.commit || "…";
 
   return (
-    <div className="topStatusBar" role="navigation" aria-label="Status og varsler">
+    <div className="topStatusBar" role="navigation" aria-label="Status, live og varsler">
       <a href="/profile" className="topStatusItem topStatusVersion" title="Versjon og profil">
         <span className="topStatusLogo">🏒</span>
         <span>v{version}</span>
         <span className="topStatusDivider">•</span>
         <strong>{commit}</strong>
       </a>
-      <a href="/notifications" className="topStatusItem topStatusNotifications" aria-label={`Varsler${unread ? `, ${unread} uleste` : ""}`}>
-        <span>🔔</span>
-        <span>Varsler</span>
-        {unread > 0 && <b className="topStatusBadge">{unread > 99 ? "99+" : unread}</b>}
-      </a>
+      <div className="topStatusActions">
+        <a href="/live" className={`topStatusItem topStatusLive ${liveCount > 0 ? "isLive" : ""}`} aria-label={liveCount > 0 ? `Live-senter, ${liveCount} kamp${liveCount === 1 ? "" : "er"} pågår` : "Live-senter"}>
+          <span className="topStatusLiveDot" aria-hidden />
+          <span>{liveCount > 0 ? "LIVE" : "Live"}</span>
+          {liveCount > 0 && <b className="topStatusLiveCount">{liveCount}</b>}
+        </a>
+        <a href="/notifications" className="topStatusItem topStatusNotifications" aria-label={`Varsler${unread ? `, ${unread} uleste` : ""}`}>
+          <span>🔔</span>
+          <span>Varsler</span>
+          {unread > 0 && <b className="topStatusBadge">{unread > 99 ? "99+" : unread}</b>}
+        </a>
+      </div>
     </div>
   );
 }
