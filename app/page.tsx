@@ -8,6 +8,7 @@ type MatchFilter = "upcoming" | "untipped" | "finished" | "all";
 type Player = { id: string; display_name: string; email: string | null; admin: boolean };
 type Match = { id: number; home_team: string; away_team: string; match_time: string | null; home_score: number | null; away_score: number | null; finished: boolean; round: number | null };
 type Tip = { id?: number; player_id: string; match_id: number; home_tip: number; away_tip: number };
+type TableTipRow = { team: string; position: number };
 type Standing = Player & { points: number; exact: number; correct: number; tipped: number; streak: number; hitRate: number };
 
 const tablePrediction = ["Storhamar", "Oilers", "Vålerenga", "Frisk Asker", "Sparta", "Narvik", "Stjernen", "Lillehammer", "Nidaros", "Ringerike"];
@@ -84,24 +85,61 @@ export default function Home() {
   const [tips, setTips] = useState<Tip[]>([]);
   const [me, setMe] = useState<Player | null>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [tableOrder, setTableOrder] = useState<string[]>(tablePrediction);
+  const [tableTipDeadline, setTableTipDeadline] = useState<string | null>(null);
+  const [tableTipLocked, setTableTipLocked] = useState(false);
+  const [tableTipSaving, setTableTipSaving] = useState(false);
+  const [tableTipStatus, setTableTipStatus] = useState("");
 
   async function load() {
     if (!isSupabaseConfigured) { setLoading(false); return; }
     const supabase = getSupabaseBrowserClient(); if (!supabase) return;
     const { data: sessionData } = await supabase.auth.getSession();
     const uid = sessionData.session?.user.id;
-    const [p, m, t] = await Promise.all([
+    const [p, m, t, tt, tableSettings] = await Promise.all([
       supabase.from("players").select("id,display_name,email,admin").order("created_at"),
       supabase.from("matches").select("id,home_team,away_team,match_time,home_score,away_score,finished,round").order("match_time"),
       supabase.from("tips").select("id,player_id,match_id,home_tip,away_tip"),
+      uid ? supabase.from("table_tips").select("team,position").eq("player_id", uid).order("position") : Promise.resolve({ data: [] as TableTipRow[] }),
+      supabase.from("app_settings").select("value").eq("key", "table_tips").maybeSingle(),
     ]);
     if (p.data) { setPlayers(p.data as Player[]); setMe((p.data as Player[]).find(x => x.id === uid) ?? null); }
     if (m.data) setMatches(m.data as Match[]);
     if (t.data) setTips(t.data as Tip[]);
+    const ownTableTip = (tt.data || []) as TableTipRow[];
+    if (ownTableTip.length === tablePrediction.length) setTableOrder(ownTableTip.map(row => row.team));
+    const settings = tableSettings.data?.value as { deadline?: string | null } | undefined;
+    const deadline = settings?.deadline || null;
+    setTableTipDeadline(deadline);
+    setTableTipLocked(Boolean(deadline && Date.now() >= new Date(deadline).getTime()));
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
   useEffect(() => { setShowCount(20); }, [matchFilter, query, roundFilter]);
+
+  function moveTableTeam(index: number, direction: -1 | 1) {
+    if (tableTipLocked) return;
+    const target = index + direction;
+    if (target < 0 || target >= tableOrder.length) return;
+    setTableOrder(current => {
+      const next = [...current];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+    setTableTipStatus("");
+  }
+
+  async function saveTableTips() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !me || tableTipLocked || tableTipSaving) return;
+    setTableTipSaving(true);
+    setTableTipStatus("Lagrer tabelltips …");
+    const { error } = await supabase.rpc("save_table_tip_rankings", { teams: tableOrder });
+    setTableTipSaving(false);
+    if (error) { setTableTipStatus(`Feil: ${error.message}`); return; }
+    setTableTipStatus("✓ Tabelltipset er lagret.");
+    await load();
+  }
 
   const completedMatches = useMemo(() => matches.filter(m => m.finished || (m.home_score !== null && m.away_score !== null)), [matches]);
   const ownTips = useMemo(() => tips.filter(t => t.player_id === me?.id), [tips, me]);
@@ -158,7 +196,18 @@ export default function Home() {
       {showCount < visibleMatches.length&&<button className="loadMore" onClick={()=>setShowCount(c=>c+20)}>Vis 20 flere</button>}
     </section>}
 
-    {tab === "tabletips" && <section className="contentGrid"><article className="panel"><div className="panelHeading"><div><p className="eyebrow">Sesongkonkurranse</p><h2>Tabelltips</h2></div><span className="statusPill">Neste sprint</span></div><div className="rankingList">{tablePrediction.map((team,i)=><div className="rankingItem" key={team}><span className="rank">{i+1}</span><strong>{team}</strong></div>)}</div></article><article className="panel"><h3>På vei</h3><p className="muted">Dra-og-slipp, lagring per spiller og automatisk sammenligning mot HockeyLive-tabellen.</p></article></section>}
+    {tab === "tabletips" && <section className="pageStack">
+      <div className="pageHeading"><div><p className="eyebrow">Sesongkonkurranse</p><h2>Tabelltips</h2><p className="muted">Ranger lagene fra 1 til 10. Du kan endre tipset helt frem til låsefristen.</p></div><span className="statusPill">{tableTipLocked ? "🔒 Låst" : "🟢 Åpent"}</span></div>
+      {tableTipStatus && <article className="quoteCard"><span>Status</span><p>{tableTipStatus}</p></article>}
+      <section className="contentGrid">
+        <article className="panel">
+          <div className="panelHeading"><div><p className="eyebrow">Mitt tips</p><h3>Forventet sluttabell</h3></div><span className="statusPill">{tableTipDeadline ? `Frist ${new Date(tableTipDeadline).toLocaleString("no-NO", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" })}` : "Frist ikke satt"}</span></div>
+          <div className="rankingList">{tableOrder.map((team,i)=><div className="rankingItem" key={team} style={{display:"grid",gridTemplateColumns:"42px 1fr auto",gap:10,alignItems:"center"}}><span className="rank">{i+1}</span><strong>{team}</strong><span style={{display:"flex",gap:6}}><button className="compactButton" disabled={tableTipLocked||i===0} onClick={()=>moveTableTeam(i,-1)} aria-label={`Flytt ${team} opp`}>↑</button><button className="compactButton" disabled={tableTipLocked||i===tableOrder.length-1} onClick={()=>moveTableTeam(i,1)} aria-label={`Flytt ${team} ned`}>↓</button></span></div>)}</div>
+          <button className="primaryButton" style={{marginTop:16}} disabled={!me||tableTipLocked||tableTipSaving} onClick={saveTableTips}>{tableTipLocked ? "Tabelltipset er låst" : tableTipSaving ? "Lagrer …" : "Lagre tabelltips"}</button>
+        </article>
+        <article className="panel"><div className="panelHeading"><div><p className="eyebrow">Slik fungerer det</p><h3>Sesongtipset</h3></div></div><p className="muted">Før fristen ser du bare ditt eget tabelltips. Etter fristen åpnes tipsene for de andre deltakerne.</p><p className="muted" style={{marginTop:10}}>Neste steg er å koble inn den faktiske EHL-tabellen og beregne plasseringsavvik automatisk gjennom sesongen.</p></article>
+      </section>
+    </section>}
 
     {tab === "stats" && <section className="pageStack"><div className="pageHeading"><div><p className="eyebrow">Ekte data</p><h2>Sammenlagt & statistikk</h2></div></div><article className="panel standings"><div className="tableHead"><span>#</span><span>Spiller</span><span>Eksakte</span><span>Poeng</span></div>{standings.map((p,i)=><div className="tableRow" key={p.id}><span className="rank">{i+1}</span><span><b>{p.display_name}</b><small>{p.hitRate}% treff · 🔥 {p.streak}</small></span><span>{p.exact}</span><span className="points">{p.points}</span></div>)}</article><section className="statsGrid">{standings.map(p=><article className="miniCard" key={p.id}><span>{p.id===me?.id?"Deg":"Spiller"}</span><strong>{p.display_name}</strong><small>{p.points} p · {p.exact} eksakte · {p.hitRate}% treff</small></article>)}</section><article className="panel"><h3>Poengregler</h3><p className="muted">5 poeng for eksakt resultat · 3 poeng for riktig kamputfall · 0 poeng ellers.</p></article></section>}
 
