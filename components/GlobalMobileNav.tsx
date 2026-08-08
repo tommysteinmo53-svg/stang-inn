@@ -7,6 +7,7 @@ const items = [
   { href: "/tips", icon: "🏒", label: "Kamper", match: (p: string) => p.startsWith("/tips") || p.startsWith("/match/") },
   { href: "/round", icon: "▤", label: "Runde", match: (p: string) => p.startsWith("/round") },
   { href: "/leaderboard", icon: "🏆", label: "Tabell", match: (p: string) => p.startsWith("/leaderboard") || p.startsWith("/player/") },
+  { href: "/awards", icon: "🏅", label: "Awards", match: (p: string) => p.startsWith("/awards") },
   { href: "/profile", icon: "👤", label: "Profil", match: (p: string) => p.startsWith("/profile") || p.startsWith("/admin") },
 ];
 
