@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { getMatchProvider, type ProviderName } from "./providers";
+import { fetchHockeyLiveStandings } from "./providers/hockeylive";
 import { scoreFinishedMatches } from "./score-engine";
 import type { ImportedMatch } from "../types/data-provider";
 
@@ -10,6 +11,8 @@ export type SyncResult = {
   finished: number;
   tipsScored: number;
   tipsChanged: number;
+  standingsImported?: number;
+  standingsError?: string;
   error?: string;
 };
 
@@ -91,6 +94,31 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
 
     const scoring = await scoreFinishedMatches(supabase);
 
+    let standingsImported = 0;
+    let standingsError: string | undefined;
+    if (providerName === "hockeylive") {
+      try {
+        const standings = await fetchHockeyLiveStandings();
+        const syncedAt = new Date().toISOString();
+        const standingRows = standings.map((standing) => ({
+          season: standing.season,
+          team: standing.team,
+          position: standing.position,
+          played: standing.played,
+          points: standing.points,
+          source: "hockeylive:TournamentStandings",
+          synced_at: syncedAt,
+        }));
+        const { error: standingError } = await supabase
+          .from("ehl_standings")
+          .upsert(standingRows, { onConflict: "season,team" });
+        if (standingError) throw standingError;
+        standingsImported = standingRows.length;
+      } catch (error: any) {
+        standingsError = error?.message || "Ukjent feil ved tabellsynk";
+      }
+    }
+
     const result: SyncResult = {
       ok: true,
       provider: provider.name,
@@ -98,6 +126,8 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
       finished: rows.filter((row) => row.finished).length,
       tipsScored: scoring.tipsScored,
       tipsChanged: scoring.tipsChanged + reopenedTipsCleared,
+      standingsImported,
+      ...(standingsError ? { standingsError } : {}),
     };
 
     await supabase.from("sync_runs").insert({
