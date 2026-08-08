@@ -6,6 +6,13 @@ type FinishedMatch = {
   away_score: number;
 };
 
+type MatchState = {
+  id: number;
+  finished: boolean;
+  home_score: number | null;
+  away_score: number | null;
+};
+
 type TipRow = {
   id: number;
   match_id: number;
@@ -53,22 +60,67 @@ async function loadPointRules(supabase: SupabaseClient): Promise<PointRules> {
 }
 
 /**
- * Recalculates points for every tip belonging to a finished match.
- * This is intentionally idempotent and safe to run after every sync.
+ * Recalculates points for every tip belonging to a valid finished match.
+ * If a previously finished match is reopened, postponed or loses its final score,
+ * stale points are cleared again. This keeps sync idempotent in both directions.
  */
 export async function scoreFinishedMatches(supabase: SupabaseClient): Promise<ScoreResult> {
   const rules = await loadPointRules(supabase);
-  const { data: matchRows, error: matchError } = await supabase
+  const { data: allMatchRows, error: matchError } = await supabase
     .from("matches")
-    .select("id,home_score,away_score")
-    .eq("finished", true)
-    .not("home_score", "is", null)
-    .not("away_score", "is", null);
+    .select("id,finished,home_score,away_score");
 
   if (matchError) throw matchError;
 
-  const finishedMatches = (matchRows ?? []) as FinishedMatch[];
-  if (!finishedMatches.length) return { finishedMatches: 0, tipsScored: 0, tipsChanged: 0 };
+  const matches = (allMatchRows ?? []) as MatchState[];
+  const finishedMatches: FinishedMatch[] = matches
+    .filter(
+      (match) =>
+        match.finished === true &&
+        match.home_score !== null &&
+        match.away_score !== null,
+    )
+    .map((match) => ({
+      id: match.id,
+      home_score: match.home_score as number,
+      away_score: match.away_score as number,
+    }));
+
+  const invalidMatchIds = matches
+    .filter(
+      (match) =>
+        match.finished !== true ||
+        match.home_score === null ||
+        match.away_score === null,
+    )
+    .map((match) => match.id);
+
+  let tipsChanged = 0;
+
+  // A sync can reopen/postpone a match that was previously scored. Clear those
+  // stored points so standings never keep points from a no-longer-final result.
+  if (invalidMatchIds.length) {
+    const { data: staleTips, error: staleTipError } = await supabase
+      .from("tips")
+      .select("id")
+      .in("match_id", invalidMatchIds)
+      .not("points", "is", null);
+
+    if (staleTipError) throw staleTipError;
+    const staleTipIds = (staleTips ?? []).map((tip: { id: number }) => tip.id);
+    if (staleTipIds.length) {
+      const { error: clearError } = await supabase
+        .from("tips")
+        .update({ points: null })
+        .in("id", staleTipIds);
+      if (clearError) throw clearError;
+      tipsChanged += staleTipIds.length;
+    }
+  }
+
+  if (!finishedMatches.length) {
+    return { finishedMatches: 0, tipsScored: 0, tipsChanged };
+  }
 
   const matchIds = finishedMatches.map((match) => match.id);
   const matchMap = new Map(finishedMatches.map((match) => [match.id, match]));
@@ -79,7 +131,6 @@ export async function scoreFinishedMatches(supabase: SupabaseClient): Promise<Sc
 
   if (tipError) throw tipError;
   const tips = (tipRows ?? []) as TipRow[];
-  let tipsChanged = 0;
 
   for (const tip of tips) {
     const match = matchMap.get(tip.match_id);
