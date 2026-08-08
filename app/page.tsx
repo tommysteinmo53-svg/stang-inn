@@ -9,214 +9,36 @@ type Player = { id: string; display_name: string; email: string | null; admin: b
 type Match = { id: number; home_team: string; away_team: string; match_time: string | null; home_score: number | null; away_score: number | null; finished: boolean; round: number | null };
 type Tip = { id?: number; player_id: string; match_id: number; home_tip: number; away_tip: number };
 type TableTipRow = { team: string; position: number };
-type Standing = Player & { points: number; exact: number; correct: number; tipped: number; streak: number; hitRate: number };
+type Standing = Player & { points: number; exact: number; correct: number; tipped: number; streak: number; bestStreak: number; hitRate: number };
 
 const tablePrediction = ["Storhamar", "Oilers", "Vålerenga", "Frisk Asker", "Sparta", "Narvik", "Stjernen", "Lillehammer", "Nidaros", "Ringerike"];
 
 function outcome(h: number, a: number) { return h > a ? "H" : h < a ? "A" : "D"; }
-function tipPoints(m: Match, t?: Tip) {
-  if (!t || m.home_score === null || m.away_score === null) return 0;
-  if (t.home_tip === m.home_score && t.away_tip === m.away_score) return 5;
-  if (outcome(t.home_tip, t.away_tip) === outcome(m.home_score, m.away_score)) return 3;
-  return 0;
-}
+function tipPoints(m: Match, t?: Tip) { if (!t || m.home_score === null || m.away_score === null) return 0; if (t.home_tip === m.home_score && t.away_tip === m.away_score) return 5; if (outcome(t.home_tip, t.away_tip) === outcome(m.home_score, m.away_score)) return 3; return 0; }
 function isLocked(match: Match) { return match.finished || (!!match.match_time && new Date() >= new Date(match.match_time)); }
-function formatDate(value: string | null) {
-  if (!value) return "Tidspunkt ikke satt";
-  return new Date(value).toLocaleString("no-NO", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-}
-function countdown(value: string | null) {
-  if (!value) return "";
-  const ms = new Date(value).getTime() - Date.now();
-  if (ms <= 0) return "Låst";
-  const hours = Math.floor(ms / 3_600_000);
-  const days = Math.floor(hours / 24);
-  if (days > 0) return `${days}d ${hours % 24}t`;
-  const minutes = Math.floor((ms % 3_600_000) / 60_000);
-  return `${hours}t ${minutes}m`;
-}
+function formatDate(value: string | null) { if (!value) return "Tidspunkt ikke satt"; return new Date(value).toLocaleString("no-NO", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); }
+function countdown(value: string | null) { if (!value) return ""; const ms = new Date(value).getTime() - Date.now(); if (ms <= 0) return "Låst"; const hours = Math.floor(ms / 3_600_000); const days = Math.floor(hours / 24); if (days > 0) return `${days}d ${hours % 24}t`; const minutes = Math.floor((ms % 3_600_000) / 60_000); return `${hours}t ${minutes}m`; }
 
-function Header({ tab, setTab, initial }: { tab: Tab; setTab: (tab: Tab) => void; initial: string }) {
-  const nav: { key: Tab; label: string }[] = [
-    { key: "overview", label: "Oversikt" }, { key: "matches", label: "Kamper" }, { key: "tabletips", label: "Tabelltips" },
-    { key: "stats", label: "Statistikk" }, { key: "awards", label: "Awards" }, { key: "profile", label: "Profil" },
-  ];
-  const openTab = (key: Tab) => { if (key === "tabletips") window.location.assign("/tabletips"); else setTab(key); };
-  return <><header className="topbar"><button className="brand brandButton" onClick={() => setTab("overview")}><div className="brandMark">🏒</div><div><p className="eyebrow">EHL 2026/27</p><h1>Stang Inn</h1></div></button><button className="avatar avatarButton" onClick={() => setTab("profile")}>{initial}</button></header><nav className="navTabs desktopTabs">{nav.map(item => <button key={item.key} className={tab === item.key ? "active" : ""} onClick={() => openTab(item.key)}>{item.label}</button>)}</nav></>;
-}
-
-function MobileNav({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) {
-  const items: { key: Tab; icon: string; label: string }[] = [
-    { key: "overview", icon: "⌂", label: "Hjem" },
-    { key: "matches", icon: "🏒", label: "Kamper" },
-    { key: "stats", icon: "🏆", label: "Tabell" },
-    { key: "tabletips", icon: "↕", label: "Tabelltips" },
-    { key: "profile", icon: "●", label: "Profil" },
-  ];
-  const openTab = (key: Tab) => { if (key === "tabletips") window.location.assign("/tabletips"); else setTab(key); };
-  return <nav className="mobileNav">{items.map(item => <button key={item.key} className={tab === item.key ? "active" : ""} onClick={() => openTab(item.key)}><span>{item.icon}</span><small>{item.label}</small></button>)}</nav>;
-}
-
-function TipEditor({ match, existing, playerId, onSaved }: { match: Match; existing?: Tip; playerId: string; onSaved: () => Promise<void> }) {
-  const [home, setHome] = useState(existing?.home_tip ?? 0);
-  const [away, setAway] = useState(existing?.away_tip ?? 0);
-  const [saving, setSaving] = useState(false);
-  useEffect(() => { setHome(existing?.home_tip ?? 0); setAway(existing?.away_tip ?? 0); }, [existing?.home_tip, existing?.away_tip]);
-  const locked = isLocked(match);
-
-  async function save() {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase || locked) return;
-    setSaving(true);
-    const { error } = await supabase.from("tips").upsert({ player_id: playerId, match_id: match.id, home_tip: home, away_tip: away }, { onConflict: "player_id,match_id" });
-    setSaving(false);
-    if (error) alert(error.message); else await onSaved();
-  }
-
-  return <div className="tipControls"><label><span>H</span><input type="number" min="0" disabled={locked} value={home} onChange={e => setHome(Math.max(0, Number(e.target.value)))} /></label><strong>–</strong><label><span>B</span><input type="number" min="0" disabled={locked} value={away} onChange={e => setAway(Math.max(0, Number(e.target.value)))} /></label><button className="compactButton" disabled={locked || saving} onClick={save}>{locked ? "Låst" : saving ? "Lagrer …" : existing ? "Oppdater" : "Lagre tips"}</button></div>;
-}
+function Header({ tab, setTab, initial }: { tab: Tab; setTab: (tab: Tab) => void; initial: string }) { const nav: { key: Tab; label: string }[] = [{ key: "overview", label: "Oversikt" }, { key: "matches", label: "Kamper" }, { key: "tabletips", label: "Tabelltips" }, { key: "stats", label: "Statistikk" }, { key: "awards", label: "Awards" }, { key: "profile", label: "Profil" }]; const openTab = (key: Tab) => { if (key === "tabletips") window.location.assign("/tabletips"); else setTab(key); }; return <><header className="topbar"><button className="brand brandButton" onClick={() => setTab("overview")}><div className="brandMark">🏒</div><div><p className="eyebrow">EHL 2026/27</p><h1>Stang Inn</h1></div></button><button className="avatar avatarButton" onClick={() => setTab("profile")}>{initial}</button></header><nav className="navTabs desktopTabs">{nav.map(item => <button key={item.key} className={tab === item.key ? "active" : ""} onClick={() => openTab(item.key)}>{item.label}</button>)}</nav></>; }
+function MobileNav({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) { const items: { key: Tab; icon: string; label: string }[] = [{ key: "overview", icon: "⌂", label: "Hjem" }, { key: "matches", icon: "🏒", label: "Kamper" }, { key: "stats", icon: "🏆", label: "Tabell" }, { key: "tabletips", icon: "↕", label: "Tabelltips" }, { key: "profile", icon: "●", label: "Profil" }]; const openTab = (key: Tab) => { if (key === "tabletips") window.location.assign("/tabletips"); else setTab(key); }; return <nav className="mobileNav">{items.map(item => <button key={item.key} className={tab === item.key ? "active" : ""} onClick={() => openTab(item.key)}><span>{item.icon}</span><small>{item.label}</small></button>)}</nav>; }
+function TipEditor({ match, existing, playerId, onSaved }: { match: Match; existing?: Tip; playerId: string; onSaved: () => Promise<void> }) { const [home, setHome] = useState(existing?.home_tip ?? 0); const [away, setAway] = useState(existing?.away_tip ?? 0); const [saving, setSaving] = useState(false); useEffect(() => { setHome(existing?.home_tip ?? 0); setAway(existing?.away_tip ?? 0); }, [existing?.home_tip, existing?.away_tip]); const locked = isLocked(match); async function save() { const supabase = getSupabaseBrowserClient(); if (!supabase || locked) return; setSaving(true); const { error } = await supabase.from("tips").upsert({ player_id: playerId, match_id: match.id, home_tip: home, away_tip: away }, { onConflict: "player_id,match_id" }); setSaving(false); if (error) alert(error.message); else await onSaved(); } return <div className="tipControls"><label><span>H</span><input type="number" min="0" disabled={locked} value={home} onChange={e => setHome(Math.max(0, Number(e.target.value)))} /></label><strong>–</strong><label><span>B</span><input type="number" min="0" disabled={locked} value={away} onChange={e => setAway(Math.max(0, Number(e.target.value)))} /></label><button className="compactButton" disabled={locked || saving} onClick={save}>{locked ? "Låst" : saving ? "Lagrer …" : existing ? "Oppdater" : "Lagre tips"}</button></div>; }
 
 export default function Home() {
-  const [tab, setTab] = useState<Tab>("overview");
-  const [matchFilter, setMatchFilter] = useState<MatchFilter>("upcoming");
-  const [query, setQuery] = useState("");
-  const [roundFilter, setRoundFilter] = useState<number | "all">("all");
-  const [showCount, setShowCount] = useState(20);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [tips, setTips] = useState<Tip[]>([]);
-  const [me, setMe] = useState<Player | null>(null);
-  const [loading, setLoading] = useState(isSupabaseConfigured);
-  const [tableOrder, setTableOrder] = useState<string[]>(tablePrediction);
-  const [tableTipDeadline, setTableTipDeadline] = useState<string | null>(null);
-  const [tableTipLocked, setTableTipLocked] = useState(false);
-  const [tableTipSaving, setTableTipSaving] = useState(false);
-  const [tableTipStatus, setTableTipStatus] = useState("");
-
-  async function load() {
-    if (!isSupabaseConfigured) { setLoading(false); return; }
-    const supabase = getSupabaseBrowserClient(); if (!supabase) return;
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData.session?.user.id;
-    const [p, m, t, tt, tableSettings] = await Promise.all([
-      supabase.from("players").select("id,display_name,email,admin").order("created_at"),
-      supabase.from("matches").select("id,home_team,away_team,match_time,home_score,away_score,finished,round").order("match_time"),
-      supabase.from("tips").select("id,player_id,match_id,home_tip,away_tip"),
-      uid ? supabase.from("table_tips").select("team,position").eq("player_id", uid).order("position") : Promise.resolve({ data: [] as TableTipRow[] }),
-      supabase.from("app_settings").select("value").eq("key", "table_tips").maybeSingle(),
-    ]);
-    if (p.data) { setPlayers(p.data as Player[]); setMe((p.data as Player[]).find(x => x.id === uid) ?? null); }
-    if (m.data) setMatches(m.data as Match[]);
-    if (t.data) setTips(t.data as Tip[]);
-    const ownTableTip = (tt.data || []) as TableTipRow[];
-    if (ownTableTip.length === tablePrediction.length) setTableOrder(ownTableTip.map(row => row.team));
-    const settings = tableSettings.data?.value as { deadline?: string | null } | undefined;
-    const deadline = settings?.deadline || null;
-    setTableTipDeadline(deadline);
-    setTableTipLocked(Boolean(deadline && Date.now() >= new Date(deadline).getTime()));
-    setLoading(false);
-  }
-  useEffect(() => { load(); }, []);
-  useEffect(() => { setShowCount(20); }, [matchFilter, query, roundFilter]);
-
-  function moveTableTeam(index: number, direction: -1 | 1) {
-    if (tableTipLocked) return;
-    const target = index + direction;
-    if (target < 0 || target >= tableOrder.length) return;
-    setTableOrder(current => {
-      const next = [...current];
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
-    });
-    setTableTipStatus("");
-  }
-
-  async function saveTableTips() {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase || !me || tableTipLocked || tableTipSaving) return;
-    setTableTipSaving(true);
-    setTableTipStatus("Lagrer tabelltips …");
-    const { error } = await supabase.rpc("save_table_tip_rankings", { teams: tableOrder });
-    setTableTipSaving(false);
-    if (error) { setTableTipStatus(`Feil: ${error.message}`); return; }
-    setTableTipStatus("✓ Tabelltipset er lagret.");
-    await load();
-  }
-
-  const completedMatches = useMemo(() => matches.filter(m => m.finished || (m.home_score !== null && m.away_score !== null)), [matches]);
-  const ownTips = useMemo(() => tips.filter(t => t.player_id === me?.id), [tips, me]);
-  const ownTipMap = useMemo(() => new Map(ownTips.map(t => [t.match_id, t])), [ownTips]);
-
-  const standings = useMemo<Standing[]>(() => players.map(player => {
-    let points = 0, exact = 0, correct = 0, tipped = 0, streak = 0, currentStreak = 0;
-    const playerTips = new Map(tips.filter(t => t.player_id === player.id).map(t => [t.match_id, t]));
-    [...completedMatches].sort((a,b)=>(a.match_time||"").localeCompare(b.match_time||"")).forEach(m => {
-      const tip = playerTips.get(m.id); if (!tip) { currentStreak = 0; return; }
-      tipped++;
-      const pts = tipPoints(m, tip); points += pts;
-      if (pts === 5) exact++;
-      if (pts > 0) { correct++; currentStreak++; streak = currentStreak; } else { currentStreak = 0; streak = 0; }
-    });
-    return { ...player, points, exact, correct, tipped, streak, hitRate: tipped ? Math.round(correct / tipped * 100) : 0 };
-  }).sort((a, b) => b.points - a.points || b.exact - a.exact || b.correct - a.correct), [players, completedMatches, tips]);
-  const hasAwardData = standings.some(player => player.tipped > 0);
-
-  const upcoming = useMemo(() => matches.filter(m => !m.finished && (!m.match_time || new Date(m.match_time) > new Date())).sort((a,b)=>(a.match_time||"").localeCompare(b.match_time||"")), [matches]);
-  const nextMatch = upcoming[0];
-  const untipped = useMemo(() => upcoming.filter(m => !ownTipMap.has(m.id)), [upcoming, ownTipMap]);
-  const rounds = useMemo(() => [...new Set(matches.map(m => m.round).filter((r): r is number => r !== null))].sort((a,b)=>a-b), [matches]);
-  const visibleMatches = useMemo(() => {
-    let source: Match[];
-    if (matchFilter === "upcoming") source = upcoming;
-    else if (matchFilter === "untipped") source = untipped;
-    else if (matchFilter === "finished") source = [...completedMatches].sort((a,b)=>(b.match_time||"").localeCompare(a.match_time||""));
-    else source = matches;
-    const q = query.trim().toLowerCase();
-    return source.filter(m => (roundFilter === "all" || m.round === roundFilter) && (!q || `${m.home_team} ${m.away_team}`.toLowerCase().includes(q)));
-  }, [matchFilter, upcoming, untipped, completedMatches, matches, query, roundFilter]);
-  const shownMatches = visibleMatches.slice(0, showCount);
-  const initials = (me?.display_name || "S").slice(0, 1).toUpperCase();
-  const myStanding = standings.find(x => x.id === me?.id);
-
-  if (loading) return <main className="appShell"><p className="muted">Laster ligaen …</p></main>;
-
-  return <main className="appShell">
-    <Header tab={tab} setTab={setTab} initial={initials} />
-
-    {tab === "overview" && <>
-      <section className="heroCard"><div><p className="eyebrow">Neste kamp</p><h2>{nextMatch ? <>{nextMatch.home_team} <span>vs</span> {nextMatch.away_team}</> : "Ingen kommende kamper"}</h2><p className="muted">{nextMatch ? `${formatDate(nextMatch.match_time)} · tips låses ved kampstart` : "Terminlisten er synkronisert"}</p></div><div className="countdown"><strong>{nextMatch ? countdown(nextMatch.match_time) : matches.length}</strong><span>{nextMatch ? "til låsing" : "kamper"}</span></div></section>
-      <section className="statsGrid"><article className="miniCard"><span>👑 Leder</span><strong>{standings[0]?.display_name || "–"}</strong><small>{standings[0]?.points ?? 0} poeng</small></article><article className="miniCard"><span>🎯 Sniper</span><strong>{[...standings].sort((a,b)=>b.exact-a.exact)[0]?.display_name || "–"}</strong><small>{[...standings].sort((a,b)=>b.exact-a.exact)[0]?.exact ?? 0} eksakte</small></article><article className="miniCard"><span>🔥 Streak</span><strong>{[...standings].sort((a,b)=>b.streak-a.streak)[0]?.display_name || "–"}</strong><small>{[...standings].sort((a,b)=>b.streak-a.streak)[0]?.streak ?? 0} riktige på rad</small></article><article className="miniCard"><span>✅ Ikke tippet</span><strong>{untipped.length}</strong><small>kommende kamper</small></article></section>
-      <section className="contentGrid"><article className="panel standings"><div className="panelHeading"><div><p className="eyebrow">Sesongen</p><h3>Sammenlagt</h3></div><button className="textButton" onClick={()=>setTab("stats")}>Se statistikk →</button></div><div className="tableHead"><span>#</span><span>Spiller</span><span>Eksakte</span><span>Poeng</span></div>{standings.map((p,i)=><div className="tableRow" key={p.id}><span className="rank">{i+1}</span><span><b>{p.display_name}</b><small>{p.hitRate}% treff</small></span><span>{p.exact}</span><span className="points">{p.points}</span></div>)}</article><article className="panel upcoming"><div className="panelHeading"><div><p className="eyebrow">Neste</p><h3>Kamper</h3></div><button className="textButton" onClick={()=>setTab("matches")}>Alle kamper →</button></div><div className="matchStack">{upcoming.slice(0,4).map(m=><div className="matchCard" key={m.id}><div><small>{formatDate(m.match_time)}{m.round ? ` · Runde ${m.round}` : ""}</small><strong>{m.home_team} – {m.away_team}</strong></div><span className={ownTipMap.has(m.id) ? "delivery complete" : "delivery"}>{ownTipMap.has(m.id) ? "✓ Tippet" : "Mangler tips"}</span></div>)}</div><button className="primaryButton" onClick={()=>{setMatchFilter("untipped");setTab("matches");}}>Tipp manglende kamper</button></article></section>
-    </>}
-
-    {tab === "matches" && <section className="pageStack"><div className="pageHeading"><div><p className="eyebrow">EHL 2026/27</p><h2>Kamper & tips</h2><p className="muted">Finn kampen raskt, lever tips og rediger frem til kampstart.</p></div><span className="statusPill">{matches.length} kamper</span></div>
-      <div className="matchToolbar"><input className="matchSearch" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Søk lag …" /><select className="roundSelect" value={roundFilter} onChange={e=>setRoundFilter(e.target.value === "all" ? "all" : Number(e.target.value))}><option value="all">Alle runder</option>{rounds.map(r=><option key={r} value={r}>Runde {r}</option>)}</select></div>
-      <div className="matchFilters"><button className={matchFilter==="upcoming"?"active":""} onClick={()=>setMatchFilter("upcoming")}>Kommende <b>{upcoming.length}</b></button><button className={matchFilter==="untipped"?"active warning":"warning"} onClick={()=>setMatchFilter("untipped")}>Ikke tippet <b>{untipped.length}</b></button><button className={matchFilter==="finished"?"active":""} onClick={()=>setMatchFilter("finished")}>Ferdig <b>{completedMatches.length}</b></button><button className={matchFilter==="all"?"active":""} onClick={()=>setMatchFilter("all")}>Alle</button></div>
-      <div className="matchCount">Viser {Math.min(showCount, visibleMatches.length)} av {visibleMatches.length}</div>
-      {shownMatches.map(m=>{const existing=ownTipMap.get(m.id);const delivered=tips.filter(t=>t.match_id===m.id).length;return <article className={`panel matchDetail ${existing ? "hasTip" : ""}`} key={m.id}><div className="matchInfo"><small className="muted">{formatDate(m.match_time)}{m.round ? ` · Runde ${m.round}` : ""}</small><h3>{m.home_team} <span className="versus">–</span> {m.away_team}</h3><span className={m.finished?"delivery complete":existing?"delivery complete":"delivery"}>{m.finished&&m.home_score!==null&&m.away_score!==null?`Slutt ${m.home_score}–${m.away_score}`:existing?`✓ Mitt tips ${existing.home_tip}–${existing.away_tip} · ${delivered}/${players.length} levert`:`Ikke tippet · låses om ${countdown(m.match_time)}`}</span></div>{me&&<TipEditor match={m} existing={existing} playerId={me.id} onSaved={load}/>}</article>})}
-      {visibleMatches.length===0&&<article className="panel emptyState"><strong>Ingen kamper her.</strong><span>Prøv et annet filter eller søk.</span></article>}
-      {showCount < visibleMatches.length&&<button className="loadMore" onClick={()=>setShowCount(c=>c+20)}>Vis 20 flere</button>}
-    </section>}
-
-    {tab === "tabletips" && <section className="pageStack">
-      <div className="pageHeading"><div><p className="eyebrow">Sesongkonkurranse</p><h2>Tabelltips</h2><p className="muted">Ranger lagene fra 1 til 10. Du kan endre tipset helt frem til låsefristen.</p></div><span className="statusPill">{tableTipLocked ? "🔒 Låst" : "🟢 Åpent"}</span></div>
-      {tableTipStatus && <article className="quoteCard"><span>Status</span><p>{tableTipStatus}</p></article>}
-      <section className="contentGrid">
-        <article className="panel">
-          <div className="panelHeading"><div><p className="eyebrow">Mitt tips</p><h3>Forventet sluttabell</h3></div><span className="statusPill">{tableTipDeadline ? `Frist ${new Date(tableTipDeadline).toLocaleString("no-NO", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" })}` : "Frist ikke satt"}</span></div>
-          <div className="rankingList">{tableOrder.map((team,i)=><div className="rankingItem" key={team} style={{display:"grid",gridTemplateColumns:"42px 1fr auto",gap:10,alignItems:"center"}}><span className="rank">{i+1}</span><strong>{team}</strong><span style={{display:"flex",gap:6}}><button className="compactButton" disabled={tableTipLocked||i===0} onClick={()=>moveTableTeam(i,-1)} aria-label={`Flytt ${team} opp`}>↑</button><button className="compactButton" disabled={tableTipLocked||i===tableOrder.length-1} onClick={()=>moveTableTeam(i,1)} aria-label={`Flytt ${team} ned`}>↓</button></span></div>)}</div>
-          <button className="primaryButton" style={{marginTop:16}} disabled={!me||tableTipLocked||tableTipSaving} onClick={saveTableTips}>{tableTipLocked ? "Tabelltipset er låst" : tableTipSaving ? "Lagrer …" : "Lagre tabelltips"}</button>
-        </article>
-        <article className="panel"><div className="panelHeading"><div><p className="eyebrow">Slik fungerer det</p><h3>Sesongtipset</h3></div></div><p className="muted">Før fristen ser du bare ditt eget tabelltips. Etter fristen åpnes tipsene for de andre deltakerne.</p><p className="muted" style={{marginTop:10}}>Neste steg er å koble inn den faktiske EHL-tabellen og beregne plasseringsavvik automatisk gjennom sesongen.</p></article>
-      </section>
-    </section>}
-
-    {tab === "stats" && <section className="pageStack"><div className="pageHeading"><div><p className="eyebrow">Ekte data</p><h2>Sammenlagt & statistikk</h2></div></div><article className="panel standings"><div className="tableHead"><span>#</span><span>Spiller</span><span>Eksakte</span><span>Poeng</span></div>{standings.map((p,i)=><div className="tableRow" key={p.id}><span className="rank">{i+1}</span><span><b>{p.display_name}</b><small>{p.hitRate}% treff · 🔥 {p.streak}</small></span><span>{p.exact}</span><span className="points">{p.points}</span></div>)}</article><section className="statsGrid">{standings.map(p=><article className="miniCard" key={p.id}><span>{p.id===me?.id?"Deg":"Spiller"}</span><strong>{p.display_name}</strong><small>{p.points} p · {p.exact} eksakte · {p.hitRate}% treff</small></article>)}</section><article className="panel"><h3>Poengregler</h3><p className="muted">5 poeng for eksakt resultat · 3 poeng for riktig kamputfall · 0 poeng ellers.</p></article></section>}
-
-    {tab === "awards" && <section className="pageStack"><div className="pageHeading"><div><p className="eyebrow">Moro & rivalisering</p><h2>Awards</h2></div></div><div className="awardGrid"><article className="awardCard"><div className="awardIcon">👑</div><span>Eksperten</span><strong>{hasAwardData ? standings[0]?.display_name || "–" : "Ikke kåret ennå"}</strong><small>{hasAwardData ? "Leder sammenlagt" : "Venter på første tellende resultat"}</small></article><article className="awardCard"><div className="awardIcon">🎯</div><span>Sniper</span><strong>{hasAwardData ? [...standings].sort((a,b)=>b.exact-a.exact)[0]?.display_name || "–" : "Ikke kåret ennå"}</strong><small>{hasAwardData ? "Flest eksakte" : "Venter på første tellende resultat"}</small></article><article className="awardCard"><div className="awardIcon">🔥</div><span>Hot Hand</span><strong>{hasAwardData ? [...standings].sort((a,b)=>b.streak-a.streak)[0]?.display_name || "–" : "Ikke kåret ennå"}</strong><small>{hasAwardData ? "Nåværende riktige streak" : "Venter på første tellende resultat"}</small></article><article className="awardCard"><div className="awardIcon">🧊</div><span>Iskald</span><strong>{hasAwardData ? standings.at(-1)?.display_name || "–" : "Ikke kåret ennå"}</strong><small>{hasAwardData ? "Trenger en god runde" : "Venter på første tellende resultat"}</small></article></div></section>}
-
-    {tab === "profile" && <section className="pageStack"><article className="profileHero"><div className="profileAvatar">{initials}</div><div><p className="eyebrow">Min profil</p><h2>{me?.display_name || "Spiller"}</h2><p className="muted">{me?.email || ""}{me?.admin ? " · Admin" : ""}</p></div></article><section className="statsGrid"><article className="miniCard"><span>Poeng</span><strong>{myStanding?.points ?? 0}</strong><small>Sesongen</small></article><article className="miniCard"><span>Eksakte</span><strong>{myStanding?.exact ?? 0}</strong><small>Sesongen</small></article><article className="miniCard"><span>Treff</span><strong>{myStanding?.hitRate ?? 0}%</strong><small>{myStanding?.correct ?? 0} riktige</small></article><article className="miniCard"><span>Streak</span><strong>{myStanding?.streak ?? 0}</strong><small>Nåværende rekke</small></article></section>{me?.admin&&<article className="panel"><h3>Admin</h3><p className="muted">Terminliste og resultater synkroniseres fra HockeyLive.</p><a className="primaryButton" href="/admin">Åpne adminpanel</a></article>}</section>}
-
-    <MobileNav tab={tab} setTab={setTab} />
-  </main>;
+ const [tab,setTab]=useState<Tab>("overview"),[matchFilter,setMatchFilter]=useState<MatchFilter>("upcoming"),[query,setQuery]=useState(""),[roundFilter,setRoundFilter]=useState<number|"all">("all"),[showCount,setShowCount]=useState(20); const [players,setPlayers]=useState<Player[]>([]),[matches,setMatches]=useState<Match[]>([]),[tips,setTips]=useState<Tip[]>([]),[me,setMe]=useState<Player|null>(null),[loading,setLoading]=useState(isSupabaseConfigured); const [tableOrder,setTableOrder]=useState<string[]>(tablePrediction),[tableTipDeadline,setTableTipDeadline]=useState<string|null>(null),[tableTipLocked,setTableTipLocked]=useState(false),[tableTipSaving,setTableTipSaving]=useState(false),[tableTipStatus,setTableTipStatus]=useState("");
+ async function load(){if(!isSupabaseConfigured){setLoading(false);return}const supabase=getSupabaseBrowserClient();if(!supabase)return;const{data:sessionData}=await supabase.auth.getSession();const uid=sessionData.session?.user.id;const[p,m,t,tt,tableSettings]=await Promise.all([supabase.from("players").select("id,display_name,email,admin").order("created_at"),supabase.from("matches").select("id,home_team,away_team,match_time,home_score,away_score,finished,round").order("match_time"),supabase.from("tips").select("id,player_id,match_id,home_tip,away_tip"),uid?supabase.from("table_tips").select("team,position").eq("player_id",uid).order("position"):Promise.resolve({data:[] as TableTipRow[]}),supabase.from("app_settings").select("value").eq("key","table_tips").maybeSingle()]);if(p.data){setPlayers(p.data as Player[]);setMe((p.data as Player[]).find(x=>x.id===uid)??null)}if(m.data)setMatches(m.data as Match[]);if(t.data)setTips(t.data as Tip[]);const ownTableTip=(tt.data||[])as TableTipRow[];if(ownTableTip.length===tablePrediction.length)setTableOrder(ownTableTip.map(row=>row.team));const settings=tableSettings.data?.value as{deadline?:string|null}|undefined;const deadline=settings?.deadline||null;setTableTipDeadline(deadline);setTableTipLocked(Boolean(deadline&&Date.now()>=new Date(deadline).getTime()));setLoading(false)}
+ useEffect(()=>{load()},[]);useEffect(()=>{setShowCount(20)},[matchFilter,query,roundFilter]);
+ function moveTableTeam(index:number,direction:-1|1){if(tableTipLocked)return;const target=index+direction;if(target<0||target>=tableOrder.length)return;setTableOrder(current=>{const next=[...current];[next[index],next[target]]=[next[target],next[index]];return next});setTableTipStatus("")}
+ async function saveTableTips(){const supabase=getSupabaseBrowserClient();if(!supabase||!me||tableTipLocked||tableTipSaving)return;setTableTipSaving(true);setTableTipStatus("Lagrer tabelltips …");const{error}=await supabase.rpc("save_table_tip_rankings",{teams:tableOrder});setTableTipSaving(false);if(error){setTableTipStatus(`Feil: ${error.message}`);return}setTableTipStatus("✓ Tabelltipset er lagret.");await load()}
+ const completedMatches=useMemo(()=>matches.filter(m=>m.finished||(m.home_score!==null&&m.away_score!==null)),[matches]);const ownTips=useMemo(()=>tips.filter(t=>t.player_id===me?.id),[tips,me]);const ownTipMap=useMemo(()=>new Map(ownTips.map(t=>[t.match_id,t])),[ownTips]);
+ const standings=useMemo<Standing[]>(()=>players.map(player=>{let points=0,exact=0,correct=0,tipped=0,currentStreak=0,bestStreak=0;const playerTips=new Map(tips.filter(t=>t.player_id===player.id).map(t=>[t.match_id,t]));[...completedMatches].sort((a,b)=>(a.match_time||"").localeCompare(b.match_time||"")).forEach(m=>{const tip=playerTips.get(m.id);if(!tip){currentStreak=0;return}tipped++;const pts=tipPoints(m,tip);points+=pts;if(pts===5)exact++;if(pts>0){correct++;currentStreak++;bestStreak=Math.max(bestStreak,currentStreak)}else currentStreak=0});return{...player,points,exact,correct,tipped,streak:currentStreak,bestStreak,hitRate:tipped?Math.round(correct/tipped*100):0}}).sort((a,b)=>b.points-a.points||b.exact-a.exact||b.correct-a.correct),[players,completedMatches,tips]);const hasAwardData=standings.some(player=>player.tipped>0);
+ const upcoming=useMemo(()=>matches.filter(m=>!m.finished&&(!m.match_time||new Date(m.match_time)>new Date())).sort((a,b)=>(a.match_time||"").localeCompare(b.match_time||"")),[matches]);const nextMatch=upcoming[0];const untipped=useMemo(()=>upcoming.filter(m=>!ownTipMap.has(m.id)),[upcoming,ownTipMap]);const rounds=useMemo(()=>[...new Set(matches.map(m=>m.round).filter((r):r is number=>r!==null))].sort((a,b)=>a-b),[matches]);const visibleMatches=useMemo(()=>{let source:Match[];if(matchFilter==="upcoming")source=upcoming;else if(matchFilter==="untipped")source=untipped;else if(matchFilter==="finished")source=[...completedMatches].sort((a,b)=>(b.match_time||"").localeCompare(a.match_time||""));else source=matches;const q=query.trim().toLowerCase();return source.filter(m=>(roundFilter==="all"||m.round===roundFilter)&&(!q||`${m.home_team} ${m.away_team}`.toLowerCase().includes(q)))},[matchFilter,upcoming,untipped,completedMatches,matches,query,roundFilter]);const shownMatches=visibleMatches.slice(0,showCount);const initials=(me?.display_name||"S").slice(0,1).toUpperCase();const myStanding=standings.find(x=>x.id===me?.id);
+ if(loading)return <main className="appShell"><p className="muted">Laster ligaen …</p></main>;
+ return <main className="appShell"><Header tab={tab} setTab={setTab} initial={initials}/>
+ {tab==="overview"&&<><section className="heroCard"><div><p className="eyebrow">Neste kamp</p><h2>{nextMatch?<>{nextMatch.home_team} <span>vs</span> {nextMatch.away_team}</>:"Ingen kommende kamper"}</h2><p className="muted">{nextMatch?`${formatDate(nextMatch.match_time)} · tips låses ved kampstart`:"Terminlisten er synkronisert"}</p></div><div className="countdown"><strong>{nextMatch?countdown(nextMatch.match_time):matches.length}</strong><span>{nextMatch?"til låsing":"kamper"}</span></div></section><section className="statsGrid"><article className="miniCard"><span>👑 Leder</span><strong>{standings[0]?.display_name||"–"}</strong><small>{standings[0]?.points??0} poeng</small></article><article className="miniCard"><span>🎯 Sniper</span><strong>{[...standings].sort((a,b)=>b.exact-a.exact)[0]?.display_name||"–"}</strong><small>{[...standings].sort((a,b)=>b.exact-a.exact)[0]?.exact??0} eksakte</small></article><article className="miniCard"><span>🔥 Streak</span><strong>{[...standings].sort((a,b)=>b.streak-a.streak)[0]?.display_name||"–"}</strong><small>{[...standings].sort((a,b)=>b.streak-a.streak)[0]?.streak??0} riktige på rad</small></article><article className="miniCard"><span>✅ Ikke tippet</span><strong>{untipped.length}</strong><small>kommende kamper</small></article></section><section className="contentGrid"><article className="panel standings"><div className="panelHeading"><div><p className="eyebrow">Sesongen</p><h3>Sammenlagt</h3></div><button className="textButton" onClick={()=>setTab("stats")}>Se statistikk →</button></div><div className="tableHead"><span>#</span><span>Spiller</span><span>Eksakte</span><span>Poeng</span></div>{standings.map((p,i)=><div className="tableRow" key={p.id}><span className="rank">{i+1}</span><span><b>{p.display_name}</b><small>{p.hitRate}% treff · 🔥 {p.streak}</small></span><span>{p.exact}</span><span className="points">{p.points}</span></div>)}</article><article className="panel upcoming"><div className="panelHeading"><div><p className="eyebrow">Neste</p><h3>Kamper</h3></div><button className="textButton" onClick={()=>setTab("matches")}>Alle kamper →</button></div><div className="matchStack">{upcoming.slice(0,4).map(m=><div className="matchCard" key={m.id}><div><small>{formatDate(m.match_time)}{m.round?` · Runde ${m.round}`:""}</small><strong>{m.home_team} – {m.away_team}</strong></div><span className={ownTipMap.has(m.id)?"delivery complete":"delivery"}>{ownTipMap.has(m.id)?"✓ Tippet":"Mangler tips"}</span></div>)}</div><button className="primaryButton" onClick={()=>{setMatchFilter("untipped");setTab("matches")}}>Tipp manglende kamper</button></article></section></>}
+ {tab==="matches"&&<section className="pageStack"><div className="pageHeading"><div><p className="eyebrow">EHL 2026/27</p><h2>Kamper & tips</h2><p className="muted">Finn kampen raskt, lever tips og rediger frem til kampstart.</p></div><span className="statusPill">{matches.length} kamper</span></div><div className="matchToolbar"><input className="matchSearch" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Søk lag …"/><select className="roundSelect" value={roundFilter} onChange={e=>setRoundFilter(e.target.value==="all"?"all":Number(e.target.value))}><option value="all">Alle runder</option>{rounds.map(r=><option key={r} value={r}>Runde {r}</option>)}</select></div><div className="matchFilters"><button className={matchFilter==="upcoming"?"active":""} onClick={()=>setMatchFilter("upcoming")}>Kommende <b>{upcoming.length}</b></button><button className={matchFilter==="untipped"?"active warning":"warning"} onClick={()=>setMatchFilter("untipped")}>Ikke tippet <b>{untipped.length}</b></button><button className={matchFilter==="finished"?"active":""} onClick={()=>setMatchFilter("finished")}>Ferdig <b>{completedMatches.length}</b></button><button className={matchFilter==="all"?"active":""} onClick={()=>setMatchFilter("all")}>Alle</button></div><div className="matchCount">Viser {Math.min(showCount,visibleMatches.length)} av {visibleMatches.length}</div>{shownMatches.map(m=>{const existing=ownTipMap.get(m.id);const delivered=tips.filter(t=>t.match_id===m.id).length;return <article className={`panel matchDetail ${existing?"hasTip":""}`} key={m.id}><div className="matchInfo"><small className="muted">{formatDate(m.match_time)}{m.round?` · Runde ${m.round}`:""}</small><h3>{m.home_team} <span className="versus">–</span> {m.away_team}</h3><span className={m.finished?"delivery complete":existing?"delivery complete":"delivery"}>{m.finished&&m.home_score!==null&&m.away_score!==null?`Slutt ${m.home_score}–${m.away_score}`:existing?`✓ Mitt tips ${existing.home_tip}–${existing.away_tip} · ${delivered}/${players.length} levert`:`Ikke tippet · låses om ${countdown(m.match_time)}`}</span></div>{me&&<TipEditor match={m} existing={existing} playerId={me.id} onSaved={load}/>}</article>})}{visibleMatches.length===0&&<article className="panel emptyState"><strong>Ingen kamper her.</strong><span>Prøv et annet filter eller søk.</span></article>}{showCount<visibleMatches.length&&<button className="loadMore" onClick={()=>setShowCount(c=>c+20)}>Vis 20 flere</button>}</section>}
+ {tab==="tabletips"&&<section className="pageStack"><div className="pageHeading"><div><p className="eyebrow">Sesongkonkurranse</p><h2>Tabelltips</h2></div></div><a className="primaryButton" href="/tabletips">Åpne Tabelltips</a></section>}
+ {tab==="stats"&&<section className="pageStack"><div className="pageHeading"><div><p className="eyebrow">Leaderboard 2.0</p><h2>Sammenlagt & statistikk</h2><p className="muted">Poeng først. Ved lik poengsum rangeres flest eksakte foran flest riktige utfall.</p></div><span className="statusPill">{completedMatches.length} avgjorte kamper</span></div><article className="panel standings"><div className="tableHead"><span>#</span><span>Spiller</span><span>Eksakte</span><span>Poeng</span></div>{standings.map((p,i)=><div className="tableRow" key={p.id}><span className="rank">{i+1}</span><span><b>{p.display_name}</b><small>{p.correct}/{p.tipped} riktige · {p.hitRate}% · 🔥 {p.streak} nå / {p.bestStreak} best</small></span><span>{p.exact}</span><span className="points">{p.points}</span></div>)}</article><section className="statsGrid">{standings.map(p=><article className="miniCard" key={p.id}><span>{p.id===me?.id?"Deg":"Spiller"}</span><strong>{p.display_name}</strong><small>{p.points} p · 🎯 {p.exact} eksakte · ✅ {p.correct} riktige · 🔥 {p.streak}/{p.bestStreak}</small></article>)}</section><article className="panel"><h3>Poengregler</h3><p className="muted">5 poeng for eksakt resultat · 3 poeng for riktig kamputfall · 0 poeng ellers. Streak teller sammenhengende tellende tips med 3 eller 5 poeng.</p></article></section>}
+ {tab==="awards"&&<section className="pageStack"><div className="pageHeading"><div><p className="eyebrow">Moro & rivalisering</p><h2>Awards</h2></div></div><div className="awardGrid"><article className="awardCard"><div className="awardIcon">👑</div><span>Eksperten</span><strong>{hasAwardData?standings[0]?.display_name||"–":"Ikke kåret ennå"}</strong><small>{hasAwardData?"Leder sammenlagt":"Venter på første tellende resultat"}</small></article><article className="awardCard"><div className="awardIcon">🎯</div><span>Sniper</span><strong>{hasAwardData?[...standings].sort((a,b)=>b.exact-a.exact)[0]?.display_name||"–":"Ikke kåret ennå"}</strong><small>{hasAwardData?"Flest eksakte":"Venter på første tellende resultat"}</small></article><article className="awardCard"><div className="awardIcon">🔥</div><span>Hot Hand</span><strong>{hasAwardData?[...standings].sort((a,b)=>b.streak-a.streak)[0]?.display_name||"–":"Ikke kåret ennå"}</strong><small>{hasAwardData?"Nåværende riktige streak":"Venter på første tellende resultat"}</small></article><article className="awardCard"><div className="awardIcon">🏅</div><span>Beste streak</span><strong>{hasAwardData?[...standings].sort((a,b)=>b.bestStreak-a.bestStreak)[0]?.display_name||"–":"Ikke kåret ennå"}</strong><small>{hasAwardData?`${[...standings].sort((a,b)=>b.bestStreak-a.bestStreak)[0]?.bestStreak??0} riktige på rad`:"Venter på første tellende resultat"}</small></article></div></section>}
+ {tab==="profile"&&<section className="pageStack"><article className="profileHero"><div className="profileAvatar">{initials}</div><div><p className="eyebrow">Min profil</p><h2>{me?.display_name||"Spiller"}</h2><p className="muted">{me?.email||""}{me?.admin?" · Admin":""}</p></div></article><section className="statsGrid"><article className="miniCard"><span>Poeng</span><strong>{myStanding?.points??0}</strong><small>Sesongen</small></article><article className="miniCard"><span>Eksakte</span><strong>{myStanding?.exact??0}</strong><small>Sesongen</small></article><article className="miniCard"><span>Treff</span><strong>{myStanding?.hitRate??0}%</strong><small>{myStanding?.correct??0} riktige</small></article><article className="miniCard"><span>Streak</span><strong>{myStanding?.streak??0}</strong><small>Beste {myStanding?.bestStreak??0}</small></article></section>{me?.admin&&<article className="panel"><h3>Admin</h3><p className="muted">Terminliste og resultater synkroniseres fra HockeyLive.</p><a className="primaryButton" href="/admin">Åpne adminpanel</a></article>}</section>}
+ <MobileNav tab={tab} setTab={setTab}/></main>;
 }
