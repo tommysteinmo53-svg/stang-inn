@@ -8,8 +8,8 @@ type Match = { id: number; home_team: string; away_team: string; match_time: str
 type Tip = { id?: number; player_id: string; match_id: number; home_tip: number; away_tip: number };
 type Filter = "upcoming" | "untipped" | "finished" | "all";
 
-function locked(match: Match) {
-  return match.finished || (!!match.match_time && new Date() >= new Date(match.match_time));
+function locked(match: Match, now = Date.now()) {
+  return match.finished || (!!match.match_time && now >= new Date(match.match_time).getTime());
 }
 
 function fmt(value: string | null) {
@@ -17,9 +17,9 @@ function fmt(value: string | null) {
   return new Date(value).toLocaleString("no-NO", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
-function countdown(value: string | null) {
+function countdown(value: string | null, now = Date.now()) {
   if (!value) return "";
-  const ms = new Date(value).getTime() - Date.now();
+  const ms = new Date(value).getTime() - now;
   if (ms <= 0) return "låst";
   const hours = Math.floor(ms / 3_600_000);
   const days = Math.floor(hours / 24);
@@ -28,11 +28,11 @@ function countdown(value: string | null) {
   return `${hours}t ${minutes}m`;
 }
 
-function TipEditor({ match, existing, playerId, onSaved }: { match: Match; existing?: Tip; playerId: string; onSaved: () => Promise<void> }) {
+function TipEditor({ match, existing, playerId, onSaved, now }: { match: Match; existing?: Tip; playerId: string; onSaved: () => Promise<void>; now: number }) {
   const [home, setHome] = useState(existing?.home_tip ?? 0);
   const [away, setAway] = useState(existing?.away_tip ?? 0);
   const [saving, setSaving] = useState(false);
-  const isLocked = locked(match);
+  const isLocked = locked(match, now);
 
   useEffect(() => {
     setHome(existing?.home_tip ?? 0);
@@ -40,7 +40,7 @@ function TipEditor({ match, existing, playerId, onSaved }: { match: Match; exist
   }, [existing?.home_tip, existing?.away_tip]);
 
   async function save() {
-    if (isLocked) return;
+    if (locked(match)) return;
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
     setSaving(true);
@@ -69,6 +69,7 @@ export default function TipsPage() {
   const [filter, setFilter] = useState<Filter>("upcoming");
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [clock, setClock] = useState(Date.now());
 
   async function load() {
     const supabase = getSupabaseBrowserClient();
@@ -85,15 +86,20 @@ export default function TipsPage() {
     setMe(ps.find(x => x.id === uid) || null);
     setMatches((m.data || []) as Match[]);
     setTips((t.data || []) as Tip[]);
+    setClock(Date.now());
     setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 10_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const ownTips = useMemo(() => tips.filter(t => t.player_id === me?.id), [tips, me]);
   const ownTipMap = useMemo(() => new Map(ownTips.map(t => [t.match_id, t])), [ownTips]);
-  const upcoming = useMemo(() => matches.filter(m => !locked(m)), [matches]);
-  const finished = useMemo(() => matches.filter(m => locked(m)), [matches]);
+  const upcoming = useMemo(() => matches.filter(m => !locked(m, clock)), [matches, clock]);
+  const finished = useMemo(() => matches.filter(m => locked(m, clock)), [matches, clock]);
   const untipped = useMemo(() => upcoming.filter(m => !ownTipMap.has(m.id)), [upcoming, ownTipMap]);
 
   const filtered = useMemo(() => {
@@ -142,7 +148,7 @@ export default function TipsPage() {
         {roundMatches.map(match => {
           const existing = ownTipMap.get(match.id);
           const delivered = tips.filter(t => t.match_id === match.id).length;
-          const isLocked = locked(match);
+          const isLocked = locked(match, clock);
           return <article className={`panel matchDetail ${existing ? "hasTip" : ""}`} key={match.id}>
             <div className="matchInfo">
               <small className="muted">{isLocked ? "🔒 " : ""}{fmt(match.match_time)}</small>
@@ -153,10 +159,10 @@ export default function TipsPage() {
                   ? <span className="delivery complete">✓ Lagret: {existing.home_tip}–{existing.away_tip} · {delivered}/{players.length} levert</span>
                   : isLocked
                     ? <span className="delivery">🔒 Ingen tips levert</span>
-                    : <span className="delivery">⚠ Ikke tippet · låses om {countdown(match.match_time)}</span>}
+                    : <span className="delivery">⚠ Ikke tippet · låses om {countdown(match.match_time, clock)}</span>}
               <div style={{ marginTop: 8 }}><a href={`/match/${match.id}`} className="textButton" style={{ textDecoration: "none" }}>Åpne kampside →</a></div>
             </div>
-            {me && <TipEditor match={match} existing={existing} playerId={me.id} onSaved={load} />}
+            {me && <TipEditor match={match} existing={existing} playerId={me.id} onSaved={load} now={clock} />}
           </article>;
         })}
       </section>)}
