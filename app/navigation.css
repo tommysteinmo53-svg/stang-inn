@@ -82,8 +82,8 @@
     bottom: max(10px, env(safe-area-inset-bottom));
     z-index: 88;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 4px;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 3px;
     padding: 7px;
     border: 1px solid rgba(112,179,255,.26);
     border-radius: 22px;
@@ -104,8 +104,8 @@
     transition: background .17s ease, color .17s ease, transform .17s ease;
   }
   .globalMobileNav a:active { transform: scale(.97); }
-  .globalMobileNav a span { font-size: 19px; line-height: 1; }
-  .globalMobileNav a small { font-size: 9px; font-weight: 850; white-space: nowrap; }
+  .globalMobileNav a span { font-size: 18px; line-height: 1; }
+  .globalMobileNav a small { font-size: 8px; font-weight: 850; white-space: nowrap; }
   .globalMobileNav a.active {
     color: var(--ice);
     background: linear-gradient(180deg, rgba(34,83,128,.5), rgba(18,48,80,.5));
