@@ -68,3 +68,5 @@ Etter miljøvariabelendringer må prosjektet redeployes.
 - ⏳ kjør `supabase/v0.4.sql`, legg inn server-secret og test NIF-tilgang
 
 Se [roadmap](docs/roadmap.md) for planen videre.
+
+<!-- redeploy trigger: Vercel Pro enabled 2026-08-08 -->
