@@ -16,6 +16,7 @@ export default function TopStatusBar() {
   const [reads, setReads] = useState<ReadRow[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [tips, setTips] = useState<Tip[]>([]);
+  const [now, setNow] = useState(Date.now());
 
   async function loadNotifications() {
     const supabase = getSupabaseBrowserClient();
@@ -35,6 +36,7 @@ export default function TopStatusBar() {
     setReads((r.data || []) as ReadRow[]);
     setMatches((m.data || []) as Match[]);
     setTips((t.data || []) as Tip[]);
+    setNow(Date.now());
   }
 
   useEffect(() => {
@@ -47,20 +49,30 @@ export default function TopStatusBar() {
     return () => window.clearInterval(timer);
   }, []);
 
+  const liveCount = useMemo(() => matches.filter(m => {
+    if (m.finished || !m.match_time) return false;
+    const start = new Date(m.match_time).getTime();
+    return start <= now && now - start < 4 * 60 * 60 * 1000;
+  }).length, [matches, now]);
+
   const unread = useMemo(() => {
     if (!uid) return 0;
-    const now = Date.now();
     const readIds = new Set(reads.map(r => r.notification_id));
     const stored = notifications.filter(n => (!n.expires_at || new Date(n.expires_at).getTime() > now) && !readIds.has(n.id)).length;
     const tipped = new Set(tips.map(t => t.match_id));
-    const missing = matches.filter(m => !m.finished && !!m.match_time && new Date(m.match_time).getTime() > now && !tipped.has(m.id)).length;
-    return stored + (missing > 0 ? 1 : 0);
-  }, [uid, notifications, reads, matches, tips]);
-
-  const liveCount = useMemo(() => {
-    const now = Date.now();
-    return matches.filter(m => !m.finished && !!m.match_time && new Date(m.match_time).getTime() <= now).length;
-  }, [matches]);
+    const missingSoon = matches.filter(m => {
+      if (m.finished || !m.match_time || tipped.has(m.id)) return false;
+      const start = new Date(m.match_time).getTime();
+      return start > now && start - now <= 24 * 60 * 60 * 1000;
+    }).length;
+    const recentFinished = matches.filter(m => {
+      if (!m.finished || !m.match_time) return false;
+      const start = new Date(m.match_time).getTime();
+      return start <= now && now - start < 6 * 60 * 60 * 1000;
+    }).length;
+    // Automatic events are grouped so the badge stays useful instead of exploding on a full round.
+    return stored + (missingSoon > 0 ? 1 : 0) + (liveCount > 0 ? 1 : 0) + (recentFinished > 0 ? 1 : 0);
+  }, [uid, notifications, reads, matches, tips, now, liveCount]);
 
   const version = status?.version || "0.7.0";
   const commit = status?.commit || "…";
@@ -79,7 +91,7 @@ export default function TopStatusBar() {
           <span>{liveCount > 0 ? "LIVE" : "Live"}</span>
           {liveCount > 0 && <b className="topStatusLiveCount">{liveCount}</b>}
         </a>
-        <a href="/notifications" className="topStatusItem topStatusNotifications" aria-label={`Varsler${unread ? `, ${unread} uleste` : ""}`}>
+        <a href="/notifications" className="topStatusItem topStatusNotifications" aria-label={`Varsler${unread ? `, ${unread} aktive` : ""}`}>
           <span>🔔</span>
           <span>Varsler</span>
           {unread > 0 && <b className="topStatusBadge">{unread > 99 ? "99+" : unread}</b>}
