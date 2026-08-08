@@ -115,7 +115,7 @@ export default function Home() {
       tipped++;
       const pts = tipPoints(m, tip); points += pts;
       if (pts === 5) exact++;
-      if (pts > 0) { correct++; currentStreak++; streak = Math.max(streak, currentStreak); } else currentStreak = 0;
+      if (pts > 0) { correct++; currentStreak++; streak = currentStreak; } else { currentStreak = 0; streak = 0; }
     });
     return { ...player, points, exact, correct, tipped, streak, hitRate: tipped ? Math.round(correct / tipped * 100) : 0 };
   }).sort((a, b) => b.points - a.points || b.exact - a.exact || b.correct - a.correct), [players, completedMatches, tips]);
