@@ -85,7 +85,9 @@ export async function scoreFinishedMatches(supabase: SupabaseClient): Promise<Sc
     const match = matchMap.get(tip.match_id);
     if (!match) continue;
     const points = calculateTipPoints(tip.home_tip, tip.away_tip, match.home_score, match.away_score, rules);
-    if ((tip.points ?? 0) === points) continue;
+    // Null skal ikke behandles som ferdiglagret 0. Vi vil ha eksplisitt 0 i
+    // databasen for alle scorede tips, slik at alle visninger bruker samme verdi.
+    if (tip.points === points) continue;
     const { error } = await supabase.from("tips").update({ points }).eq("id", tip.id);
     if (error) throw error;
     tipsChanged++;
