@@ -16,7 +16,7 @@ insert into public.app_settings (key, value)
 values (
   'table_tips',
   jsonb_build_object(
-    'deadline', '2026-09-11T16:00:00Z',
+    'deadline', null,
     'season', '2026/27'
   )
 )
@@ -30,8 +30,8 @@ security definer
 set search_path = public
 as $$
   select coalesce(
-    now() >= ((value->>'deadline')::timestamptz),
-    true
+    now() >= nullif(value->>'deadline', '')::timestamptz,
+    false
   )
   from public.app_settings
   where key = 'table_tips';
