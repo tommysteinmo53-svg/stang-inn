@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { getSupabaseBrowserClient } from "../../../lib/supabase";
 
-type Player = { id: string; display_name: string; email: string | null };
+type Player = { id: string; display_name: string };
 type Match = { id: number; home_team: string; away_team: string; match_time: string | null; home_score: number | null; away_score: number | null; finished: boolean; round: number | null };
 type Tip = { id: number; player_id: string; match_id: number; home_tip: number; away_tip: number; points: number | null };
 type RoundStat = { round: number; points: number; exact: number; correct: number; tipped: number };
@@ -36,7 +36,7 @@ export default function PlayerProfilePage() {
     if (!supabase) { setLoading(false); return; }
     const [{ data: session }, p, m, t] = await Promise.all([
       supabase.auth.getSession(),
-      supabase.from("players").select("id,display_name,email").order("created_at"),
+      supabase.from("players").select("id,display_name").order("created_at"),
       supabase.from("matches").select("id,home_team,away_team,match_time,home_score,away_score,finished,round").order("match_time", { ascending: false }),
       supabase.from("tips").select("id,player_id,match_id,home_tip,away_tip,points"),
     ]);
@@ -87,14 +87,22 @@ export default function PlayerProfilePage() {
   const bestRound = [...roundStats].sort((a,b) => b.points-a.points || b.exact-a.exact)[0];
   const worstRound = [...roundStats].sort((a,b) => a.points-b.points || a.exact-b.exact)[0];
   const lastFive = [...roundStats].sort((a,b)=>b.round-a.round).slice(0,5).reverse();
-  const activeStreak = useMemo(()=>{
-    const ordered=[...scoredTips].sort((a,b)=>{
-      const ma=matches.find(m=>m.id===a.match_id)?.match_time||"";
-      const mb=matches.find(m=>m.id===b.match_id)?.match_time||"";
-      return mb.localeCompare(ma);
-    });
-    let s=0; for(const t of ordered){if(Number(t.points??0)>0)s++;else break;} return s;
-  },[scoredTips,matches]);
+  const streaks = useMemo(() => {
+    const tipByMatch = new Map(profileTips.map(t => [t.match_id, t]));
+    const ordered = [...finalMatches].sort((a,b)=>(a.match_time||"").localeCompare(b.match_time||""));
+    let current = 0;
+    let best = 0;
+    for (const match of ordered) {
+      const tip = tipByMatch.get(match.id);
+      if (!tip || Number(tip.points ?? 0) <= 0) {
+        current = 0;
+        continue;
+      }
+      current++;
+      best = Math.max(best, current);
+    }
+    return { current, best };
+  }, [profileTips, finalMatches]);
 
   const completeRounds = useMemo(() => {
     const roundNumbers = [...new Set(matches.map(m => m.round).filter((r): r is number => r !== null))];
@@ -158,7 +166,7 @@ export default function PlayerProfilePage() {
       </section>
 
       <section className="statsGrid">
-        <article className="miniCard"><span>🔥 Streak</span><strong>{activeStreak}</strong><small>riktige på rad</small></article>
+        <article className="miniCard"><span>🔥 Streak</span><strong>{streaks.current}</strong><small>Beste {streaks.best}</small></article>
         <article className="miniCard"><span>🏆 Rundeseire</span><strong>{roundWins}</strong><small>ferdigspilte runder</small></article>
         <article className="miniCard"><span>Beste runde</span><strong>{bestRound?.points ?? 0}</strong><small>{bestRound?`Runde ${bestRound.round}`:"–"}</small></article>
         <article className="miniCard"><span>Siste 5</span><strong>{lastFive.reduce((s,r)=>s+r.points,0)}</strong><small>poeng</small></article>
