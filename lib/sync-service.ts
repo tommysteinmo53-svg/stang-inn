@@ -16,6 +16,21 @@ export type SyncResult = {
   error?: string;
 };
 
+function canonicalStandingTeam(name: string) {
+  const value = name.toLocaleLowerCase("nb-NO");
+  if (value.includes("storhamar")) return "Storhamar";
+  if (value.includes("oilers") || value.includes("stavanger ishockey")) return "Oilers";
+  if (value.includes("vålerenga") || value.includes("valerenga")) return "Vålerenga";
+  if (value.includes("frisk asker")) return "Frisk Asker";
+  if (value.includes("sparta")) return "Sparta";
+  if (value.includes("narvik")) return "Narvik";
+  if (value.includes("stjernen")) return "Stjernen";
+  if (value.includes("lillehammer")) return "Lillehammer";
+  if (value.includes("nidaros")) return "Nidaros";
+  if (value.includes("ringerike")) return "Ringerike";
+  return name.trim();
+}
+
 export async function syncMatches(providerName: ProviderName = "hockeylive", manualMatches: ImportedMatch[] = []): Promise<SyncResult> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const secretKey = process.env.SUPABASE_SECRET_KEY;
@@ -102,13 +117,17 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
         const syncedAt = new Date().toISOString();
         const standingRows = standings.map((standing) => ({
           season: standing.season,
-          team: standing.team,
+          team: canonicalStandingTeam(standing.team),
           position: standing.position,
           played: standing.played,
           points: standing.points,
           source: "hockeylive:TournamentStandings",
           synced_at: syncedAt,
         }));
+        const uniqueTeams = new Set(standingRows.map((row) => row.team));
+        if (uniqueTeams.size !== standingRows.length) {
+          throw new Error("HockeyLive-tabellen ga duplikate lag etter navnenormalisering.");
+        }
         const { error: standingError } = await supabase
           .from("ehl_standings")
           .upsert(standingRows, { onConflict: "season,team" });
