@@ -11,6 +11,11 @@ type TableScore = { player_id: string; display_name: string; compared_teams: num
 
 const defaultOrder = ["Storhamar", "Oilers", "Vålerenga", "Frisk Asker", "Sparta", "Narvik", "Stjernen", "Lillehammer", "Nidaros", "Ringerike"];
 
+function formatShortDate(value: string | null) {
+  if (!value) return null;
+  return new Date(value).toLocaleString("no-NO", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
 export default function TableTipsPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [meId, setMeId] = useState<string | null>(null);
@@ -89,7 +94,9 @@ export default function TableTipsPage() {
   })), [players, rows]);
 
   const ownDeviation = useMemo(() => deviations.filter(d => d.player_id === meId).sort((a,b) => a.predicted_position - b.predicted_position), [deviations, meId]);
+  const ownSavedCount = useMemo(() => rows.filter(r => r.player_id === meId).length, [rows, meId]);
   const seasonStarted = useMemo(() => standings.some(s => s.played > 0), [standings]);
+  const lastSynced = standings.length ? standings.map(s => s.synced_at).sort().at(-1) || null : null;
 
   if (loading) return <main className="appShell"><p className="muted">Laster tabelltips …</p></main>;
 
@@ -100,19 +107,20 @@ export default function TableTipsPage() {
     </header>
 
     <section className="pageStack" style={{marginTop:24}}>
-      <div className="pageHeading"><div><p className="eyebrow">Sesongkonkurranse</p><h2>Forventet sluttabell</h2><p className="muted">Lavest samlet plasseringsavvik er best. Andre spilleres tips åpnes automatisk etter fristen.</p></div><span className="statusPill">{locked ? "🔒 Låst" : "🟢 Åpent"}</span></div>
+      <div className="pageHeading"><div><p className="eyebrow">Sesongkonkurranse</p><h2>Forventet sluttabell</h2><p className="muted">Ranger alle 10 lag. Lavest samlet plasseringsavvik vinner når sesongen er i gang.</p></div><span className="statusPill">{locked ? "🔒 Låst" : "🟢 Åpent"}</span></div>
       {status && <article className="quoteCard"><span>Status</span><p>{status}</p></article>}
 
       <section className="contentGrid">
         <article className="panel">
-          <div className="panelHeading"><div><p className="eyebrow">Mitt tips</p><h3>Min rangering</h3></div><span className="statusPill">{deadline ? `Frist ${new Date(deadline).toLocaleString("no-NO", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}` : "Frist ikke satt"}</span></div>
-          <div className="rankingList">{order.map((team,i)=><div className="rankingItem" key={team} style={{display:"grid",gridTemplateColumns:"42px 1fr auto",gap:10,alignItems:"center"}}><span className="rank">{i+1}</span><strong>{team}</strong><span style={{display:"flex",gap:6}}><button className="compactButton" disabled={locked||i===0} onClick={()=>move(i,-1)}>↑</button><button className="compactButton" disabled={locked||i===order.length-1} onClick={()=>move(i,1)}>↓</button></span></div>)}</div>
-          <button className="primaryButton" style={{marginTop:16}} disabled={!meId||locked||saving} onClick={save}>{locked ? "Tabelltipset er låst" : saving ? "Lagrer …" : "Lagre tabelltips"}</button>
+          <div className="panelHeading"><div><p className="eyebrow">Mitt tips</p><h3>Min rangering</h3></div><span className="statusPill">{deadline ? `Frist ${formatShortDate(deadline)}` : "Frist ikke satt"}</span></div>
+          <p className="muted" style={{marginBottom:12}}>{ownSavedCount === 10 ? "✓ Komplett tabelltips lagret" : "Flytt lagene opp og ned, og husk å lagre før fristen."}</p>
+          <div className="rankingList">{order.map((team,i)=><div className="rankingItem" key={team} style={{display:"grid",gridTemplateColumns:"42px minmax(0,1fr) auto",gap:10,alignItems:"center"}}><span className="rank">{i+1}</span><strong>{team}</strong><span style={{display:"flex",gap:6}}><button className="compactButton" disabled={locked||i===0} onClick={()=>move(i,-1)} aria-label={`Flytt ${team} opp`}>↑</button><button className="compactButton" disabled={locked||i===order.length-1} onClick={()=>move(i,1)} aria-label={`Flytt ${team} ned`}>↓</button></span></div>)}</div>
+          <button className="primaryButton" style={{marginTop:16,width:"100%"}} disabled={!meId||locked||saving} onClick={save}>{locked ? "Tabelltipset er låst" : saving ? "Lagrer …" : ownSavedCount === 10 ? "Lagre endringer" : "Lagre tabelltips"}</button>
         </article>
 
         <article className="panel">
           <div className="panelHeading"><div><p className="eyebrow">EHL akkurat nå</p><h3>Gjeldende tabell</h3></div><span className="statusPill">{standings.length}/10 lag</span></div>
-          {standings.length === 0 ? <p className="muted">Venter på EHL-tabell. Når synken fyller standings-data, vises plassering og avvik automatisk her.</p> : <><div className="simpleList">{standings.map(s=><div key={s.team}><span><b>{s.position}.</b> {s.team}</span><span className="muted">{s.played} K · {s.points} p</span></div>)}</div>{!seasonStarted && <p className="muted" style={{marginTop:12}}>Sesongen har ikke startet ennå. Tabellen vises, men tabelltips-avvik og konkurransestilling aktiveres først når minst én EHL-kamp er spilt.</p>}</>}
+          {standings.length === 0 ? <p className="muted">Venter på EHL-tabell. Når synken fyller standings-data, vises den automatisk her.</p> : <><div className="simpleList">{standings.map(s=><div key={s.team}><span><b>{s.position}.</b> {s.team}</span><span className="muted">{s.played} K · {s.points} p</span></div>)}</div><p className="muted" style={{marginTop:12}}>{lastSynced ? `Sist synket ${formatShortDate(lastSynced)}` : ""}</p>{!seasonStarted && <p className="muted" style={{marginTop:8}}>Sesongen har ikke startet ennå. Tabellen vises, men tabelltips-score aktiveres først når minst én EHL-kamp er spilt.</p>}</>}
         </article>
       </section>
 
@@ -125,7 +133,7 @@ export default function TableTipsPage() {
         <article className="panel">
           <div className="panelHeading"><div><p className="eyebrow">Tabelltips-stilling</p><h3>Lavest avvik leder</h3></div></div>
           {scores.length === 0 ? <p className="muted">Ingen sammenlignbar score ennå.</p> : <div className="simpleList">{scores.map((score,i)=><div key={score.player_id}><span><b>{i+1}. {score.display_name}</b><small style={{display:"block"}}>{score.exact_positions} eksakte plasseringer · største bom {score.worst_deviation}</small></span><strong>{score.total_deviation}</strong></div>)}</div>}
-          {!locked && <p className="muted" style={{marginTop:12}}>Før fristen viser RLS bare score basert på tabelltips du har lov til å se. Full konkurransestilling åpnes etter fristen.</p>}
+          {!locked && <p className="muted" style={{marginTop:12}}>Full konkurransestilling åpnes etter fristen. Før det håndhever databasen innsynsreglene.</p>}
         </article>
       </section>}
 
@@ -133,7 +141,7 @@ export default function TableTipsPage() {
 
       <article className="panel">
         <div className="panelHeading"><div><p className="eyebrow">Innsyn</p><h3>{locked ? "Alle tabelltips" : "Skjult frem til fristen"}</h3></div></div>
-        {!locked && <p className="muted">Før fristen er de andre spillernes tabelltips skjult av databasen. Ingen kan snoke i rekkefølgen på forhånd.</p>}
+        {!locked && <p className="muted">Før fristen ser hver spiller bare sitt eget tips. Etter fristen åpnes alle innleverte tabelltips automatisk.</p>}
         {locked && <div className="pageStack" style={{gap:12}}>{grouped.map(({player,tips})=><article className="quoteCard" key={player.id}><span>{player.display_name}</span>{tips.length===10 ? <div className="simpleList" style={{marginTop:8}}>{tips.map(t=><div key={`${player.id}-${t.team}`}><span><b>{t.position}.</b> {t.team}</span></div>)}</div> : <p className="muted">Ikke levert komplett tabelltips.</p>}</article>)}</div>}
       </article>
     </section>
