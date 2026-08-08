@@ -74,7 +74,7 @@ export default function HomeLiveTable() {
             <span className="homeLiveKicker">{liveNow ? "🟢 LIVE-TABELL" : "🏆 TABELL NÅ"}</span>
             <h3>Toppen akkurat nå</h3>
           </div>
-          <a href="/leaderboard">Hele tabellen →</a>
+          <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}><a href="/live">Live-senter →</a><a href="/leaderboard">Hele tabellen →</a></div>
         </div>
         {!loaded ? <p className="muted" style={{ margin: 0 }}>Laster live-tabellen …</p> : rows.length === 0 ? <p className="muted" style={{ margin: 0 }}>Ingen spillere er registrert ennå.</p> : <div className="homeLiveRows">
           {rows.slice(0,5).map((row, i) => {
