@@ -9,6 +9,14 @@ let client: SupabaseClient | null = null;
 
 export function getSupabaseBrowserClient() {
   if (!isSupabaseConfigured) return null;
-  if (!client) client = createClient(url!, publishableKey!);
+  if (!client) {
+    client = createClient(url!, publishableKey!, {
+      auth: {
+        // A single browser client is shared across the app. Bypass the Web Locks
+        // queue so concurrent getSession/PostgREST calls cannot deadlock the UI.
+        lock: async (_name, _acquireTimeout, fn) => await fn(),
+      },
+    });
+  }
   return client;
 }
