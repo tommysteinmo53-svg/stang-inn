@@ -89,6 +89,7 @@ export default function TableTipsPage() {
   })), [players, rows]);
 
   const ownDeviation = useMemo(() => deviations.filter(d => d.player_id === meId).sort((a,b) => a.predicted_position - b.predicted_position), [deviations, meId]);
+  const seasonStarted = useMemo(() => standings.some(s => s.played > 0), [standings]);
 
   if (loading) return <main className="appShell"><p className="muted">Laster tabelltips …</p></main>;
 
@@ -111,11 +112,11 @@ export default function TableTipsPage() {
 
         <article className="panel">
           <div className="panelHeading"><div><p className="eyebrow">EHL akkurat nå</p><h3>Gjeldende tabell</h3></div><span className="statusPill">{standings.length}/10 lag</span></div>
-          {standings.length === 0 ? <p className="muted">Venter på EHL-tabell. Når synken fyller standings-data, vises plassering og avvik automatisk her.</p> : <div className="simpleList">{standings.map(s=><div key={s.team}><span><b>{s.position}.</b> {s.team}</span><span className="muted">{s.played} K · {s.points} p</span></div>)}</div>}
+          {standings.length === 0 ? <p className="muted">Venter på EHL-tabell. Når synken fyller standings-data, vises plassering og avvik automatisk her.</p> : <><div className="simpleList">{standings.map(s=><div key={s.team}><span><b>{s.position}.</b> {s.team}</span><span className="muted">{s.played} K · {s.points} p</span></div>)}</div>{!seasonStarted && <p className="muted" style={{marginTop:12}}>Sesongen har ikke startet ennå. Tabellen vises, men tabelltips-avvik og konkurransestilling aktiveres først når minst én EHL-kamp er spilt.</p>}</>}
         </article>
       </section>
 
-      {standings.length > 0 && <section className="contentGrid">
+      {standings.length > 0 && seasonStarted && <section className="contentGrid">
         <article className="panel">
           <div className="panelHeading"><div><p className="eyebrow">Mitt avvik</p><h3>Tips mot faktisk tabell</h3></div></div>
           {ownDeviation.length === 0 ? <p className="muted">Lagre et komplett tabelltips for å få beregnet avvik.</p> : <div className="simpleList">{ownDeviation.map(d=><div key={d.team}><span><b>{d.predicted_position}.</b> {d.team}</span><span>Faktisk {d.actual_position}. · avvik <b>{d.deviation}</b></span></div>)}</div>}
@@ -127,6 +128,8 @@ export default function TableTipsPage() {
           {!locked && <p className="muted" style={{marginTop:12}}>Før fristen viser RLS bare score basert på tabelltips du har lov til å se. Full konkurransestilling åpnes etter fristen.</p>}
         </article>
       </section>}
+
+      {standings.length > 0 && !seasonStarted && <article className="panel"><div className="panelHeading"><div><p className="eyebrow">Tabelltips-stilling</p><h3>Sesongen har ikke startet</h3></div></div><p className="muted">Ingen avviksscore beregnes ennå. Når HockeyLive rapporterer minst én spilt kamp, aktiveres avvik per lag og tabelltips-stillingen automatisk.</p></article>}
 
       <article className="panel">
         <div className="panelHeading"><div><p className="eyebrow">Innsyn</p><h3>{locked ? "Alle tabelltips" : "Skjult frem til fristen"}</h3></div></div>
