@@ -97,24 +97,31 @@ export async function scoreFinishedMatches(supabase: SupabaseClient): Promise<Sc
 
   let tipsChanged = 0;
 
-  // A sync can reopen/postpone a match that was previously scored. Clear those
-  // stored points so standings never keep points from a no-longer-final result.
+  // Reopened/postponed matches must never keep previously awarded points.
+  // Clear one row at a time and verify the write, so a silent no-op can never
+  // masquerade as success.
   if (invalidMatchIds.length) {
     const { data: staleTips, error: staleTipError } = await supabase
       .from("tips")
-      .select("id")
+      .select("id,match_id,points")
       .in("match_id", invalidMatchIds)
       .not("points", "is", null);
 
     if (staleTipError) throw staleTipError;
-    const staleTipIds = (staleTips ?? []).map((tip: { id: number }) => tip.id);
-    if (staleTipIds.length) {
-      const { error: clearError } = await supabase
+
+    for (const staleTip of staleTips ?? []) {
+      const { data: cleared, error: clearError } = await supabase
         .from("tips")
         .update({ points: null })
-        .in("id", staleTipIds);
+        .eq("id", staleTip.id)
+        .select("id,points")
+        .maybeSingle();
+
       if (clearError) throw clearError;
-      tipsChanged += staleTipIds.length;
+      if (!cleared || cleared.points !== null) {
+        throw new Error(`Kunne ikke nullstille poeng for tips ${staleTip.id} på kamp ${staleTip.match_id}.`);
+      }
+      tipsChanged++;
     }
   }
 
@@ -136,8 +143,6 @@ export async function scoreFinishedMatches(supabase: SupabaseClient): Promise<Sc
     const match = matchMap.get(tip.match_id);
     if (!match) continue;
     const points = calculateTipPoints(tip.home_tip, tip.away_tip, match.home_score, match.away_score, rules);
-    // Null skal ikke behandles som ferdiglagret 0. Vi vil ha eksplisitt 0 i
-    // databasen for alle scorede tips, slik at alle visninger bruker samme verdi.
     if (tip.points === points) continue;
     const { error } = await supabase.from("tips").update({ points }).eq("id", tip.id);
     if (error) throw error;
