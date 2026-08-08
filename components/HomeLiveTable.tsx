@@ -9,6 +9,16 @@ type Tip = { id: number; player_id: string; match_id: number; points: number | n
 type Match = { id: number; finished: boolean; home_score: number | null; away_score: number | null; match_time: string | null };
 type Row = Player & { points: number; exact: number; correct: number };
 
+function isFinishedMatch(match: Match) {
+  return match.finished && match.home_score !== null && match.away_score !== null;
+}
+
+function isLiveMatch(match: Match) {
+  if (match.finished || !match.match_time) return false;
+  const age = Date.now() - new Date(match.match_time).getTime();
+  return age >= 0 && age < 4 * 60 * 60 * 1000;
+}
+
 export default function HomeLiveTable() {
   const pathname = usePathname();
   const [players, setPlayers] = useState<Player[]>([]);
@@ -40,14 +50,14 @@ export default function HomeLiveTable() {
     return () => window.clearInterval(timer);
   }, [pathname]);
 
-  const finishedIds = useMemo(() => new Set(matches.filter(m => m.finished || (m.home_score !== null && m.away_score !== null)).map(m => m.id)), [matches]);
-  const liveNow = useMemo(() => matches.some(m => !m.finished && !!m.match_time && Date.now() >= new Date(m.match_time).getTime()), [matches, updatedAt]);
+  const finishedIds = useMemo(() => new Set(matches.filter(isFinishedMatch).map(m => m.id)), [matches]);
+  const liveNow = useMemo(() => matches.some(isLiveMatch), [matches, updatedAt]);
 
   const rows = useMemo<Row[]>(() => players.map(player => {
     const scored = tips.filter(t => t.player_id === player.id && finishedIds.has(t.match_id));
     const points = scored.reduce((sum, t) => sum + Number(t.points ?? 0), 0);
     const exact = scored.filter(t => Number(t.points ?? 0) === 5).length;
-    const correct = scored.filter(t => Number(t.points ?? 0) > 0).length;
+    const correct = scored.filter(t => Number(t.points ?? 0) === 3).length;
     return { ...player, points, exact, correct };
   }).sort((a,b) => b.points-a.points || b.exact-a.exact || b.correct-a.correct || a.display_name.localeCompare(b.display_name,"no")), [players, tips, finishedIds]);
 
