@@ -53,8 +53,42 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
       if (error) throw error;
     }
 
-    // Idempotent poengmotor: kjøres etter hver synk. Dersom HockeyLive korrigerer
-    // et resultat senere, korrigeres også tips-poengene automatisk neste gang.
+    let reopenedTipsCleared = 0;
+    const invalidExternalIds = rows
+      .filter((row) => !row.finished || row.home_score === null || row.away_score === null)
+      .map((row) => row.external_id);
+
+    if (invalidExternalIds.length) {
+      const { data: reopenedMatches, error: reopenedMatchError } = await supabase
+        .from("matches")
+        .select("id")
+        .in("external_id", invalidExternalIds);
+      if (reopenedMatchError) throw reopenedMatchError;
+
+      const reopenedMatchIds = (reopenedMatches ?? []).map((match) => match.id as number);
+      if (reopenedMatchIds.length) {
+        const { data: clearedTips, error: clearError } = await supabase
+          .from("tips")
+          .update({ points: null })
+          .in("match_id", reopenedMatchIds)
+          .not("points", "is", null)
+          .select("id");
+        if (clearError) throw clearError;
+        reopenedTipsCleared = clearedTips?.length ?? 0;
+
+        const { data: staleTips, error: verifyError } = await supabase
+          .from("tips")
+          .select("id,match_id,points")
+          .in("match_id", reopenedMatchIds)
+          .not("points", "is", null)
+          .limit(1);
+        if (verifyError) throw verifyError;
+        if (staleTips?.length) {
+          throw new Error(`Kunne ikke nullstille gamle poeng for gjenåpnet kamp ${staleTips[0].match_id}.`);
+        }
+      }
+    }
+
     const scoring = await scoreFinishedMatches(supabase);
 
     const result: SyncResult = {
@@ -63,7 +97,7 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
       imported: rows.length,
       finished: rows.filter((row) => row.finished).length,
       tipsScored: scoring.tipsScored,
-      tipsChanged: scoring.tipsChanged,
+      tipsChanged: scoring.tipsChanged + reopenedTipsCleared,
     };
 
     await supabase.from("sync_runs").insert({
