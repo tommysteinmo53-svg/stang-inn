@@ -41,7 +41,8 @@ function Header({ tab, setTab, initial }: { tab: Tab; setTab: (tab: Tab) => void
     { key: "overview", label: "Oversikt" }, { key: "matches", label: "Kamper" }, { key: "tabletips", label: "Tabelltips" },
     { key: "stats", label: "Statistikk" }, { key: "awards", label: "Awards" }, { key: "profile", label: "Profil" },
   ];
-  return <><header className="topbar"><button className="brand brandButton" onClick={() => setTab("overview")}><div className="brandMark">🏒</div><div><p className="eyebrow">EHL 2026/27</p><h1>Stang Inn</h1></div></button><button className="avatar avatarButton" onClick={() => setTab("profile")}>{initial}</button></header><nav className="navTabs desktopTabs">{nav.map(item => <button key={item.key} className={tab === item.key ? "active" : ""} onClick={() => setTab(item.key)}>{item.label}</button>)}</nav></>;
+  const openTab = (key: Tab) => { if (key === "tabletips") window.location.assign("/tabletips"); else setTab(key); };
+  return <><header className="topbar"><button className="brand brandButton" onClick={() => setTab("overview")}><div className="brandMark">🏒</div><div><p className="eyebrow">EHL 2026/27</p><h1>Stang Inn</h1></div></button><button className="avatar avatarButton" onClick={() => setTab("profile")}>{initial}</button></header><nav className="navTabs desktopTabs">{nav.map(item => <button key={item.key} className={tab === item.key ? "active" : ""} onClick={() => openTab(item.key)}>{item.label}</button>)}</nav></>;
 }
 
 function MobileNav({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) {
@@ -52,7 +53,8 @@ function MobileNav({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) {
     { key: "tabletips", icon: "↕", label: "Tabelltips" },
     { key: "profile", icon: "●", label: "Profil" },
   ];
-  return <nav className="mobileNav">{items.map(item => <button key={item.key} className={tab === item.key ? "active" : ""} onClick={() => setTab(item.key)}><span>{item.icon}</span><small>{item.label}</small></button>)}</nav>;
+  const openTab = (key: Tab) => { if (key === "tabletips") window.location.assign("/tabletips"); else setTab(key); };
+  return <nav className="mobileNav">{items.map(item => <button key={item.key} className={tab === item.key ? "active" : ""} onClick={() => openTab(item.key)}><span>{item.icon}</span><small>{item.label}</small></button>)}</nav>;
 }
 
 function TipEditor({ match, existing, playerId, onSaved }: { match: Match; existing?: Tip; playerId: string; onSaved: () => Promise<void> }) {
