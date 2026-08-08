@@ -7,11 +7,15 @@ type Player = { id: string; display_name: string };
 type Tip = { id: number; player_id: string; match_id: number; points: number | null };
 type Match = { id: number; finished: boolean; home_score: number | null; away_score: number | null; match_time: string | null };
 type Row = Player & { points: number; exact: number; correctOutcome: number; scoredTips: number; hitRate: number; streak: number };
-
 type Movement = Record<string, number>;
 
 function medal(index: number) { if (index === 0) return "🥇"; if (index === 1) return "🥈"; if (index === 2) return "🥉"; return String(index + 1); }
-function isLiveMatch(match: Match) { return !match.finished && !!match.match_time && Date.now() >= new Date(match.match_time).getTime(); }
+function isFinishedMatch(match: Match) { return match.finished && match.home_score !== null && match.away_score !== null; }
+function isLiveMatch(match: Match) {
+  if (match.finished || !match.match_time) return false;
+  const age = Date.now() - new Date(match.match_time).getTime();
+  return age >= 0 && age < 4 * 60 * 60 * 1000;
+}
 
 export default function LeaderboardPage() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -43,9 +47,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => { load(); const timer = window.setInterval(load, 30_000); return () => window.clearInterval(timer); }, [load]);
 
-  const finishedMatches = useMemo(() => matches
-    .filter(m => m.finished || (m.home_score !== null && m.away_score !== null))
-    .sort((a,b)=>(a.match_time || "").localeCompare(b.match_time || "")), [matches]);
+  const finishedMatches = useMemo(() => matches.filter(isFinishedMatch).sort((a,b)=>(a.match_time || "").localeCompare(b.match_time || "")), [matches]);
   const finishedMatchIds = useMemo(() => new Set(finishedMatches.map(m => m.id)), [finishedMatches]);
   const liveCount = useMemo(() => matches.filter(isLiveMatch).length, [matches, updatedAt]);
 
@@ -91,9 +93,7 @@ export default function LeaderboardPage() {
     <header className="topbar"><a className="brand brandButton" href="/" style={{ textDecoration: "none" }}><div className="brandMark">🏒</div><div><p className="eyebrow">EHL 2026/27</p><h1>Stang Inn</h1></div></a><a className="textButton" href="/" style={{ textDecoration: "none" }}>Til appen →</a></header>
     <section className="pageStack" style={{ marginTop: 24 }}>
       <div className="pageHeading"><div><p className="eyebrow">Ligaen</p><h2>{liveCount ? "🟢 Live-tabell" : "Sammenlagt"}</h2><p className="muted">Oppdateres automatisk hvert 30. sekund. Pilene viser endring siden forrige oppdatering.</p></div><span className="statusPill">{liveCount ? `${liveCount} live nå` : `${finishedMatchIds.size} ferdigspilt`}</span></div>
-
       {leaderNotice && <article className="quoteCard" style={{ borderColor: "rgba(245,196,81,.45)", background: "rgba(245,196,81,.08)" }}><span>NY LEDER</span><p><strong>{leaderNotice}</strong></p></article>}
-
       <article className="panel standings">
         <div className="tableHead" style={{ gridTemplateColumns: "48px 44px 1fr 64px 64px 64px" }}><span>#</span><span>↕</span><span>Spiller</span><span>🎯</span><span>🔥</span><span>Poeng</span></div>
         {rows.map((row,index) => {
@@ -111,11 +111,10 @@ export default function LeaderboardPage() {
         })}
         {rows.length === 0 && <p className="muted">Ingen spillere er registrert ennå.</p>}
       </article>
-
       <article className="panel">
         <div className="panelHeading"><div><p className="eyebrow">Live-status</p><h3>{liveCount ? "Tabellen følger kampene" : "Venter på neste kamp"}</h3></div><span className="statusPill">30 sek</span></div>
-        <p className="muted">Når HockeyLive-synken lagrer nye sluttresultater og poeng, oppdateres plassering, eksakte resultater og streak automatisk her.</p>
-        <p className="muted" style={{ marginTop: 8 }}>Sist oppdatert: {updatedAt?.toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</p>
+        <p className="muted">Bare kamper som HockeyLive har markert som ferdige teller i poeng, treffprosent og streak.</p>
+        <p className="muted" style={{ marginTop: 8 }}>Sist oppdatert: {updatedAt?.toLocaleTimeString("no-NO", { hour:"2-digit", minute:"2-digit", second:"2-digit" })}</p>
       </article>
     </section>
   </main>;
