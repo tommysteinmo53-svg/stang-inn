@@ -17,6 +17,7 @@ function isLive(match: Match) {
 function fmt(value: string | null) { if (!value) return "Tidspunkt ikke satt"; return new Date(value).toLocaleString("no-NO", { weekday: "long", day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" }); }
 function outcome(h: number, a: number) { return h > a ? "H" : h < a ? "A" : "D"; }
 function livePoints(match: Match, tip?: Tip) { if (!tip || match.home_score === null || match.away_score === null) return 0; if (tip.home_tip === match.home_score && tip.away_tip === match.away_score) return 5; if (outcome(tip.home_tip, tip.away_tip) === outcome(match.home_score, match.away_score)) return 3; return 0; }
+function resolvedPoints(match: Match, tip?: Tip) { if (!tip) return 0; if (match.finished && tip.points !== null) return Number(tip.points); return livePoints(match, tip); }
 
 export default function MatchPage() {
   const params = useParams<{ id: string }>();
@@ -53,7 +54,7 @@ export default function MatchPage() {
   const myTip = tips.find(t => t.player_id === meId);
   const rows = useMemo(() => players.map(player => {
     const tip = tips.find(t => t.player_id === player.id);
-    const points = match ? (match.finished ? Number(tip?.points ?? 0) : livePoints(match, tip)) : 0;
+    const points = match ? resolvedPoints(match, tip) : 0;
     return { player, tip, points };
   }).sort((a,b)=>b.points-a.points || a.player.display_name.localeCompare(b.player.display_name,"no")), [players,tips,match]);
 
@@ -63,6 +64,7 @@ export default function MatchPage() {
   const statusTitle = match.finished ? "Ferdigspilt" : live ? "🟢 LIVE" : started ? "Avventer sluttstatus" : "Kommende kamp";
   const statusShort = match.finished ? "Slutt" : live ? "LIVE" : started ? "Låst" : "Åpen";
   const scoreText = match.home_score !== null && match.away_score !== null ? `${match.home_score}–${match.away_score}` : started ? "🔒" : "–";
+  const myPoints = myTip ? resolvedPoints(match, myTip) : 0;
 
   return <main className="appShell">
     <header className="topbar"><a href="/round" className="brand brandButton" style={{ textDecoration: "none" }}><div className="brandMark">🏒</div><div><p className="eyebrow">{match.round ? `Runde ${match.round}` : "EHL 2026/27"}</p><h1>Kampside</h1></div></a><a href="/round" className="textButton" style={{ textDecoration: "none" }}>← Runde</a></header>
@@ -72,13 +74,14 @@ export default function MatchPage() {
       <section className="statsGrid">
         <article className="miniCard"><span>Ditt tips</span><strong>{myTip ? `${myTip.home_tip}–${myTip.away_tip}` : "–"}</strong><small>{myTip ? "Levert" : "Ikke levert"}</small></article>
         <article className="miniCard"><span>Levert</span><strong>{tips.length}/{players.length}</strong><small>spillere</small></article>
-        <article className="miniCard"><span>Dine poeng</span><strong>{myTip ? (match.finished ? Number(myTip.points ?? 0) : started ? livePoints(match, myTip) : 0) : 0}</strong><small>{match.finished ? "endelig" : live ? "live-estimat" : started ? "foreløpig" : "ikke startet"}</small></article>
+        <article className="miniCard"><span>Dine poeng</span><strong>{myPoints}</strong><small>{match.finished ? (myTip?.points===null ? "beregnet sluttpoeng" : "endelig") : live ? "live-estimat" : started ? "foreløpig" : "ikke startet"}</small></article>
         <article className="miniCard"><span>Status</span><strong>{statusShort}</strong><small>{started ? "tips kan ikke endres" : "tips kan endres"}</small></article>
       </section>
 
       <article className="panel"><div className="panelHeading"><div><p className="eyebrow">Kampen</p><h3>Spillernes tips</h3></div><span className="statusPill">{started ? (live ? "Live-poeng" : "Synlig for alle") : "Skjult til kampstart"}</span></div>
         {!started && <div className="quoteCard" style={{ marginTop: 0 }}><span>🔒 Før kampstart</span><p>Andre spilleres tips er skjult. Du ser kun ditt eget tips frem til kampen starter.</p></div>}
         {live && <div className="quoteCard" style={{ marginTop: 0 }}><span>🟢 LIVE</span><p>Poengene under er foreløpige og beregnes mot gjeldende HockeyLive-score. De blir endelige når kampen markeres som ferdig.</p></div>}
+        {match.finished && tips.some(t=>t.points===null) && <div className="quoteCard" style={{ marginTop: 0 }}><span>✓ Sluttresultat</span><p>Noen lagrede poeng mangler fortsatt, så siden viser beregnede sluttpoeng fra resultatet inntil scorer-jobben har lagret dem.</p></div>}
         <div className="pageStack" style={{ marginTop: 12 }}>{rows.map(({ player, tip, points }) => {
           const isMe = player.id === meId;
           const canShow = started || isMe;
