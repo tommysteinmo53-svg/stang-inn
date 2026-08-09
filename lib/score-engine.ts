@@ -80,15 +80,39 @@ export async function scoreFinishedMatches(supabase: SupabaseClient): Promise<Sc
   if (tipError) throw tipError;
   const tips = (tipRows ?? []) as TipRow[];
   let tipsChanged = 0;
+  const expected = new Map<number, number>();
 
   for (const tip of tips) {
     const match = matchMap.get(tip.match_id);
     if (!match) continue;
     const points = calculateTipPoints(tip.home_tip, tip.away_tip, match.home_score, match.away_score, rules);
+    expected.set(tip.id, points);
     if (tip.points === points) continue;
-    const { error } = await supabase.from("tips").update({ points }).eq("id", tip.id);
+    const { data: updated, error } = await supabase
+      .from("tips")
+      .update({ points })
+      .eq("id", tip.id)
+      .select("id,points")
+      .maybeSingle();
     if (error) throw error;
+    if (!updated || Number(updated.points) !== points) {
+      throw new Error(`Poenglagring feilet for tips ${tip.id}: forventet ${points}, fikk ${updated?.points ?? "null"}.`);
+    }
     tipsChanged++;
+  }
+
+  if (expected.size) {
+    const { data: verifiedRows, error: verifyError } = await supabase
+      .from("tips")
+      .select("id,points")
+      .in("id", [...expected.keys()]);
+    if (verifyError) throw verifyError;
+    const verified = new Map((verifiedRows ?? []).map((row) => [Number(row.id), row.points]));
+    for (const [id, points] of expected) {
+      if (Number(verified.get(id)) !== points) {
+        throw new Error(`Scoring ble ikke lagret for tips ${id}: forventet ${points}, fikk ${verified.get(id) ?? "null"}.`);
+      }
+    }
   }
 
   return { finishedMatches: finishedMatches.length, tipsScored: tips.length, tipsChanged };
