@@ -19,14 +19,15 @@ const formatTime=(v:string|null)=>v?new Date(v).toLocaleTimeString("no-NO",{hour
 const short=(n:string)=>n.replace(/Elitehockeyligaen|Ishockeyklubb|Ishockey|Hockey|\bIL\b|\bIK\b/gi,"").replace(/\s{2,}/g," ").trim();
 
 function buildStandings(players:Player[],matches:Match[],tips:Tip[],gameDate:string):Standing[]{
- const finished=matches.filter(validFinished),finishedIds=new Set(finished.map(m=>m.id));
+ const finished=matches.filter(validFinished),finishedMap=new Map(finished.map(m=>[m.id,m]));
  const liveTonight=matches.filter(m=>localDate(m.match_time)===gameDate&&isLive(m)&&m.home_score!==null&&m.away_score!==null);
  return players.map(p=>{
-  const confirmedTips=tips.filter(t=>t.player_id===p.id&&finishedIds.has(t.match_id));
-  const confirmedPoints=confirmedTips.reduce((s,t)=>s+Number(t.points??0),0);
-  const exact=confirmedTips.filter(t=>Number(t.points??0)===5).length;
-  const correct=confirmedTips.filter(t=>Number(t.points??0)>0).length;
-  const confirmedTonight=confirmedTips.filter(t=>{const m=finished.find(x=>x.id===t.match_id);return m&&localDate(m.match_time)===gameDate}).reduce((s,t)=>s+Number(t.points??0),0);
+  const confirmedTips=tips.filter(t=>t.player_id===p.id&&finishedMap.has(t.match_id));
+  const confirmedValues=confirmedTips.map(t=>{const m=finishedMap.get(t.match_id)!;return{tip:t,match:m,points:t.points===null?calcPreview(m,t):Number(t.points)}});
+  const confirmedPoints=confirmedValues.reduce((s,x)=>s+x.points,0);
+  const exact=confirmedValues.filter(x=>x.points===5).length;
+  const correct=confirmedValues.filter(x=>x.points>0).length;
+  const confirmedTonight=confirmedValues.filter(x=>localDate(x.match.match_time)===gameDate).reduce((s,x)=>s+x.points,0);
   const livePreview=liveTonight.reduce((sum,m)=>sum+calcPreview(m,tips.find(t=>t.player_id===p.id&&t.match_id===m.id)),0);
   return{...p,points:confirmedPoints+livePreview,exact,correct,tonight:confirmedTonight+livePreview};
  }).sort((a,b)=>b.points-a.points||b.exact-a.exact||b.correct-a.correct||a.display_name.localeCompare(b.display_name,"no"));
