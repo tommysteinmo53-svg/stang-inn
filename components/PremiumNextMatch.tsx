@@ -59,20 +59,30 @@ const TEAM_LOGOS: Record<string, string> = {
   "Stjernen": "https://www.google.com/s2/favicons?domain_url=https://www.stjernen.no&sz=128",
   "Lillehammer": "https://www.google.com/s2/favicons?domain_url=https://www.lillehammerhockey.no&sz=128",
   "Nidaros": "https://www.google.com/s2/favicons?domain_url=https://www.nidaroshockey.no&sz=128",
-  "Ringerike": "https://commons.wikimedia.org/wiki/Special:FilePath/Ringerikepanthers.png?width=300",
+  "Ringerike": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Ringerikepanthers.png",
+};
+
+const TEAM_LOGO_SIZE: Record<string, string> = {
+  "Frisk Asker": "96%",
+  "Ringerike": "96%",
 };
 
 function TeamLogo({ team }: { team: string }) {
   const [failed, setFailed] = useState(false);
   const src = TEAM_LOGOS[team];
+  const size = TEAM_LOGO_SIZE[team] || "82%";
   return (
-    <div className="premiumTeamLogo" aria-label={`${team} logo`}>
+    <div
+      className="premiumTeamLogo"
+      aria-label={`${team} logo`}
+      style={{ background: "#ffffff", color: "#0b1b2e" }}
+    >
       {src && !failed ? (
         <img
           src={src}
           alt=""
           onError={() => setFailed(true)}
-          style={{ width: "78%", height: "78%", objectFit: "contain", display: "block", borderRadius: 12 }}
+          style={{ width: size, height: size, objectFit: "contain", display: "block" }}
         />
       ) : initials(team)}
     </div>
