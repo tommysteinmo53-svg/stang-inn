@@ -37,7 +37,15 @@ export default function FantasyPage() {
     setSnapshotBusy(true);
     setSnapshotMessage("");
     try {
-      const response = await fetch("/api/fantasy-snapshot?action=capture", { method: "POST" });
+      const supabase = getSupabaseBrowserClient();
+      const { data } = await supabase?.auth.getSession() ?? { data: { session: null } };
+      const token = data.session?.access_token;
+      if (!token) throw new Error("Du må være logget inn som admin.");
+
+      const response = await fetch("/api/fantasy-snapshot?action=capture", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.error || "Snapshot feilet");
       const result = payload.result;
