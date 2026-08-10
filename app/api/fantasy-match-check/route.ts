@@ -44,7 +44,8 @@ export async function GET(request:NextRequest){
     const rows=(stats??[]).map((s:any)=>{
       const p:any=byId.get(s.player_id)||{};
       const position=s.position_snapshot||p.position||"";
-      const didPlay=position==="G" ? Number(s.minutes_played||0)>0 : Boolean(s.did_play);
+      const goaliePlayed=Number(s.minutes_played||0)>0||Number(s.saves||0)>0||Number(s.goals_against||0)>0;
+      const didPlay=position==="G" ? goaliePlayed : Boolean(s.did_play);
       const base={
         name:p.name||"Ukjent",team:s.team_snapshot||p.team||"",position,
         goals:s.goals||0,assists:s.assists||0,shots:s.shots||0,plusMinus:s.plus_minus||0,pim:s.pim||0,
