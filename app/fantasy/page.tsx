@@ -18,6 +18,8 @@ const recommendations: Recommendation[] = [
 
 export default function FantasyPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [snapshotBusy, setSnapshotBusy] = useState(false);
+  const [snapshotMessage, setSnapshotMessage] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -30,6 +32,22 @@ export default function FantasyPage() {
       setAllowed(Boolean(player?.admin));
     })();
   }, []);
+
+  async function captureSnapshot() {
+    setSnapshotBusy(true);
+    setSnapshotMessage("");
+    try {
+      const response = await fetch("/api/fantasy-snapshot?action=capture", { method: "POST" });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error(payload.error || "Snapshot feilet");
+      const result = payload.result;
+      setSnapshotMessage(`Snapshot lagret: ${result.skaters} utespillere og ${result.goalies} keepere.`);
+    } catch (error: any) {
+      setSnapshotMessage(`Kunne ikke ta snapshot: ${error?.message || "ukjent feil"}`);
+    } finally {
+      setSnapshotBusy(false);
+    }
+  }
 
   if (allowed === null) {
     return <main className="fantasy-shell"><p className="fantasy-lead">Sjekker admin-tilgang …</p></main>;
@@ -58,10 +76,7 @@ export default function FantasyPage() {
             Automatisk spillerstatistikk, 19Fantasy-poeng, form, kampprogram og anbefalte bytter – uten regneark.
           </p>
         </div>
-        <div className="fantasy-status">
-          <span className="status-dot" />
-          Admin only
-        </div>
+        <div className="fantasy-status"><span className="status-dot" />Admin only</div>
       </section>
 
       <section className="fantasy-metrics">
@@ -85,6 +100,13 @@ export default function FantasyPage() {
         </div>
 
         <div className="fantasy-card">
+          <p className="eyebrow">DATASYNK</p><h2>HockeyLive snapshot</h2>
+          <p className="card-copy">Lagrer et øyeblikksbilde av spiller- og keeperstatistikken. Første snapshot brukes som baseline for 2026/27.</p>
+          <button type="button" onClick={captureSnapshot} disabled={snapshotBusy}>{snapshotBusy ? "Henter …" : "Ta snapshot nå"}</button>
+          {snapshotMessage ? <p className="card-copy" style={{ marginTop: 10 }}>{snapshotMessage}</p> : null}
+        </div>
+
+        <div className="fantasy-card">
           <p className="eyebrow">KOMMENDE KAMPER</p><h2>Fixture rating</h2>
           <div className="empty-state"><div className="fixture-dots" aria-hidden="true"><span>●</span><span>●</span><span>●</span><span>●</span><span>●</span></div><p>Terminlisten kobles til automatisk EHL-synk.</p></div>
         </div>
@@ -104,7 +126,7 @@ export default function FantasyPage() {
 
       <section className="fantasy-card build-status">
         <div><p className="eyebrow">STATUS</p><h2>Første MVP</h2></div>
-        <div className="status-steps"><span className="done">✓ Admin-låst</span><span className="done">✓ Datamodell</span><span className="done">✓ Dashboard</span><span>○ Spillersynk</span><span>○ Poengmotor</span><span>○ Anbefalingsmotor</span></div>
+        <div className="status-steps"><span className="done">✓ Admin-låst</span><span className="done">✓ Datamodell</span><span className="done">✓ Dashboard</span><span className="done">✓ Snapshotmotor</span><span>○ Poengmotor</span><span>○ Anbefalingsmotor</span></div>
       </section>
     </main>
   );
