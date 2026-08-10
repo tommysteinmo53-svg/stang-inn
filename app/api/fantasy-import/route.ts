@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { importFantasyMatch } from "../../../lib/fantasy/import-service";
+import { importFantasyMatch } from "../../../lib/fantasy/import-enrichment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
