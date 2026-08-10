@@ -4,6 +4,8 @@ import { fetchNifMatchBundle } from "./nif-client";
 type Row = Record<string, any>;
 type FantasyPosition = "G" | "D" | "W" | "C";
 
+const HOCKEYLIVE_BASE = "https://sf34-terminlister-prod-app.azurewebsites.net/";
+
 function first(...values: any[]) {
   return values.find((value) => value !== undefined && value !== null && value !== "") ?? null;
 }
@@ -17,21 +19,25 @@ function text(value: any) {
   return value === null || value === undefined ? "" : String(value).trim();
 }
 
+function fullName(raw: Row) {
+  const direct = text(first(raw.playerName, raw.PlayerName, raw.name, raw.Name, raw.fullName, raw.personName));
+  if (direct) return direct;
+  return [text(first(raw.firstName, raw.FirstName)), text(first(raw.lastName, raw.LastName))].filter(Boolean).join(" ").trim();
+}
+
 function position(raw: Row, goalie = false): FantasyPosition {
   if (goalie) return "G";
   const value = text(first(raw.position, raw.Position, raw.playerPosition, raw.positionCode, raw.pos)).toLowerCase();
   if (value === "d" || value.includes("def") || value.includes("back")) return "D";
   if (value === "c" || value.includes("cent")) return "C";
   if (value === "rw" || value === "lw" || value.includes("wing") || value.includes("ving")) return "W";
-  // NIF may expose only a generic forward label. Treat it as provisional W;
-  // a later 19Fantasy player import can overwrite W/C with the game's exact position.
   return "W";
 }
 
 function playerIdentity(raw: Row) {
   const externalId = text(first(raw.personId, raw.PersonId, raw.playerId, raw.PlayerId, raw.id, raw.Id));
-  const name = text(first(raw.playerName, raw.PlayerName, raw.name, raw.Name, raw.fullName, raw.personName));
-  const team = text(first(raw.teamName, raw.TeamName, raw.team, raw.Team, raw.clubName, raw.orgName));
+  const name = fullName(raw);
+  const team = text(first(raw.teamName, raw.TeamName, raw.team, raw.Team, raw.clubName, raw.orgName, raw.teamShortName));
   return { externalId, name, team };
 }
 
@@ -72,11 +78,66 @@ export async function syncFantasySchedule() {
   return { imported: rows.length };
 }
 
-async function fantasyGame(supabase: SupabaseClient, matchId: number) {
+function matchIdOf(raw: Row) {
+  return n(first(raw.matchId, raw.MatchId, raw.matchID, raw.id, raw.Id), -1);
+}
+
+function teamName(raw: Row, side: "home" | "away") {
+  if (side === "home") return text(first(raw.hometeamOverriddenName, raw.hometeam, raw.hometeamOrgName, raw.homeTeamName, raw.HomeTeamName, raw.teamNameHome));
+  return text(first(raw.awayteamOverriddenName, raw.awayteam, raw.awayteamOrgName, raw.awayTeamName, raw.AwayTeamName, raw.teamNameAway));
+}
+
+function score(raw: Row, side: "home" | "away") {
+  if (side === "home") return first(raw.hometeamScore, raw.homeTeamScore, raw.hometeamGoals, raw.homeTeamGoals, raw.homeScore, raw.HomeScore, raw.homeGoals);
+  return first(raw.awayteamScore, raw.awayTeamScore, raw.awayteamGoals, raw.awayTeamGoals, raw.awayScore, raw.AwayScore, raw.awayGoals);
+}
+
+function startTime(raw: Row) {
+  const direct = first(raw.matchStartDate, raw.MatchStartDate, raw.startDate, raw.StartDate, raw.dateTime, raw.startTimeUtc);
+  if (direct) {
+    const d = new Date(String(direct));
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+  }
+  const date = text(first(raw.matchDate, raw.MatchDate, raw.date, raw.Date)).slice(0, 10);
+  const clock = text(first(raw.matchStartTime, raw.MatchStartTime, raw.startTime)) || "00:00";
+  const d = new Date(`${date}T${clock.length === 5 ? clock : "00:00"}:00+01:00`);
+  return Number.isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+}
+
+async function ensureFantasyGame(supabase: SupabaseClient, matchId: number, season: string, tournamentId: string) {
   const candidates = [`hockeylive:${matchId}`, String(matchId), `nif:${matchId}`];
-  const { data, error } = await supabase.from("fantasy_games").select("*").in("external_id", candidates).maybeSingle();
+  const { data: existing, error } = await supabase.from("fantasy_games").select("*").in("external_id", candidates).maybeSingle();
   if (error) throw error;
-  if (!data) throw new Error(`Fant ikke fantasy-kamp for matchId ${matchId}. Kjør terminlistesynk først.`);
+  if (existing) return existing;
+
+  const response = await fetch(`${HOCKEYLIVE_BASE}ta/TournamentMatches/?tournamentId=${encodeURIComponent(tournamentId)}`, {
+    headers: { Accept: "application/json", "User-Agent": "StangInn/1.0 fantasy-import" },
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`TournamentMatches svarte ${response.status}`);
+  const payload = await response.json();
+  const rows: Row[] = Array.isArray(payload) ? payload : payload?.matches ?? payload?.data?.matches ?? [];
+  const raw = rows.find((row) => matchIdOf(row) === matchId);
+  if (!raw) throw new Error(`Fant ikke matchId ${matchId} i turnering ${tournamentId}`);
+
+  const statusTypeId = n(raw.statusTypeId, 0);
+  const homeScore = score(raw, "home");
+  const awayScore = score(raw, "away");
+  const gameRow = {
+    external_id: `hockeylive:${matchId}`,
+    season,
+    round_no: n(first(raw.round, raw.Round, raw.roundNumber, raw.RoundNumber, raw.roundNo), 0) || null,
+    starts_at: startTime(raw),
+    home_team: teamName(raw, "home"),
+    away_team: teamName(raw, "away"),
+    home_score: homeScore === null ? null : n(homeScore),
+    away_score: awayScore === null ? null : n(awayScore),
+    status: statusTypeId >= 4 ? "finished" : "scheduled",
+    updated_at: new Date().toISOString(),
+  };
+  if (!gameRow.home_team || !gameRow.away_team) throw new Error(`Kamp ${matchId} mangler lagnavn`);
+  const { data, error: upsertError } = await supabase.from("fantasy_games").upsert(gameRow, { onConflict: "external_id" }).select("*").single();
+  if (upsertError) throw upsertError;
   return data;
 }
 
@@ -122,16 +183,21 @@ function goalieStat(raw: Row) {
   };
 }
 
-export async function importFantasyMatch(matchId: number) {
+export async function importFantasyMatch(matchId: number, options?: { season?: string; tournamentId?: string }) {
   const supabase = serverClient();
-  const game = await fantasyGame(supabase, matchId);
+  const season = options?.season || "2025/26";
+  const tournamentId = options?.tournamentId || "435587";
+  const game = await ensureFantasyGame(supabase, matchId, season, tournamentId);
   const bundle = await fetchNifMatchBundle(matchId);
   let importedSkaters = 0;
   let importedGoalies = 0;
   let skipped = 0;
 
+  const goalieIds = new Set(bundle.goalies.map((row) => text(first(row.personId, row.PersonId))).filter(Boolean));
+
   for (const raw of bundle.players) {
     const identity = playerIdentity(raw);
+    if (goalieIds.has(identity.externalId)) continue;
     const fallbackTeam = identity.team || "Ukjent";
     const player = await upsertPlayer(supabase, raw, fallbackTeam, false);
     if (!player) { skipped += 1; continue; }
@@ -143,7 +209,7 @@ export async function importFantasyMatch(matchId: number) {
       did_play: true,
       position_snapshot: player.position,
       team_snapshot: player.team,
-      raw,
+      raw: { source: "nif-match-players", ...raw },
     }, { onConflict: "player_id,game_id" });
     if (error) throw error;
     importedSkaters += 1;
@@ -158,6 +224,8 @@ export async function importFantasyMatch(matchId: number) {
     const isHome = text(player.team).toLowerCase() === text(game.home_team).toLowerCase();
     const teamScore = isHome ? game.home_score : game.away_score;
     const opponentScore = isHome ? game.away_score : game.home_score;
+    const wins = n(first(raw.wins, raw.Wins, raw.win, raw.Win));
+    const shutouts = n(first(raw.shutouts, raw.Shutouts, raw.shutout, raw.Shutout));
     const { error } = await supabase.from("fantasy_player_game_stats").upsert({
       player_id: player.id,
       game_id: game.id,
@@ -165,9 +233,9 @@ export async function importFantasyMatch(matchId: number) {
       did_play: true,
       position_snapshot: "G",
       team_snapshot: player.team,
-      win: teamScore !== null && opponentScore !== null ? teamScore > opponentScore : null,
-      shutout: stat.goals_against === 0,
-      raw,
+      win: wins > 0 || (teamScore !== null && opponentScore !== null ? teamScore > opponentScore : null),
+      shutout: shutouts > 0 || stat.goals_against === 0,
+      raw: { source: "nif-goalie-leaders", ...raw },
     }, { onConflict: "player_id,game_id" });
     if (error) throw error;
     importedGoalies += 1;
@@ -175,6 +243,8 @@ export async function importFantasyMatch(matchId: number) {
 
   return {
     matchId,
+    season,
+    game: { home: game.home_team, away: game.away_team, homeScore: game.home_score, awayScore: game.away_score },
     importedSkaters,
     importedGoalies,
     skipped,
@@ -184,5 +254,7 @@ export async function importFantasyMatch(matchId: number) {
       goals: bundle.goals.length,
       penalties: bundle.penalties.length,
     },
+    samplePlayerFields: Object.keys(bundle.players[0] ?? {}),
+    sampleGoalieFields: Object.keys(bundle.goalies[0] ?? {}),
   };
 }
