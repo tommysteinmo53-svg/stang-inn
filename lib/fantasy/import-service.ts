@@ -19,6 +19,22 @@ function text(value: any) {
   return value === null || value === undefined ? "" : String(value).trim();
 }
 
+function canonicalTeamKey(value: string) {
+  const name = text(value).toLocaleLowerCase("nb-NO");
+  if (name.includes("nidaros")) return "nidaros";
+  if (name.includes("lørenskog") || name.includes("lorenskog")) return "lorenskog";
+  if (name.includes("storhamar")) return "storhamar";
+  if (name.includes("stavanger") || name.includes("oilers")) return "oilers";
+  if (name.includes("vålerenga") || name.includes("valerenga")) return "valerenga";
+  if (name.includes("frisk")) return "frisk";
+  if (name.includes("sparta")) return "sparta";
+  if (name.includes("narvik")) return "narvik";
+  if (name.includes("stjernen")) return "stjernen";
+  if (name.includes("lillehammer")) return "lillehammer";
+  if (name.includes("ringerike")) return "ringerike";
+  return name.replace(/[^a-z0-9æøå]+/g, "-").replace(/^-|-$/g, "");
+}
+
 function fullName(raw: Row) {
   const direct = text(first(raw.playerName, raw.PlayerName, raw.name, raw.Name, raw.fullName, raw.personName));
   if (direct) return direct;
@@ -141,6 +157,28 @@ async function ensureFantasyGame(supabase: SupabaseClient, matchId: number, seas
   return data;
 }
 
+async function patchScoreFromGoals(supabase: SupabaseClient, game: any, goals: Row[]) {
+  if (!goals.length) return game;
+  const homeKey = canonicalTeamKey(game.home_team);
+  const awayKey = canonicalTeamKey(game.away_team);
+  let home = 0;
+  let away = 0;
+  for (const goal of goals) {
+    const key = canonicalTeamKey(text(first(goal.teamName, goal.TeamName, goal.teamShortName, goal.TeamShortName)));
+    if (key === homeKey) home += 1;
+    else if (key === awayKey) away += 1;
+  }
+  if (home + away !== goals.length) return game;
+  const { data, error } = await supabase
+    .from("fantasy_games")
+    .update({ home_score: home, away_score: away, status: "finished", updated_at: new Date().toISOString() })
+    .eq("id", game.id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 async function upsertPlayer(supabase: SupabaseClient, raw: Row, fallbackTeam: string, goalie = false) {
   const identity = playerIdentity(raw);
   if (!identity.externalId || !identity.name) return null;
@@ -162,24 +200,26 @@ async function upsertPlayer(supabase: SupabaseClient, raw: Row, fallbackTeam: st
 }
 
 function skaterStat(raw: Row) {
+  const playerTimeSeconds = first(raw.playerTimeSeconds, raw.PlayerTimeSeconds);
   return {
-    goals: n(first(raw.goals, raw.Goals, raw.g)),
+    goals: n(first(raw.goalsScored, raw.GoalsScored, raw.goals, raw.Goals, raw.g)),
     assists: n(first(raw.assists, raw.Assists, raw.a)),
-    shots: n(first(raw.shotsOnGoal, raw.ShotsOnGoal, raw.sog, raw.SOG, raw.shots, raw.Shots)),
+    shots: n(first(raw.shots, raw.Shots, raw.shotsOnGoal, raw.ShotsOnGoal, raw.sog, raw.SOG)),
     plus_minus: n(first(raw.plusMinus, raw.PlusMinus, raw.plusminus, raw.pm)),
-    pim: n(first(raw.penaltyMinutes, raw.PenaltyMinutes, raw.pim, raw.PIM)),
+    pim: n(first(raw.pim, raw.PIM, raw.penaltyMinutes, raw.PenaltyMinutes)),
     powerplay_goals: n(first(raw.powerPlayGoals, raw.PowerPlayGoals, raw.ppg, raw.PPG)),
     shorthanded_goals: n(first(raw.shortHandedGoals, raw.ShortHandedGoals, raw.shg, raw.SHG)),
     game_winning_goals: n(first(raw.gameWinningGoals, raw.GameWinningGoals, raw.gwg, raw.GWG)),
-    minutes_played: first(raw.timeOnIce, raw.TimeOnIce, raw.toi, raw.TOI, raw.minutesPlayed),
+    minutes_played: playerTimeSeconds !== null ? n(playerTimeSeconds) / 60 : first(raw.playerTime, raw.PlayerTime, raw.timeOnIce, raw.TimeOnIce, raw.toi, raw.TOI, raw.minutesPlayed),
   };
 }
 
 function goalieStat(raw: Row) {
+  const playerTimeSeconds = first(raw.playerTimeSeconds, raw.PlayerTimeSeconds);
   return {
-    saves: n(first(raw.saves, raw.Saves, raw.saveCount, raw.SaveCount)),
+    saves: n(first(raw.saves, raw.Saves, raw.saveCount, raw.SaveCount, raw.savedShots, raw.SavedShots)),
     goals_against: n(first(raw.goalsAgainst, raw.GoalsAgainst, raw.ga, raw.GA)),
-    minutes_played: first(raw.timeOnIce, raw.TimeOnIce, raw.toi, raw.TOI, raw.minutesPlayed),
+    minutes_played: playerTimeSeconds !== null ? n(playerTimeSeconds) / 60 : first(raw.playerTime, raw.PlayerTime, raw.timeOnIce, raw.TimeOnIce, raw.toi, raw.TOI, raw.minutesPlayed),
   };
 }
 
@@ -187,8 +227,9 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
   const supabase = serverClient();
   const season = options?.season || "2025/26";
   const tournamentId = options?.tournamentId || "435587";
-  const game = await ensureFantasyGame(supabase, matchId, season, tournamentId);
   const bundle = await fetchNifMatchBundle(matchId);
+  let game = await ensureFantasyGame(supabase, matchId, season, tournamentId);
+  game = await patchScoreFromGoals(supabase, game, bundle.goals);
   let importedSkaters = 0;
   let importedGoalies = 0;
   let skipped = 0;
@@ -209,7 +250,7 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
       did_play: true,
       position_snapshot: player.position,
       team_snapshot: player.team,
-      raw: { source: "nif-match-players", ...raw },
+      raw: { source: "public-match-players", ...raw },
     }, { onConflict: "player_id,game_id" });
     if (error) throw error;
     importedSkaters += 1;
@@ -221,7 +262,7 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
     const player = await upsertPlayer(supabase, raw, fallbackTeam, true);
     if (!player) { skipped += 1; continue; }
     const stat = goalieStat(raw);
-    const isHome = text(player.team).toLowerCase() === text(game.home_team).toLowerCase();
+    const isHome = canonicalTeamKey(player.team) === canonicalTeamKey(game.home_team);
     const teamScore = isHome ? game.home_score : game.away_score;
     const opponentScore = isHome ? game.away_score : game.home_score;
     const wins = n(first(raw.wins, raw.Wins, raw.win, raw.Win));
@@ -235,7 +276,7 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
       team_snapshot: player.team,
       win: wins > 0 || (teamScore !== null && opponentScore !== null ? teamScore > opponentScore : null),
       shutout: shutouts > 0 || stat.goals_against === 0,
-      raw: { source: "nif-goalie-leaders", ...raw },
+      raw: { source: "public-goalie-leaders", ...raw },
     }, { onConflict: "player_id,game_id" });
     if (error) throw error;
     importedGoalies += 1;
