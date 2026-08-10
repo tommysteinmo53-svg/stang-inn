@@ -27,9 +27,9 @@ async function probePath(path: string): Promise<ProbeResult> {
         : payload?.data ?? payload?.players ?? payload?.goalies ?? payload?.goals ?? payload?.penalties ?? payload?.rows ?? null;
       if (Array.isArray(rows)) {
         rowCount = rows.length;
-        if (rows[0] && typeof rows[0] === "object") firstKeys = Object.keys(rows[0]).slice(0, 35);
+        if (rows[0] && typeof rows[0] === "object") firstKeys = Object.keys(rows[0]).slice(0, 50);
       } else if (payload && typeof payload === "object") {
-        firstKeys = Object.keys(payload).slice(0, 35);
+        firstKeys = Object.keys(payload).slice(0, 50);
       }
     } catch {
       // not JSON; body preview below is enough for diagnosis
@@ -56,8 +56,9 @@ async function probePath(path: string): Promise<ProbeResult> {
   }
 }
 
-export async function probeHockeyLiveMatch(matchId: string) {
+export async function probeHockeyLiveMatch(matchId: string, tournamentId = "435587") {
   const id = encodeURIComponent(matchId);
+  const tid = encodeURIComponent(tournamentId);
   const paths = [
     `icehockey/Match/Players/${id}`,
     `icehockey/Match/GoalieLeaders/${id}`,
@@ -68,9 +69,11 @@ export async function probeHockeyLiveMatch(matchId: string) {
     `icehockey/Match/PlayerStatistics/${id}`,
     `icehockey/Match/Statistics/${id}`,
     `icehockey/Match/MatchPlayerStatistics/${id}`,
+    `icehockey/TournamentPlayers/${tid}`,
+    `icehockey/TournamentGoalieLeaders/${tid}`,
     `ta/MatchTeamMembers/${id}`,
   ];
   const results: ProbeResult[] = [];
   for (const path of paths) results.push(await probePath(path));
-  return { matchId, apiBase: API_BASE, results };
+  return { matchId, tournamentId, apiBase: API_BASE, results };
 }
