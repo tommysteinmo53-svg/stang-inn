@@ -36,9 +36,10 @@ function n(value: number | null | undefined) {
 export function calculate19FantasyPoints(stat: FantasyStatLine): FantasyPointBreakdown {
   const position = String(stat.position || "W").toUpperCase() as FantasyPosition;
   const isGoalie = position === "G";
-  // A listed backup goalie with 0:00 played must not receive appearance/win/shutout points.
+  // HockeyLive does not always expose goalie TOI. Saves/GA are therefore authoritative evidence
+  // that a goalie played, while a listed backup with 0 saves, 0 GA and 0:00 gets no points.
   const actuallyPlayed = isGoalie
-    ? n(stat.minutesPlayed) > 0
+    ? n(stat.minutesPlayed) > 0 || n(stat.saves) > 0 || n(stat.goalsAgainst) > 0
     : Boolean(stat.didPlay);
 
   const goalValue = position === "D" || position === "G" ? 15 : 10;
@@ -51,7 +52,6 @@ export function calculate19FantasyPoints(stat: FantasyStatLine): FantasyPointBre
   const plusMinus = n(stat.plusMinus);
   const pim = -Math.min(10, Math.max(0, n(stat.pim)));
 
-  // 19Fantasy: 1 point per two saves = 0.5 point per save.
   const saves = isGoalie && actuallyPlayed ? n(stat.saves) / 2 : 0;
   const goalsAgainst = isGoalie && actuallyPlayed ? n(stat.goalsAgainst) * -3 : 0;
   const shutout = isGoalie && actuallyPlayed && Boolean(stat.shutout) ? 10 : 0;
