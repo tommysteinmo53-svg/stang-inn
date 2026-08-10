@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { captureAndMaterializeFantasySnapshot, captureFantasySnapshot, materializeLatestSnapshotDelta } from "../../../lib/fantasy/snapshot-service";
+import { probeHockeyLiveMatch } from "../../../lib/fantasy/match-probe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +27,10 @@ export async function POST(request:NextRequest){
   const action=url.searchParams.get("action")||"capture-and-materialize";
   const season=url.searchParams.get("season")||undefined;
   try{
+    if(action==="probe-match"){
+      const matchId=url.searchParams.get("matchId")||"8183135";
+      return NextResponse.json({ok:true,result:await probeHockeyLiveMatch(matchId)});
+    }
     if(action==="capture")return NextResponse.json({ok:true,result:await captureFantasySnapshot(season)});
     if(action==="materialize")return NextResponse.json({ok:true,result:await materializeLatestSnapshotDelta(season)});
     return NextResponse.json({ok:true,result:await captureAndMaterializeFantasySnapshot(season)});
