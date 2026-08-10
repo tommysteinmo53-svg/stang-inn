@@ -49,6 +49,36 @@ function initials(name: string) {
   return shortTeam(name).split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
 }
 
+const TEAM_LOGOS: Record<string, string> = {
+  "Vålerenga": "https://www.vifbredde.no/cdn-cgi/image/width%3D3840%2Cquality%3D75%2Cformat%3Dauto/https%3A/spond.com/storage/upload/CA61C5BCFAFF9A8E14BE94D12F6A3560/1740469461_99E4AFDD/logo_vif.png",
+  "Oilers": "https://pbs.twimg.com/profile_images/1965058158604222464/l80w08U3_400x400.jpg",
+  "Storhamar": "https://www.google.com/s2/favicons?domain_url=https://www.sil.no&sz=128",
+  "Frisk Asker": "https://www.google.com/s2/favicons?domain_url=https://www.friskasker.no&sz=128",
+  "Narvik": "https://www.google.com/s2/favicons?domain_url=https://www.narvikhockey.no&sz=128",
+  "Sparta": "https://www.google.com/s2/favicons?domain_url=https://www.sparta.no&sz=128",
+  "Stjernen": "https://www.google.com/s2/favicons?domain_url=https://www.stjernen.no&sz=128",
+  "Lillehammer": "https://www.google.com/s2/favicons?domain_url=https://www.lillehammerhockey.no&sz=128",
+  "Nidaros": "https://www.google.com/s2/favicons?domain_url=https://www.nidaroshockey.no&sz=128",
+  "Ringerike": "https://www.google.com/s2/favicons?domain_url=https://www.ringerikepanthers.no&sz=128",
+};
+
+function TeamLogo({ team }: { team: string }) {
+  const [failed, setFailed] = useState(false);
+  const src = TEAM_LOGOS[team];
+  return (
+    <div className="premiumTeamLogo" aria-label={`${team} logo`}>
+      {src && !failed ? (
+        <img
+          src={src}
+          alt=""
+          onError={() => setFailed(true)}
+          style={{ width: "78%", height: "78%", objectFit: "contain", display: "block", borderRadius: 12 }}
+        />
+      ) : initials(team)}
+    </div>
+  );
+}
+
 function formatKickoff(value: string | null) {
   if (!value) return "Tidspunkt ikke satt";
   return new Date(value).toLocaleString("no-NO", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
@@ -186,9 +216,9 @@ export default function PremiumNextMatch() {
               </div>
 
               <div className="premiumTeams">
-                <div className="premiumTeam"><div className="premiumTeamLogo" aria-hidden>{initials(home)}</div><strong>{home}</strong><small>Hjemme</small></div>
+                <div className="premiumTeam"><TeamLogo team={home}/><strong>{home}</strong><small>Hjemme</small></div>
                 <div className="premiumVs"><span>VS</span><b>{left.main}</b><small>{left.sub}</small></div>
-                <div className="premiumTeam"><div className="premiumTeamLogo" aria-hidden>{initials(away)}</div><strong>{away}</strong><small>Borte</small></div>
+                <div className="premiumTeam"><TeamLogo team={away}/><strong>{away}</strong><small>Borte</small></div>
               </div>
 
               <div className="premiumGameMeta"><span>📅 {formatKickoff(match.match_time)}</span><span>🏒 EHL · Runde {match.round ?? currentRound}</span></div>
