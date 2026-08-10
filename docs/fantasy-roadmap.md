@@ -21,9 +21,14 @@ Systemet skal:
 
 Datakildene holdes adskilt fra fantasy-logikken slik at vi kan bytte leverandør senere.
 
-1. EHL / HockeyLive / NIF for terminliste, kampresultater og kampdata der dette er tilgjengelig.
-2. 19Fantasy-data som egen importkilde dersom offentlig eller tillatt teknisk tilgang finnes.
-3. Manuell admin-import som nødløsning for pris/posisjon dersom disse feltene ikke finnes i en egnet kilde.
+1. HockeyLive sin offentlige terminliste/resultatstrøm brukes til kamper og resultater.
+2. Offentlige HockeyLive/EHL-statistikksider brukes som fallback for spiller- og keeperstatistikk uten partner-token.
+3. 19Fantasy-data brukes som egen importkilde dersom offentlig eller tillatt teknisk tilgang finnes, særlig for pris og eksakt W/C-posisjon.
+4. Manuell admin-import beholdes som nødløsning for pris/posisjon hvis disse feltene ikke finnes offentlig.
+
+### Offentlig fallback – prinsipp
+
+Vi er ikke avhengige av NIF Data API-token. Fallback-importeren ligger isolert fra poengmotoren og prøver strukturerte data som er innebygd i de offentlige HockeyLive/EHL-sidene, med HTML-tabell som sekundær strategi. Et beskyttet diagnose-endepunkt brukes til å verifisere hvilke felter som faktisk er tilgjengelige før vi skriver dem til databasen.
 
 ## Faser
 
