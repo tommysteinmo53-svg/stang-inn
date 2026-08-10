@@ -50,16 +50,16 @@ function initials(name: string) {
 }
 
 const TEAM_LOGOS: Record<string, string> = {
-  "Vålerenga": "https://www.vifbredde.no/cdn-cgi/image/width%3D3840%2Cquality%3D75%2Cformat%3Dauto/https%3A/spond.com/storage/upload/CA61C5BCFAFF9A8E14BE94D12F6A3560/1740469461_99E4AFDD/logo_vif.png",
+  "Vålerenga": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Valerenga_IF_Logo.png",
   "Oilers": "https://pbs.twimg.com/profile_images/1965058158604222464/l80w08U3_400x400.jpg",
   "Storhamar": "https://www.google.com/s2/favicons?domain_url=https://www.sil.no&sz=128",
-  "Frisk Asker": "https://www.google.com/s2/favicons?domain_url=https://www.friskasker.no&sz=128",
-  "Narvik": "https://www.google.com/s2/favicons?domain_url=https://www.narvikhockey.no&sz=128",
+  "Frisk Asker": "https://logotyp.us/file/frisk-asker.svg",
+  "Narvik": "https://media.snl.no/media/328524/standard_Narvik_Hockey.png",
   "Sparta": "https://www.google.com/s2/favicons?domain_url=https://www.sparta.no&sz=128",
   "Stjernen": "https://www.google.com/s2/favicons?domain_url=https://www.stjernen.no&sz=128",
   "Lillehammer": "https://www.google.com/s2/favicons?domain_url=https://www.lillehammerhockey.no&sz=128",
   "Nidaros": "https://www.google.com/s2/favicons?domain_url=https://www.nidaroshockey.no&sz=128",
-  "Ringerike": "https://www.google.com/s2/favicons?domain_url=https://www.ringerikepanthers.no&sz=128",
+  "Ringerike": "https://commons.wikimedia.org/wiki/Special:FilePath/Ringerikepanthers.png?width=300",
 };
 
 function TeamLogo({ team }: { team: string }) {
