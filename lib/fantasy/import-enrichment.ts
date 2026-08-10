@@ -15,6 +15,20 @@ function serverClient() {
 function text(value: any) { return value == null ? "" : String(value).trim(); }
 function personId(row: Row) { return text(row.personId ?? row.PersonId ?? row.playerId ?? row.PlayerId); }
 
+function teamKey(value: any) {
+  return text(value)
+    .toLocaleLowerCase("nb-NO")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function sameTeam(a: any, b: any) {
+  const ak = teamKey(a);
+  const bk = teamKey(b);
+  return Boolean(ak && bk && (ak === bk || ak.includes(bk) || bk.includes(ak)));
+}
+
 function position(value: any): Position | null {
   const p = text(value).toLowerCase();
   if (!p) return null;
@@ -45,32 +59,45 @@ function countsForPlusMinus(goal: Row) {
   return true;
 }
 
-function plusMinusFromGoals(goals: Row[]) {
+function plusMinusFromGoals(goals: Row[], homeTeam: string, awayTeam: string) {
   const values = new Map<string, number>();
   const add = (id: string, amount: number) => values.set(id, (values.get(id) ?? 0) + amount);
   let countedGoals = 0;
   let skippedSpecialTeams = 0;
+  let unresolvedGoals = 0;
 
   for (const goal of goals) {
     if (!countsForPlusMinus(goal)) { skippedSpecialTeams += 1; continue; }
     const homeIds = ids(goal.onIceHomeTeamPersonIDs ?? goal.OnIceHomeTeamPersonIDs);
     const awayIds = ids(goal.onIceAwayTeamPersonIDs ?? goal.OnIceAwayTeamPersonIDs);
-    const side = text(goal.homeOrAwayTeam ?? goal.HomeOrAwayTeam).toLowerCase();
-    const homeScored = side.startsWith("h") || side === "1" || side === "home";
-    const awayScored = side.startsWith("a") || side === "2" || side === "away";
-    if (!homeScored && !awayScored) continue;
+    const scoringTeam = goal.teamName ?? goal.TeamName ?? goal.teamShortName ?? goal.TeamShortName;
+
+    let homeScored = sameTeam(scoringTeam, homeTeam);
+    let awayScored = sameTeam(scoringTeam, awayTeam);
+
+    if (!homeScored && !awayScored) {
+      const side = text(goal.homeOrAwayTeam ?? goal.HomeOrAwayTeam).toLowerCase();
+      homeScored = side.startsWith("h") || side === "1" || side === "home";
+      awayScored = side.startsWith("a") || side === "2" || side === "away";
+    }
+
+    if (!homeScored && !awayScored) { unresolvedGoals += 1; continue; }
     for (const id of homeIds) add(id, homeScored ? 1 : -1);
     for (const id of awayIds) add(id, awayScored ? 1 : -1);
     countedGoals += 1;
   }
-  return { values, countedGoals, skippedSpecialTeams };
+  return { values, countedGoals, skippedSpecialTeams, unresolvedGoals };
 }
 
 async function enrich(matchId: number) {
   const supabase = serverClient();
   const bundle = await fetchNifMatchBundle(matchId);
   const candidates = [`hockeylive:${matchId}`, String(matchId), `nif:${matchId}`];
-  const { data: game, error: gameError } = await supabase.from("fantasy_games").select("id").in("external_id", candidates).maybeSingle();
+  const { data: game, error: gameError } = await supabase
+    .from("fantasy_games")
+    .select("id,home_team,away_team")
+    .in("external_id", candidates)
+    .maybeSingle();
   if (gameError) throw gameError;
   if (!game) throw new Error(`Fant ikke importert fantasy-kamp ${matchId}`);
 
@@ -82,7 +109,7 @@ async function enrich(matchId: number) {
     if (id && pos) memberPositions.set(id, pos);
   }
 
-  const pm = plusMinusFromGoals(bundle.goals);
+  const pm = plusMinusFromGoals(bundle.goals, game.home_team, game.away_team);
   const allIds = [...new Set([...memberPositions.keys(), ...pm.values.keys()])];
   let positionsUpdated = 0;
   let plusMinusUpdated = 0;
@@ -113,6 +140,7 @@ async function enrich(matchId: number) {
     plusMinusUpdated,
     plusMinusCountedGoals: pm.countedGoals,
     plusMinusSkippedSpecialTeamsGoals: pm.skippedSpecialTeams,
+    plusMinusUnresolvedGoals: pm.unresolvedGoals,
     teamMemberRows: bundle.teamMembers.length,
   };
 }
