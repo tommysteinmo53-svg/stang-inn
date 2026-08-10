@@ -20,6 +20,23 @@ function rowsFrom(payload: unknown): Row[] {
   return [];
 }
 
+function numberValue(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeGoalie(row: Row): Row {
+  const shots = numberValue(row.shots ?? row.Shots);
+  const saves = numberValue(row.sv ?? row.SV ?? row.saves ?? row.Saves);
+  const secondsPlayed = numberValue(row.secondsPlayed ?? row.SecondsPlayed);
+  return {
+    ...row,
+    saves,
+    goalsAgainst: Math.max(0, shots - saves),
+    playerTimeSeconds: secondsPlayed,
+  };
+}
+
 async function hockeyJson(path: string): Promise<Row[]> {
   const response = await fetch(`${PUBLIC_HOCKEY_BASE}${path}`, {
     headers: {
@@ -40,12 +57,13 @@ async function hockeyJson(path: string): Promise<Row[]> {
 export async function fetchNifMatchBundle(matchId: number): Promise<NifMatchBundle> {
   if (!Number.isInteger(matchId) || matchId <= 0) throw new Error("Ugyldig matchId");
 
-  const [players, goalies, goals, penalties] = await Promise.all([
+  const [players, rawGoalies, goals, penalties] = await Promise.all([
     hockeyJson(`/Match/Players/${matchId}`),
     hockeyJson(`/Match/GoalieLeaders/${matchId}`),
     hockeyJson(`/Match/Goals/${matchId}`),
     hockeyJson(`/Match/Penalties/${matchId}`),
   ]);
 
+  const goalies = rawGoalies.map(normalizeGoalie);
   return { matchId, players, goalies, goals, penalties };
 }
