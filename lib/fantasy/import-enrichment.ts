@@ -19,7 +19,6 @@ function sameTeam(a: any, b: any) { const ak=teamKey(a),bk=teamKey(b); return Bo
 function position(value: any): Position | null {
   const p = text(value).toLowerCase();
   if (!p || p === "lagledelse") return null;
-  // NIF/HockeyLive position codes: GK1/GK2 goalies, LD/RD defense, CE center, LW/RW wings.
   if (p === "g" || p === "gk" || p === "gk1" || p === "gk2" || p.includes("goal") || p.includes("keeper") || p.includes("målv")) return "G";
   if (p === "d" || p === "ld" || p === "rd" || p.includes("def") || p.includes("back")) return "D";
   if (p === "c" || p === "ce" || p.includes("cent")) return "C";
@@ -39,7 +38,7 @@ async function enrich(matchId:number,options?:{tournamentId?:string}){
  for(const member of bundle.teamMembers){const id=personId(member),pos=position(member.position??member.Position);if(id&&pos)memberPositions.set(id,pos)}
  for(const id of goalieIds)memberPositions.set(id,"G");
  const homeOrgIds=new Set<string>(),awayOrgIds=new Set<string>();for(const row of[...bundle.players,...bundle.goalies]){const oid=orgId(row);if(!oid)continue;const team=row.teamName??row.TeamName??row.teamShortName??row.TeamShortName;if(sameTeam(team,game.home_team))homeOrgIds.add(oid);if(sameTeam(team,game.away_team))awayOrgIds.add(oid)}
- const pm=plusMinusFromGoals(bundle.goals,game.home_team,game.away_team,homeOrgIds,awayOrgIds);const matchPlayerIds=new Set([...bundle.players,...bundle.goalies].map(personId).filter(Boolean));const allIds=[...new Set([...matchPlayerIds,...memberPositions.keys(),...pm.values.keys()])];let positionsUpdated=0,plusMinusUpdated=0;
+ const pm=plusMinusFromGoals(bundle.goals,game.home_team,game.away_team,homeOrgIds,awayOrgIds);const matchPlayerIds=new Set([...bundle.players,...bundle.goalies].map(personId).filter(Boolean));const allIds=[...new Set([...matchPlayerIds,...pm.values.keys()])];let positionsUpdated=0,plusMinusUpdated=0;
  for(const id of allIds){const{data:player}=await supabase.from("fantasy_players").select("id,position").eq("external_id",`nif:${id}`).maybeSingle();if(!player)continue;const mappedPosition=memberPositions.get(id);if(mappedPosition){const{error}=await supabase.from("fantasy_players").update({position:mappedPosition,updated_at:new Date().toISOString()}).eq("id",player.id);if(error)throw error;positionsUpdated+=1}if(!goalieIds.has(id)){const update:Record<string,any>={plus_minus:pm.values.get(id)??0};if(mappedPosition&&mappedPosition!=="G")update.position_snapshot=mappedPosition;const{error}=await supabase.from("fantasy_player_game_stats").update(update).eq("player_id",player.id).eq("game_id",game.id);if(error)throw error;plusMinusUpdated+=1}}
  return{positionsUpdated,plusMinusUpdated,plusMinusCountedGoals:pm.countedGoals,plusMinusSkippedSpecialTeamsGoals:pm.skippedSpecialTeams,plusMinusUnresolvedGoals:pm.unresolvedGoals,totalGoals:bundle.goals.length,teamMemberRows:bundle.teamMembers.length,tournamentPlayerRows:bundle.tournamentPlayers.length,teamMemberPositionValues:rawPositionCounts(bundle.teamMembers),tournamentPositionValues:rawPositionCounts(bundle.tournamentPlayers),homeOrgIds:[...homeOrgIds],awayOrgIds:[...awayOrgIds],goalDiagnostics:pm.diagnostics};
 }
