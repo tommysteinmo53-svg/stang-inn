@@ -64,6 +64,7 @@ export default function ProfilePage() {
           <a href="/admin" className="profileActionCard"><span>👥</span><strong>Brukere</strong><small>Endre og slette brukere</small></a>
           <a href="/admin/season" className="profileActionCard"><span>⚙️</span><strong>Sesongdrift</strong><small>Kamper, poeng og synk</small></a>
           <a href="/admin/notifications" className="profileActionCard"><span>📣</span><strong>Send varsel</strong><small>Varsle alle eller én bruker</small></a>
+          <a href="/fantasy" className="profileActionCard"><span>🏒</span><strong>Fantasy Hockey</strong><small>Analyse, poeng og anbefalinger</small></a>
           <a href="/admin" className="profileActionCard"><span>🛠️</span><strong>Systemstatus</strong><small>Logger og administrasjon</small></a>
         </div>
       </article>}
