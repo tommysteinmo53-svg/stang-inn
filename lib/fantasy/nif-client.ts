@@ -10,6 +10,7 @@ export type NifMatchBundle = {
   goals: Row[];
   penalties: Row[];
   teamMembers: Row[];
+  tournamentPlayers: Row[];
 };
 
 function rowsFrom(payload: unknown): Row[] {
@@ -50,15 +51,19 @@ async function hockeyJson(path: string) {
   return publicJson(`${PUBLIC_HOCKEY_BASE}${path}`);
 }
 
-export async function fetchNifMatchBundle(matchId: number): Promise<NifMatchBundle> {
+export async function fetchNifMatchBundle(matchId: number, tournamentId?: string | number): Promise<NifMatchBundle> {
   if (!Number.isInteger(matchId) || matchId <= 0) throw new Error("Ugyldig matchId");
-  const [players, rawGoalies, goals, penalties, teamMembers] = await Promise.all([
+  const tournamentPromise = tournamentId
+    ? hockeyJson(`/TournamentPlayers/${tournamentId}`).catch(() => [])
+    : Promise.resolve([] as Row[]);
+  const [players, rawGoalies, goals, penalties, teamMembers, tournamentPlayers] = await Promise.all([
     hockeyJson(`/Match/Players/${matchId}`),
     hockeyJson(`/Match/GoalieLeaders/${matchId}`),
     hockeyJson(`/Match/Goals/${matchId}`),
     hockeyJson(`/Match/Penalties/${matchId}`),
     publicJson(`${PUBLIC_ROOT}/ta/MatchTeamMembers/${matchId}`),
+    tournamentPromise,
   ]);
   const goalies = rawGoalies.map(normalizeGoalie);
-  return { matchId, players, goalies, goals, penalties, teamMembers };
+  return { matchId, players, goalies, goals, penalties, teamMembers, tournamentPlayers };
 }
