@@ -63,11 +63,12 @@ export async function probeHockeyLiveMatch(matchId: string) {
     `icehockey/Match/GoalieLeaders/${id}`,
     `icehockey/Match/Goals/${id}`,
     `icehockey/Match/Penalties/${id}`,
+    `icehockey/Match/PlusMinus/${id}`,
+    `icehockey/Match/PlayerPlusMinus/${id}`,
+    `icehockey/Match/PlayerStatistics/${id}`,
+    `icehockey/Match/Statistics/${id}`,
+    `icehockey/Match/MatchPlayerStatistics/${id}`,
     `ta/MatchTeamMembers/${id}`,
-    `api/v1/icehockey/Match/Players/${id}`,
-    `api/v1/icehockey/Match/GoalieLeaders/${id}`,
-    `api/v1/icehockey/Match/Goals/${id}`,
-    `api/v1/icehockey/Match/Penalties/${id}`,
   ];
   const results: ProbeResult[] = [];
   for (const path of paths) results.push(await probePath(path));
