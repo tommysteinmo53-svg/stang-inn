@@ -53,6 +53,17 @@ function goalDiagnostic(goal: Row, index: number) {
   for (const key of interesting.slice(0, 16)) fields[key] = text(goal[key]).slice(0, 90);
   return { index: index + 1, keys: keys.slice(0, 30), fields };
 }
+function goalSide(goal: Row, homeOrgIds: Set<string>, awayOrgIds: Set<string>): "home" | "away" | null {
+  const scoringOrg = orgId(goal);
+  if (scoringOrg && homeOrgIds.has(scoringOrg)) return "home";
+  if (scoringOrg && awayOrgIds.has(scoringOrg)) return "away";
+
+  const side = text(goal.homeOrAwayTeam ?? goal.HomeOrAwayTeam).toLowerCase();
+  // HockeyLive/NIF uses H/B (hjemme/borte), while some feeds use home/away or 1/2.
+  if (side === "h" || side === "home" || side === "1") return "home";
+  if (side === "b" || side === "a" || side === "away" || side === "2") return "away";
+  return null;
+}
 function plusMinusFromGoals(goals: Row[], homeTeam: string, awayTeam: string, homeOrgIds: Set<string>, awayOrgIds: Set<string>) {
   const values = new Map<string, number>();
   const add = (id: string, amount: number) => values.set(id, (values.get(id) ?? 0) + amount);
@@ -68,14 +79,16 @@ function plusMinusFromGoals(goals: Row[], homeTeam: string, awayTeam: string, ho
     let homeScored = Boolean(scoringOrg && homeOrgIds.has(scoringOrg));
     let awayScored = Boolean(scoringOrg && awayOrgIds.has(scoringOrg));
 
+    // The goal row's teamName/orgId describes the scoring team directly. In this NIF feed
+    // homeOrAwayTeam is the reliable source for which side that team belongs to.
+    if (!homeScored && !awayScored) {
+      const side = goalSide(goal, homeOrgIds, awayOrgIds);
+      homeScored = side === "home";
+      awayScored = side === "away";
+    }
     if (!homeScored && !awayScored) {
       homeScored = sameTeam(scoringTeam, homeTeam);
       awayScored = sameTeam(scoringTeam, awayTeam);
-    }
-    if (!homeScored && !awayScored) {
-      const side = text(goal.homeOrAwayTeam ?? goal.HomeOrAwayTeam).toLowerCase();
-      homeScored = side.startsWith("h") || side === "1" || side === "home";
-      awayScored = side.startsWith("a") || side === "2" || side === "away";
     }
     if (!homeScored && !awayScored) {
       unresolvedGoals += 1;
