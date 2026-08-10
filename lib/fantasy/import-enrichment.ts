@@ -57,9 +57,7 @@ function goalSide(goal: Row, homeOrgIds: Set<string>, awayOrgIds: Set<string>): 
   const scoringOrg = orgId(goal);
   if (scoringOrg && homeOrgIds.has(scoringOrg)) return "home";
   if (scoringOrg && awayOrgIds.has(scoringOrg)) return "away";
-
   const side = text(goal.homeOrAwayTeam ?? goal.HomeOrAwayTeam).toLowerCase();
-  // HockeyLive/NIF uses H/B (hjemme/borte), while some feeds use home/away or 1/2.
   if (side === "h" || side === "home" || side === "1") return "home";
   if (side === "b" || side === "a" || side === "away" || side === "2") return "away";
   return null;
@@ -75,12 +73,8 @@ function plusMinusFromGoals(goals: Row[], homeTeam: string, awayTeam: string, ho
     const awayIds = ids(goal.onIceAwayTeamPersonIDs ?? goal.OnIceAwayTeamPersonIDs);
     const scoringTeam = goal.teamName ?? goal.TeamName ?? goal.teamShortName ?? goal.TeamShortName;
     const scoringOrg = orgId(goal);
-
     let homeScored = Boolean(scoringOrg && homeOrgIds.has(scoringOrg));
     let awayScored = Boolean(scoringOrg && awayOrgIds.has(scoringOrg));
-
-    // The goal row's teamName/orgId describes the scoring team directly. In this NIF feed
-    // homeOrAwayTeam is the reliable source for which side that team belongs to.
     if (!homeScored && !awayScored) {
       const side = goalSide(goal, homeOrgIds, awayOrgIds);
       homeScored = side === "home";
@@ -102,10 +96,18 @@ function plusMinusFromGoals(goals: Row[], homeTeam: string, awayTeam: string, ho
   });
   return { values, countedGoals, skippedSpecialTeams, unresolvedGoals, diagnostics };
 }
+function rawPositionCounts(rows: Row[]) {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const raw = text(row.position ?? row.Position) || "(tom)";
+    counts.set(raw, (counts.get(raw) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a,b)=>b[1]-a[1]).map(([value,count])=>`${value}:${count}`);
+}
 
-async function enrich(matchId: number) {
+async function enrich(matchId: number, options?: { tournamentId?: string }) {
   const supabase = serverClient();
-  const bundle = await fetchNifMatchBundle(matchId);
+  const bundle = await fetchNifMatchBundle(matchId, options?.tournamentId);
   const candidates = [`hockeylive:${matchId}`, String(matchId), `nif:${matchId}`];
   const { data: game, error: gameError } = await supabase.from("fantasy_games").select("id,home_team,away_team").in("external_id", candidates).maybeSingle();
   if (gameError) throw gameError;
@@ -113,10 +115,18 @@ async function enrich(matchId: number) {
 
   const goalieIds = new Set(bundle.goalies.map(personId).filter(Boolean));
   const memberPositions = new Map<string, Position>();
-  for (const member of bundle.teamMembers) {
-    const id = personId(member), pos = position(member.position);
+
+  // TournamentPlayers usually has a position for many more players than a single match roster.
+  for (const player of bundle.tournamentPlayers) {
+    const id = personId(player), pos = position(player.position ?? player.Position);
     if (id && pos) memberPositions.set(id, pos);
   }
+  // MatchTeamMembers is more specific for this game, so it overrides tournament data when present.
+  for (const member of bundle.teamMembers) {
+    const id = personId(member), pos = position(member.position ?? member.Position);
+    if (id && pos) memberPositions.set(id, pos);
+  }
+  for (const id of goalieIds) memberPositions.set(id, "G");
 
   const homeOrgIds = new Set<string>();
   const awayOrgIds = new Set<string>();
@@ -129,13 +139,14 @@ async function enrich(matchId: number) {
   }
 
   const pm = plusMinusFromGoals(bundle.goals, game.home_team, game.away_team, homeOrgIds, awayOrgIds);
-  const allIds = [...new Set([...memberPositions.keys(), ...pm.values.keys()])];
+  const matchPlayerIds = new Set([...bundle.players, ...bundle.goalies].map(personId).filter(Boolean));
+  const allIds = [...new Set([...matchPlayerIds, ...memberPositions.keys(), ...pm.values.keys()])];
   let positionsUpdated = 0, plusMinusUpdated = 0;
   for (const id of allIds) {
     const { data: player } = await supabase.from("fantasy_players").select("id,position").eq("external_id", `nif:${id}`).maybeSingle();
     if (!player) continue;
     const mappedPosition = memberPositions.get(id);
-    if (mappedPosition && mappedPosition !== "G") {
+    if (mappedPosition) {
       const { error } = await supabase.from("fantasy_players").update({ position: mappedPosition, updated_at: new Date().toISOString() }).eq("id", player.id);
       if (error) throw error;
       positionsUpdated += 1;
@@ -156,6 +167,9 @@ async function enrich(matchId: number) {
     plusMinusUnresolvedGoals: pm.unresolvedGoals,
     totalGoals: bundle.goals.length,
     teamMemberRows: bundle.teamMembers.length,
+    tournamentPlayerRows: bundle.tournamentPlayers.length,
+    teamMemberPositionValues: rawPositionCounts(bundle.teamMembers),
+    tournamentPositionValues: rawPositionCounts(bundle.tournamentPlayers),
     homeOrgIds: [...homeOrgIds],
     awayOrgIds: [...awayOrgIds],
     goalDiagnostics: pm.diagnostics,
@@ -163,6 +177,6 @@ async function enrich(matchId: number) {
 }
 export async function importFantasyMatch(matchId: number, options?: { season?: string; tournamentId?: string }) {
   const base = await importBaseMatch(matchId, options);
-  const enrichment = await enrich(matchId);
+  const enrichment = await enrich(matchId, { tournamentId: options?.tournamentId });
   return { ...base, enrichment };
 }
