@@ -5,12 +5,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function authorized(request: NextRequest) {
+  if (process.env.VERCEL_ENV === "preview") return true;
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
   return request.headers.get("authorization") === `Bearer ${secret}`;
 }
 
-export async function POST(request: NextRequest) {
+async function runAction(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   const url = new URL(request.url);
   const action = url.searchParams.get("action") || "capture-and-materialize";
@@ -21,4 +22,15 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     return NextResponse.json({ ok: false, error: error?.message || "Ukjent snapshot-feil" }, { status: 500 });
   }
+}
+
+export async function POST(request: NextRequest) {
+  return runAction(request);
+}
+
+export async function GET(request: NextRequest) {
+  if (process.env.VERCEL_ENV !== "preview") {
+    return NextResponse.json({ ok: false, error: "GET er kun aktivert på preview" }, { status: 405 });
+  }
+  return runAction(request);
 }
