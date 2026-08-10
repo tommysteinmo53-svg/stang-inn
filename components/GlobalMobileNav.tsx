@@ -6,6 +6,7 @@ const items = [
   { href: "/", icon: "⌂", label: "Hjem", match: (p: string) => p === "/" },
   { href: "/tips", icon: "🏒", label: "Kamper", match: (p: string) => p.startsWith("/tips") || p.startsWith("/match/") },
   { href: "/round", icon: "▤", label: "Runde", match: (p: string) => p.startsWith("/round") },
+  { href: "/fantasy", icon: "🏒", label: "Fantasy", match: (p: string) => p.startsWith("/fantasy") },
   { href: "/leaderboard", icon: "🏆", label: "Tabell", match: (p: string) => p.startsWith("/leaderboard") || p.startsWith("/player/") },
   { href: "/awards", icon: "🏅", label: "Awards", match: (p: string) => p.startsWith("/awards") },
   { href: "/notifications", icon: "🔔", label: "Varsler", match: (p: string) => p.startsWith("/notifications") },
