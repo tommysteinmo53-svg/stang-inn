@@ -109,9 +109,8 @@ export async function materializeLatestSnapshotDelta() {
   let skipped = 0;
 
   for (const current of currentRows ?? []) {
-    const previous = previousByKey.get(`${current.kind}:${current.player_key}`) as any;
-    if (!previous) { skipped += 1; continue; }
-    const gpDelta = delta(current, previous, "games_played");
+    const previous = (previousByKey.get(`${current.kind}:${current.player_key}`) as any) ?? null;
+    const gpDelta = previous ? delta(current, previous, "games_played") : Number(current.games_played ?? 0);
     if (gpDelta !== 1) { if (gpDelta !== 0) skipped += 1; continue; }
 
     const team = canonicalTeam(current.team);
@@ -147,7 +146,7 @@ export async function materializeLatestSnapshotDelta() {
       did_play: true,
       position_snapshot: current.kind === "goalie" ? "G" : (current.position || player.position),
       team_snapshot: team,
-      raw: { source: "snapshot-delta", currentBatch: currentBatch.id, previousBatch: previousBatch.id, teamScore, opponentScore },
+      raw: { source: previous ? "snapshot-delta" : "snapshot-from-zero-baseline", currentBatch: currentBatch.id, previousBatch: previousBatch.id, teamScore, opponentScore },
     };
 
     const { error } = await supabase.from("fantasy_player_game_stats").upsert(statRow, { onConflict: "player_id,game_id" });
