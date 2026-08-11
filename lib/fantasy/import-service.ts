@@ -218,9 +218,17 @@ function goalieStat(raw: Row) {
   const playerTimeSeconds = first(raw.playerTimeSeconds, raw.PlayerTimeSeconds);
   return {
     saves: n(first(raw.saves, raw.Saves, raw.saveCount, raw.SaveCount, raw.savedShots, raw.SavedShots)),
+    // Dette er keeperens egen GA fra HockeyLive. Lagets sluttresultat brukes aldri som keeper-GA,
+    // slik at empty-net goals ikke belastes keeperen.
     goals_against: n(first(raw.goalsAgainst, raw.GoalsAgainst, raw.ga, raw.GA)),
     minutes_played: playerTimeSeconds !== null ? n(playerTimeSeconds) / 60 : first(raw.playerTime, raw.PlayerTime, raw.timeOnIce, raw.TimeOnIce, raw.toi, raw.TOI, raw.minutesPlayed),
   };
+}
+
+function goalieWasActive(raw: Row) {
+  const stat = goalieStat(raw);
+  const seconds = n(first(raw.playerTimeSeconds, raw.PlayerTimeSeconds), 0);
+  return stat.saves > 0 || seconds > 0 || n(stat.minutes_played, 0) > 0 || stat.goals_against > 0;
 }
 
 export async function importFantasyMatch(matchId: number, options?: { season?: string; tournamentId?: string }) {
@@ -256,6 +264,18 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
     importedSkaters += 1;
   }
 
+  // Enkel og permanent SO-regel:
+  // 1) keeperens egen GA må være 0
+  // 2) keeperen må være den eneste aktive keeperen på laget i kampen.
+  // Aktiv keeper verifiseres med redninger, spilletid eller GA. Reserver med 0/0/0 teller ikke.
+  const activeGoaliesPerTeam = new Map<string, number>();
+  for (const raw of bundle.goalies) {
+    if (!goalieWasActive(raw)) continue;
+    const identity = playerIdentity(raw);
+    const key = canonicalTeamKey(identity.team || "Ukjent");
+    activeGoaliesPerTeam.set(key, (activeGoaliesPerTeam.get(key) ?? 0) + 1);
+  }
+
   for (const raw of bundle.goalies) {
     const identity = playerIdentity(raw);
     const fallbackTeam = identity.team || "Ukjent";
@@ -263,17 +283,31 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
     if (!player) { skipped += 1; continue; }
     const stat = goalieStat(raw);
     const wins = n(first(raw.wins, raw.Wins, raw.win, raw.Win));
-    const shutouts = n(first(raw.shutouts, raw.Shutouts, raw.shutout, raw.Shutout));
+    const active = goalieWasActive(raw);
+    const teamKey = canonicalTeamKey(identity.team || player.team || fallbackTeam);
+    const onlyActiveGoalie = active && (activeGoaliesPerTeam.get(teamKey) ?? 0) === 1;
+    const shutout = onlyActiveGoalie && stat.goals_against === 0;
     const { error } = await supabase.from("fantasy_player_game_stats").upsert({
       player_id: player.id,
       game_id: game.id,
       ...stat,
-      did_play: true,
+      did_play: active,
       position_snapshot: "G",
       team_snapshot: player.team,
-      win: wins > 0,
-      shutout: shutouts > 0,
-      raw: { source: "public-goalie-leaders", ...raw },
+      win: active && wins > 0,
+      shutout,
+      raw: {
+        source: "public-goalie-leaders",
+        goalieRule: {
+          active,
+          onlyActiveGoalie,
+          activeGoaliesOnTeam: activeGoaliesPerTeam.get(teamKey) ?? 0,
+          keeperGA: stat.goals_against,
+          shutout,
+          emptyNetExcludedFromKeeperGA: true,
+        },
+        ...raw,
+      },
     }, { onConflict: "player_id,game_id" });
     if (error) throw error;
     importedGoalies += 1;
