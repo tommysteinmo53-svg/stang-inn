@@ -36,8 +36,13 @@ export async function prepareFantasySeason(tournamentId:string,season:string){
  const explicitlyFinished=valid.filter(isFinished).map(matchIdOf).filter(id=>id>0);
  const pastIds=valid.filter(isPastFixture).map(matchIdOf).filter(id=>id>0);
  // Historical HockeyLive tournament lists do not always expose final status/result fields.
- // For a past season, use past fixtures as import candidates; match endpoints will reject games without stats.
- const useHistoricalFallback=/2025\s*\/\s*26/.test(season) && explicitlyFinished.length===0;
+ // For any past season, use past fixtures as import candidates when no explicit finished flags exist;
+ // the per-match importer remains the final guard and rejects matches without usable stats.
+ const seasonYears=String(season).match(/(20\d{2})\s*\/\s*(\d{2,4})/);
+ const startYear=seasonYears?Number(seasonYears[1]):null;
+ const currentYear=new Date().getFullYear();
+ const historicalSeason=startYear!=null&&startYear<currentYear;
+ const useHistoricalFallback=historicalSeason&&explicitlyFinished.length===0;
  const matchIds=[...new Set(useHistoricalFallback?pastIds:explicitlyFinished)];
  return{tournamentId,season,totalMatches:valid.length,finishedMatches:explicitlyFinished.length,pastMatches:pastIds.length,usedHistoricalFallback:useHistoricalFallback,matchIds,sourceRows:matches.length,sampleFields:Object.keys(matches[0]||{}).slice(0,24)}
 }
