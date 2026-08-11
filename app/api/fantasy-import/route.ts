@@ -29,7 +29,11 @@ export async function POST(request: NextRequest) {
   const tournamentId = url.searchParams.get("tournamentId") || "435587";
   if (!Number.isInteger(matchId) || matchId <= 0) return NextResponse.json({ ok: false, error: "Ugyldig matchId." }, { status: 400 });
   try {
-    const result = await importFantasyMatch(matchId, { season, tournamentId });
+    const result:any = await importFantasyMatch(matchId, { season, tournamentId });
+    const skaters=Number(result?.importedSkaters||0),goalies=Number(result?.importedGoalies||0);
+    if(skaters<20||goalies<2){
+      return NextResponse.json({ok:false,error:`Ufullstendig HockeyLive-data for kamp ${matchId}: ${skaters} utespillere + ${goalies} keepere. Kampen beholdes som ufullstendig og forsøkes igjen senere.`,result},{status:422});
+    }
     return NextResponse.json({ ok: true, result });
   } catch (error: any) {
     return NextResponse.json({ ok: false, error: error?.message || "Ukjent importfeil" }, { status: 500 });
