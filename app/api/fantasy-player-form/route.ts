@@ -1,0 +1,63 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { calculate19FantasyPoints } from "../../../lib/fantasy/scoring";
+
+export const runtime="nodejs";
+export const dynamic="force-dynamic";
+
+async function requireAdmin(request:NextRequest){
+ const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+ if(!url||!key)return{ok:false as const,response:NextResponse.json({ok:false,error:"Supabase public-konfigurasjon mangler."},{status:503})};
+ const header=request.headers.get("authorization"),token=header?.startsWith("Bearer ")?header.slice(7):null;
+ if(!token)return{ok:false as const,response:NextResponse.json({ok:false,error:"Mangler innlogging."},{status:401})};
+ const auth=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:`Bearer ${token}`}}});
+ const{data:userData,error:userError}=await auth.auth.getUser(token);
+ if(userError||!userData.user)return{ok:false as const,response:NextResponse.json({ok:false,error:"Ugyldig innlogging."},{status:401})};
+ const{data:player}=await auth.from("players").select("admin").eq("id",userData.user.id).maybeSingle();
+ if(!player?.admin)return{ok:false as const,response:NextResponse.json({ok:false,error:"Kun admin kan se Fantasy-form."},{status:403})};
+ return{ok:true as const};
+}
+function serverClient(){const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.SUPABASE_SECRET_KEY;if(!url||!key)throw new Error("Supabase server-variabler mangler");return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}})}
+function n(v:any){const x=Number(v);return Number.isFinite(x)?x:0}
+function round(v:number,d=1){const p=10**d;return Math.round(v*p)/p}
+
+export async function GET(request:NextRequest){
+ const admin=await requireAdmin(request);if(!admin.ok)return admin.response;
+ const url=new URL(request.url),season=url.searchParams.get("season")||"2025/26";
+ const supabase=serverClient();
+ try{
+  const{data:games,error:gamesError}=await supabase.from("fantasy_games").select("id,starts_at").eq("season",season).eq("status","finished").order("starts_at",{ascending:true});
+  if(gamesError)throw gamesError;
+  const gameMap=new Map((games||[]).map((g:any)=>[g.id,g.starts_at]));
+  const gameIds=new Set(gameMap.keys());
+  const stats:any[]=[];const pageSize=1000;
+  for(let from=0;;from+=pageSize){
+   const{data,error}=await supabase.from("fantasy_player_game_stats").select("player_id,game_id,goals,assists,shots,plus_minus,pim,saves,goals_against,minutes_played,win,shutout,did_play,position_snapshot,team_snapshot").range(from,from+pageSize-1);
+   if(error)throw error;const rows=data||[];for(const row of rows)if(gameIds.has(row.game_id))stats.push(row);if(rows.length<pageSize)break;
+  }
+  const playerIds=[...new Set(stats.map(s=>s.player_id))];
+  const players:any[]=[];
+  for(let i=0;i<playerIds.length;i+=500){const{data,error}=await supabase.from("fantasy_players").select("id,name,team,position").in("id",playerIds.slice(i,i+500));if(error)throw error;players.push(...(data||[]))}
+  const byId=new Map(players.map(p=>[p.id,p]));
+  const perPlayer=new Map<string,any[]>();
+  for(const s of stats){
+   const p:any=byId.get(s.player_id);if(!p)continue;
+   const position=s.position_snapshot||p.position||"";
+   const goaliePlayed=position==="G"&&(n(s.minutes_played)>0||n(s.saves)>0||n(s.goals_against)>0);
+   const didPlay=position==="G"?goaliePlayed:Boolean(s.did_play);
+   if(!didPlay)continue;
+   const input={position,goals:n(s.goals),assists:n(s.assists),shots:n(s.shots),plusMinus:n(s.plus_minus),pim:n(s.pim),saves:n(s.saves),goalsAgainst:n(s.goals_against),minutesPlayed:n(s.minutes_played),win:s.win,shutout:s.shutout,didPlay};
+   const fp=calculate19FantasyPoints(input).total;
+   const row={date:gameMap.get(s.game_id)||"",fp,goals:input.goals,assists:input.assists,shots:input.shots,plusMinus:input.plusMinus,pim:input.pim,saves:input.saves,goalsAgainst:input.goalsAgainst};
+   const list=perPlayer.get(s.player_id)||[];list.push(row);perPlayer.set(s.player_id,list);
+  }
+  const result=players.map(p=>{
+   const rows=(perPlayer.get(p.id)||[]).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+   const sum=(list:any[],key:string)=>list.reduce((a,r)=>a+n(r[key]),0);
+   const last5=rows.slice(0,5),last10=rows.slice(0,10);
+   const totalFP=sum(rows,"fp"),fp5=sum(last5,"fp"),fp10=sum(last10,"fp");
+   return{id:p.id,name:p.name,team:p.team,position:p.position,games:rows.length,totalFP:round(totalFP),ppg:rows.length?round(totalFP/rows.length,2):0,last5FP:round(fp5),last5PPG:last5.length?round(fp5/last5.length,2):0,last10FP:round(fp10),last10PPG:last10.length?round(fp10/last10.length,2):0,goals:sum(rows,"goals"),assists:sum(rows,"assists"),shots:sum(rows,"shots"),plusMinus:sum(rows,"plusMinus"),pim:sum(rows,"pim"),saves:sum(rows,"saves"),goalsAgainst:sum(rows,"goalsAgainst")};
+  }).filter(r=>r.games>0).sort((a,b)=>b.last5PPG-a.last5PPG||b.ppg-a.ppg||b.totalFP-a.totalFP);
+  return NextResponse.json({ok:true,result:{season,games:(games||[]).length,statRows:stats.length,players:result.length,rows:result}});
+ }catch(error:any){return NextResponse.json({ok:false,error:error?.message||"Ukjent formfeil"},{status:500})}
+}
