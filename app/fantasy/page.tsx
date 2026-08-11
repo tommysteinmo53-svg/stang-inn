@@ -24,29 +24,37 @@ export default function FantasyPage(){
  const[seasonErrors,setSeasonErrors]=useState<ImportError[]>([]);
 
  useEffect(()=>{(async()=>{const supabase=getSupabaseBrowserClient();if(!supabase){setAllowed(false);return}const{data:s}=await supabase.auth.getSession();const user=s.session?.user;if(!user){setAllowed(false);return}const{data:p}=await supabase.from("players").select("admin").eq("id",user.id).maybeSingle();setAllowed(Boolean(p?.admin))})()},[]);
- async function token(){const supabase=getSupabaseBrowserClient();const{data}=(await supabase?.auth.getSession())??{data:{session:null}};const access=data.session?.access_token;if(!access)throw new Error("Du må være logget inn som admin.");return access}
+ async function token(forceRefresh=false){
+  const supabase=getSupabaseBrowserClient();
+  if(!supabase)throw new Error("Supabase er ikke tilgjengelig.");
+  if(forceRefresh){const{data,error}=await supabase.auth.refreshSession();if(error||!data.session?.access_token)throw new Error("Kunne ikke fornye innloggingen.");return data.session.access_token}
+  const{data}=await supabase.auth.getSession();const access=data.session?.access_token;if(!access)throw new Error("Du må være logget inn som admin.");return access
+ }
+ async function authedImport(matchId:number){
+  const run=async(access:string)=>{const res=await fetch(`/api/fantasy-import?matchId=${matchId}&season=2025%2F26&tournamentId=435587`,{method:"POST",headers:{Authorization:`Bearer ${access}`}});let p:any={};try{p=await res.json()}catch{}return{res,p}};
+  let access=await token();let{res,p}=await run(access);
+  if(res.status===401){access=await token(true);({res,p}=await run(access));}
+  if(!res.ok||!p.ok)throw new Error(p.error||`HTTP ${res.status}`);
+  return p;
+ }
 
- async function importMatch(){setImportBusy(true);setImportMessage("");setGoalDiags([]);setPositionDiag(null);try{const access=await token();const res=await fetch(`/api/fantasy-import?matchId=8183135&season=2025%2F26&tournamentId=435587`,{method:"POST",headers:{Authorization:`Bearer ${access}`}});const p=await res.json();if(!res.ok||!p.ok)throw new Error(p.error||"Import feilet");const r=p.result,e=r.enrichment;setGoalDiags(e?.goalDiagnostics||[]);if(e)setPositionDiag({teamMemberRows:e.teamMemberRows??0,tournamentPlayerRows:e.tournamentPlayerRows??0,teamMemberPositionValues:e.teamMemberPositionValues??[],tournamentPositionValues:e.tournamentPositionValues??[]});setImportMessage(`Importert ${r.game.home} ${r.game.homeScore}–${r.game.awayScore} ${r.game.away}: ${r.importedSkaters} utespillere + ${r.importedGoalies} keepere. Berikelse: ${e?.positionsUpdated??0} posisjoner, ${e?.plusMinusUpdated??0} +/−-rader. Mål: ${r.sourceRows?.goals??0} totalt · ${e?.plusMinusCountedGoals??0} tellende · ${e?.plusMinusSkippedSpecialTeamsGoals??0} special teams · ${e?.plusMinusUnresolvedGoals??0} uavklarte.`)}catch(e:any){setImportMessage(`Kunne ikke importere kamp: ${e?.message||"ukjent feil"}`)}finally{setImportBusy(false)}}
+ async function importMatch(){setImportBusy(true);setImportMessage("");setGoalDiags([]);setPositionDiag(null);try{const p=await authedImport(8183135);const r=p.result,e=r.enrichment;setGoalDiags(e?.goalDiagnostics||[]);if(e)setPositionDiag({teamMemberRows:e.teamMemberRows??0,tournamentPlayerRows:e.tournamentPlayerRows??0,teamMemberPositionValues:e.teamMemberPositionValues??[],tournamentPositionValues:e.tournamentPositionValues??[]});setImportMessage(`Importert ${r.game.home} ${r.game.homeScore}–${r.game.awayScore} ${r.game.away}: ${r.importedSkaters} utespillere + ${r.importedGoalies} keepere. Berikelse: ${e?.positionsUpdated??0} posisjoner, ${e?.plusMinusUpdated??0} +/−-rader. Mål: ${r.sourceRows?.goals??0} totalt · ${e?.plusMinusCountedGoals??0} tellende · ${e?.plusMinusSkippedSpecialTeamsGoals??0} special teams · ${e?.plusMinusUnresolvedGoals??0} uavklarte.`)}catch(e:any){setImportMessage(`Kunne ikke importere kamp: ${e?.message||"ukjent feil"}`)}finally{setImportBusy(false)}}
 
- async function loadCheck(){setCheckBusy(true);setCheckMessage("");try{const access=await token();const res=await fetch(`/api/fantasy-match-check?matchId=8183135`,{headers:{Authorization:`Bearer ${access}`}});const p=await res.json();if(!res.ok||!p.ok)throw new Error(p.error||"Kontroll feilet");setCheckRows(p.result.rows||[]);setCheckMessage(`${p.result.game.home_team} ${p.result.game.home_score}–${p.result.game.away_score} ${p.result.game.away_team} · ${p.result.rows?.length||0} spillerrader · FP beregnet`)}catch(e:any){setCheckMessage(`Kunne ikke hente kontroll: ${e?.message||"ukjent feil"}`)}finally{setCheckBusy(false)}}
+ async function loadCheck(){setCheckBusy(true);setCheckMessage("");try{let access=await token();let res=await fetch(`/api/fantasy-match-check?matchId=8183135`,{headers:{Authorization:`Bearer ${access}`}});if(res.status===401){access=await token(true);res=await fetch(`/api/fantasy-match-check?matchId=8183135`,{headers:{Authorization:`Bearer ${access}`}})}const p=await res.json();if(!res.ok||!p.ok)throw new Error(p.error||"Kontroll feilet");setCheckRows(p.result.rows||[]);setCheckMessage(`${p.result.game.home_team} ${p.result.game.home_score}–${p.result.game.away_score} ${p.result.game.away_team} · ${p.result.rows?.length||0} spillerrader · FP beregnet`)}catch(e:any){setCheckMessage(`Kunne ikke hente kontroll: ${e?.message||"ukjent feil"}`)}finally{setCheckBusy(false)}}
 
  async function importSeason(){
   setSeasonBusy(true);setSeasonMessage("Forbereder 2025/26 …");setSeasonDone(0);setSeasonTotal(0);setSeasonErrors([]);
   try{
-   const access=await token();
-   const prep=await fetch(`/api/fantasy-season-prepare?season=2025%2F26&tournamentId=435587`,{method:"POST",headers:{Authorization:`Bearer ${access}`}});
+   let access=await token();
+   let prep=await fetch(`/api/fantasy-season-prepare?season=2025%2F26&tournamentId=435587`,{method:"POST",headers:{Authorization:`Bearer ${access}`}});
+   if(prep.status===401){access=await token(true);prep=await fetch(`/api/fantasy-season-prepare?season=2025%2F26&tournamentId=435587`,{method:"POST",headers:{Authorization:`Bearer ${access}`}})}
    const pp=await prep.json();if(!prep.ok||!pp.ok)throw new Error(pp.error||"Kunne ikke forberede sesongen");
    const ids:number[]=pp.result.matchIds||[];setSeasonTotal(ids.length);setSeasonMessage(`Fant ${ids.length} historiske kamper. Importerer …`);
    let done=0;const errors:ImportError[]=[];const concurrency=2;
    for(let i=0;i<ids.length;i+=concurrency){
     const chunk=ids.slice(i,i+concurrency);
     const results=await Promise.all(chunk.map(async(matchId)=>{
-      try{
-       const res=await fetch(`/api/fantasy-import?matchId=${matchId}&season=2025%2F26&tournamentId=435587`,{method:"POST",headers:{Authorization:`Bearer ${access}`}});
-       let p:any={};try{p=await res.json()}catch{}
-       if(!res.ok||!p.ok)throw new Error(p.error||`HTTP ${res.status}`);
-       return{ok:true as const,matchId};
-      }catch(e:any){return{ok:false as const,matchId,error:String(e?.message||e||"ukjent feil")}}
+      try{await authedImport(matchId);return{ok:true as const,matchId}}catch(e:any){return{ok:false as const,matchId,error:String(e?.message||e||"ukjent feil")}}
     }));
     for(const r of results){done++;if(!r.ok)errors.push({matchId:r.matchId,error:r.error})}
     setSeasonDone(done);setSeasonErrors([...errors]);setSeasonMessage(`Importerer 2025/26: ${done}/${ids.length} kamper · ${errors.length} feil`);
@@ -74,7 +82,7 @@ export default function FantasyPage(){
     {goalDiags.length>0&&<div style={{marginTop:14,display:"grid",gap:8}}><p className="eyebrow">MÅLDIAGNOSE</p>{goalDiags.map(g=><div key={g.index} style={{background:"#eef3f8",borderRadius:12,padding:"10px 12px",fontSize:13,color:"#26364c"}}><strong>Mål {g.index}: {g.result}</strong><div>orgId: {g.scoringOrg||g.fields?.orgId||"—"} · lag: {g.scoringTeam||g.fields?.teamName||"—"}</div><div>home/away: {g.fields?.homeOrAwayTeam||"—"} · type: {g.fields?.goalType||"—"}</div></div>)}</div>}
     {checkMessage&&<p className="card-copy" style={{marginTop:10}}>{checkMessage}</p>}
     {checkRows.length>0&&<div style={{overflowX:"auto",marginTop:12,border:"1px solid #d7e0ea",borderRadius:12}}><table style={{width:"100%",borderCollapse:"collapse",minWidth:820,color:"#102033",fontSize:13}}><thead><tr>{["Spiller","Lag","Pos","G","A","SOG","+/−","PIM","SV","GA","FP"].map(h=><th key={h} style={{textAlign:"left",padding:8,background:"#eef3f8"}}>{h}</th>)}</tr></thead><tbody>{checkRows.map((r,i)=><tr key={`${r.name}-${i}`}>{[r.name,r.team,r.position,r.goals,r.assists,r.shots,r.plusMinus>0?`+${r.plusMinus}`:r.plusMinus,r.pim,r.position==="G"?r.saves:"—",r.position==="G"?r.goalsAgainst:"—",Number.isInteger(r.fantasyPoints)?r.fantasyPoints:r.fantasyPoints.toFixed(1)].map((v,j)=><td key={j} style={{padding:8,borderBottom:"1px solid #e2e8f0",fontWeight:j===0||j===10?700:400,whiteSpace:j<2?"nowrap":"normal"}}>{v}</td>)}</tr>)}</tbody></table></div>}
-    <div style={{marginTop:18,paddingTop:16,borderTop:"1px solid #d7e0ea"}}><p className="eyebrow">HELE SESONGEN</p><h3>Importer EHL 2025/26</h3><p className="card-copy">Importerer kampene i små puljer og viser nå faktisk feilårsak for kampene som ikke kan importeres.</p><button onClick={importSeason} disabled={seasonBusy||importBusy}>{seasonBusy?`Importerer ${seasonDone}/${seasonTotal||"…"}`:"Importer hele 2025/26"}</button>{seasonTotal>0&&<div style={{height:8,background:"#dbe5ee",borderRadius:999,overflow:"hidden",marginTop:10}}><div style={{height:"100%",width:`${Math.min(100,(seasonDone/seasonTotal)*100)}%`,background:"#2298ce"}}/></div>}{seasonMessage&&<p className="card-copy" style={{marginTop:8}}>{seasonMessage}</p>}
+    <div style={{marginTop:18,paddingTop:16,borderTop:"1px solid #d7e0ea"}}><p className="eyebrow">HELE SESONGEN</p><h3>Importer EHL 2025/26</h3><p className="card-copy">Importerer kampene i små puljer, fornyer innloggingen automatisk ved behov og viser faktisk feilårsak for kampene som ikke kan importeres.</p><button onClick={importSeason} disabled={seasonBusy||importBusy}>{seasonBusy?`Importerer ${seasonDone}/${seasonTotal||"…"}`:"Importer hele 2025/26"}</button>{seasonTotal>0&&<div style={{height:8,background:"#dbe5ee",borderRadius:999,overflow:"hidden",marginTop:10}}><div style={{height:"100%",width:`${Math.min(100,(seasonDone/seasonTotal)*100)}%`,background:"#2298ce"}}/></div>}{seasonMessage&&<p className="card-copy" style={{marginTop:8}}>{seasonMessage}</p>}
      {groupedErrors.length>0&&<div style={{marginTop:12,background:"#fff4f1",border:"1px solid #f0c6bb",borderRadius:12,padding:12,color:"#5e2b20",fontSize:13}}><p className="eyebrow" style={{marginBottom:8}}>FEILDIAGNOSE · {seasonErrors.length} KAMPER</p>{groupedErrors.map(([error,v])=><div key={error} style={{marginTop:8}}><strong>{v.count} ×</strong> {error}<div style={{opacity:.8}}>Eksempel-ID-er: {v.ids.join(", ")}</div></div>)}</div>}
     </div>
    </div>
