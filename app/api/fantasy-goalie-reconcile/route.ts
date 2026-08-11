@@ -39,24 +39,36 @@ export async function POST(request:NextRequest){
   const{data:players,error:pe}=await db.from("fantasy_players").select("id,name,team,position").eq("position","G");if(pe)throw pe;
   const{data:games,error:ge}=await db.from("fantasy_games").select("id,home_team,away_team,home_score,away_score,season,starts_at").eq("season",season);if(ge)throw ge;
   const gameMap=new Map((games||[]).map((g:any)=>[g.id,g]));
+  const playerMap=new Map((players||[]).map((p:any)=>[p.id,p]));
   const playerIds=(players||[]).map((p:any)=>p.id);
-  const{data:stats,error:se}=playerIds.length?await db.from("fantasy_player_game_stats").select("id,player_id,game_id,goals_against,minutes_played,shutout,raw").in("player_id",playerIds):{data:[],error:null};if(se)throw se;
-  const byPlayer=new Map<string,any[]>();for(const s of stats||[]){const a=byPlayer.get(s.player_id)||[];a.push(s);byPlayer.set(s.player_id,a)}
+  const{data:stats,error:se}=playerIds.length?await db.from("fantasy_player_game_stats").select("id,player_id,game_id,saves,goals_against,minutes_played,shutout,raw").in("player_id",playerIds):{data:[],error:null};if(se)throw se;
+  const byPlayer=new Map<string,any[]>(),byGame=new Map<string,any[]>();
+  for(const s of stats||[]){const a=byPlayer.get(s.player_id)||[];a.push(s);byPlayer.set(s.player_id,a);const b=byGame.get(s.game_id)||[];b.push(s);byGame.set(s.game_id,b)}
   const results:any[]=[];
   for(const p of players||[]){
    const off=official.find((r:Row)=>sameName(`${r.firstName??""} ${r.lastName??""}`,p.name));if(!off)continue;
    const target=num(off.so,0),ps=byPlayer.get(p.id)||[];
-   const candidates=ps.filter((s:any)=>{const g:any=gameMap.get(s.game_id);if(!g)return false;const pk=teamKey(p.team),hk=teamKey(g.home_team),ak=teamKey(g.away_team);const home=pk===hk,away=pk===ak;if(!home&&!away)return false;const opp=home?num(g.away_score,-1):num(g.home_score,-1);const own=home?num(g.home_score,-1):num(g.away_score,-1);const sec=rawSeconds(s.raw);return opp===0&&own>0&&num(s.goals_against,0)===0&&sec>=3500});
+   const candidateGames:any[]=[];
+   for(const s of ps){
+    const g:any=gameMap.get(s.game_id);if(!g)continue;
+    const pk=teamKey(p.team),hk=teamKey(g.home_team),ak=teamKey(g.away_team),home=pk===hk,away=pk===ak;
+    if(!home&&!away)continue;
+    const opp=home?num(g.away_score,-1):num(g.home_score,-1),own=home?num(g.home_score,-1):num(g.away_score,-1);
+    const sameTeamGoalies=(byGame.get(s.game_id)||[]).filter((x:any)=>{const q:any=playerMap.get(x.player_id);return q&&teamKey(q.team)===pk});
+    const otherActive=sameTeamGoalies.filter((x:any)=>x.player_id!==p.id&&(num(x.saves,0)>0||num(x.goals_against,0)>0||rawSeconds(x.raw)>0));
+    const eligible=opp===0&&own>0&&num(s.goals_against,0)===0&&num(s.saves,0)>0&&otherActive.length===0;
+    if(eligible)candidateGames.push({stat:s,game:g,otherActive});
+   }
    const secondsUpdates=ps.filter((s:any)=>rawSeconds(s.raw)>0).map((s:any)=>({id:s.id,minutes:rawSeconds(s.raw)/60}));
    for(const u of secondsUpdates){const{error}=await db.from("fantasy_player_game_stats").update({minutes_played:u.minutes}).eq("id",u.id);if(error)throw error}
    let applied=false;
-   if(candidates.length===target){
+   if(candidateGames.length===target){
     const ids=ps.map((s:any)=>s.id);if(ids.length){const{error}=await db.from("fantasy_player_game_stats").update({shutout:false}).in("id",ids);if(error)throw error}
-    const cids=candidates.map((s:any)=>s.id);if(cids.length){const{error}=await db.from("fantasy_player_game_stats").update({shutout:true}).in("id",cids);if(error)throw error}
+    const cids=candidateGames.map((x:any)=>x.stat.id);if(cids.length){const{error}=await db.from("fantasy_player_game_stats").update({shutout:true}).in("id",cids);if(error)throw error}
     applied=true;
    }
-   const candidateGames=candidates.map((s:any)=>{const g:any=gameMap.get(s.game_id);const pk=teamKey(p.team),home=pk===teamKey(g?.home_team);return{gameId:s.game_id,date:g?.starts_at??null,homeTeam:g?.home_team??"",awayTeam:g?.away_team??"",score:g?`${g.home_score??"–"}–${g.away_score??"–"}`:"",side:home?"H":"B",seconds:rawSeconds(s.raw),minutes:Math.round((rawSeconds(s.raw)/60)*10)/10,ga:num(s.goals_against,0)}});
-   results.push({name:p.name,team:p.team,targetSO:target,candidates:candidates.length,applied,secondsFixed:secondsUpdates.length,candidateGames});
+   const details=candidateGames.map((x:any)=>{const s=x.stat,g=x.game,pk=teamKey(p.team),home=pk===teamKey(g.home_team);return{gameId:s.game_id,date:g.starts_at??null,homeTeam:g.home_team??"",awayTeam:g.away_team??"",score:`${g.home_score??"–"}–${g.away_score??"–"}`,side:home?"H":"B",saves:num(s.saves,0),seconds:rawSeconds(s.raw),minutes:Math.round((rawSeconds(s.raw)/60)*10)/10,ga:num(s.goals_against,0),otherActive:x.otherActive.map((o:any)=>playerMap.get(o.player_id)?.name||o.player_id)}});
+   results.push({name:p.name,team:p.team,targetSO:target,candidates:details.length,applied,secondsFixed:secondsUpdates.length,candidateGames:details});
   }
   return NextResponse.json({ok:true,season,tournamentId,results});
  }catch(error:any){return NextResponse.json({ok:false,error:error?.message||"Keeperavstemming feilet"},{status:500})}
