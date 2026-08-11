@@ -262,9 +262,6 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
     const player = await upsertPlayer(supabase, raw, fallbackTeam, true);
     if (!player) { skipped += 1; continue; }
     const stat = goalieStat(raw);
-    const isHome = canonicalTeamKey(player.team) === canonicalTeamKey(game.home_team);
-    const teamScore = isHome ? game.home_score : game.away_score;
-    const opponentScore = isHome ? game.away_score : game.home_score;
     const wins = n(first(raw.wins, raw.Wins, raw.win, raw.Win));
     const shutouts = n(first(raw.shutouts, raw.Shutouts, raw.shutout, raw.Shutout));
     const { error } = await supabase.from("fantasy_player_game_stats").upsert({
@@ -274,8 +271,8 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
       did_play: true,
       position_snapshot: "G",
       team_snapshot: player.team,
-      win: wins > 0 || (teamScore !== null && opponentScore !== null ? teamScore > opponentScore : null),
-      shutout: shutouts > 0 || stat.goals_against === 0,
+      win: wins > 0,
+      shutout: shutouts > 0,
       raw: { source: "public-goalie-leaders", ...raw },
     }, { onConflict: "player_id,game_id" });
     if (error) throw error;
