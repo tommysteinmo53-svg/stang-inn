@@ -29,16 +29,33 @@ export async function GET(request:NextRequest){
     const{data:games,error:ge}=await db.from("fantasy_games").select("id,external_id,starts_at,status,home_team,away_team").eq("season",season).order("starts_at",{ascending:true});
     if(ge)throw ge;
     const gameRows=games||[],gameIds=new Set(gameRows.map((g:any)=>g.id));
-    const importedIds=new Set<string>();
+    const coverage=new Map<string,{skaters:number;goalies:number;total:number}>();
     for(let from=0;;from+=1000){
-      const{data,error}=await db.from("fantasy_player_game_stats").select("game_id").range(from,from+999);
+      const{data,error}=await db.from("fantasy_player_game_stats").select("game_id,did_play,position_snapshot").range(from,from+999);
       if(error)throw error;
       const batch=data||[];
-      for(const r of batch)if(gameIds.has(r.game_id))importedIds.add(r.game_id);
+      for(const r of batch){
+        if(!gameIds.has(r.game_id)||r.did_play===false)continue;
+        const c=coverage.get(r.game_id)||{skaters:0,goalies:0,total:0};
+        c.total++;
+        if(String(r.position_snapshot||"").toUpperCase()==="G")c.goalies++;else c.skaters++;
+        coverage.set(r.game_id,c);
+      }
       if(batch.length<1000)break;
     }
-    const imported=gameRows.filter((g:any)=>importedIds.has(g.id));
-    const pending=gameRows.filter((g:any)=>!importedIds.has(g.id));
-    return NextResponse.json({ok:true,result:{season,totalGames:gameRows.length,importedGames:imported.length,pendingGames:pending.length,percent:gameRows.length?Math.round(imported.length/gameRows.length*1000)/10:0,importedMatchIds:imported.map((g:any)=>matchId(g.external_id)).filter(Boolean),pendingMatchIds:pending.map((g:any)=>matchId(g.external_id)).filter(Boolean),lastImported:imported.at(-1)||null}});
+    const healthy=(g:any)=>{const c=coverage.get(g.id)||{skaters:0,goalies:0,total:0};return c.skaters>=20&&c.goalies>=2};
+    const imported=gameRows.filter(healthy);
+    const pending=gameRows.filter((g:any)=>!healthy(g));
+    const empty=pending.filter((g:any)=>(coverage.get(g.id)?.total||0)===0);
+    const thin=pending.filter((g:any)=>(coverage.get(g.id)?.total||0)>0);
+    return NextResponse.json({ok:true,result:{
+      season,totalGames:gameRows.length,importedGames:imported.length,pendingGames:pending.length,
+      healthyGames:imported.length,thinGames:thin.length,emptyGames:empty.length,
+      percent:gameRows.length?Math.round(imported.length/gameRows.length*1000)/10:0,
+      importedMatchIds:imported.map((g:any)=>matchId(g.external_id)).filter(Boolean),
+      pendingMatchIds:pending.map((g:any)=>matchId(g.external_id)).filter(Boolean),
+      lastImported:imported.at(-1)||null,
+      rule:{minSkaters:20,minGoalies:2}
+    }});
   }catch(error:any){return NextResponse.json({ok:false,error:error?.message||"Kunne ikke hente importstatus"},{status:500})}
 }
