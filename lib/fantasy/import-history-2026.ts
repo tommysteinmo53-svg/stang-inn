@@ -43,6 +43,7 @@ export const LEAGUE_STRENGTH: Record<string, number> = {
   "Metal Ligaen": 0.80,
   HockeyEttan: 0.72,
   Mestis: 0.76,
+  NAHL: 0.68,
   Norway2: 0.66,
 };
 
@@ -153,7 +154,7 @@ export const IMPORT_HISTORY_2026: Record<string, ImportHistory> = {
   "Mathias Despotovic Kristiansen": {
     kind: "skater", season: "2025/26", previousTeam: "NAHL",
     league: "NAHL", games: 42, goals: 3, assists: 4, points: 7,
-    source: "EliteProspects", sourceNote: "2025/26 NAHL totals; league coefficient intentionally absent pending calibration"
+    source: "EliteProspects", sourceNote: "2025/26 NAHL totals; 42 GP, 3 G, 4 A, 7 P; cross-checked against published NAHL aggregate statistics"
   },
   "Oliver Tufte Langland": {
     kind: "skater", season: "2025/26", previousTeam: "Grüner",
