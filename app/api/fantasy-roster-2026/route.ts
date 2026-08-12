@@ -4,6 +4,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const ROOT = "https://sf34-terminlister-prod-app.azurewebsites.net";
+const NIF_ROOT = "https://data.nif.no";
 const TOURNAMENT_ID = process.env.HOCKEYLIVE_TOURNAMENT_ID || "448981";
 
 type AnyRow = Record<string, any>;
@@ -71,9 +72,11 @@ function extractPlayers(payload:any){
 }
 
 const candidates = [
+  `${ROOT}/api/v1/icehockey/TournamentPlayers/${encodeURIComponent(TOURNAMENT_ID)}`,
+  `${NIF_ROOT}/api/v1/icehockey/TournamentPlayers/${encodeURIComponent(TOURNAMENT_ID)}`,
+  `${ROOT}/icehockey/TournamentPlayers/${encodeURIComponent(TOURNAMENT_ID)}`,
   `${ROOT}/ta/TournamentPlayers/?tournamentId=${encodeURIComponent(TOURNAMENT_ID)}`,
   `${ROOT}/ta/TournamentPlayers?tournamentId=${encodeURIComponent(TOURNAMENT_ID)}`,
-  `${ROOT}/icehockey/TournamentPlayers/${encodeURIComponent(TOURNAMENT_ID)}`,
 ];
 
 export async function GET(){
@@ -96,6 +99,6 @@ export async function GET(){
         if(r.ok && unique.length) return NextResponse.json({ok:true,tournamentId:TOURNAMENT_ID,sourceUrl:url,sourceRows:source.length,players:unique.length,rows:unique,attempts});
       }catch(e:any){attempts.push({url,error:e?.message||String(e)})}
     }
-    return NextResponse.json({ok:true,tournamentId:TOURNAMENT_ID,sourceRows:0,players:0,rows:[],diagnostic:{message:"Ingen av de kjente HockeyLive-rosterendepunktene ga spillere.",attempts}});
+    return NextResponse.json({ok:true,tournamentId:TOURNAMENT_ID,sourceRows:0,players:0,rows:[],diagnostic:{message:"Ingen av de kjente HockeyLive/NIF-rosterendepunktene ga spillere.",attempts}});
   }catch(e:any){return NextResponse.json({ok:false,error:e?.message||"Ukjent feil"},{status:500})}
 }
