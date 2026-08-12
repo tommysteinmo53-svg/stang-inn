@@ -28,20 +28,25 @@ export async function GET(request:NextRequest){
     const db=createClient(sbUrl,secret,{auth:{persistSession:false,autoRefreshToken:false}});
     const{data:games,error:ge}=await db.from("fantasy_games").select("id,external_id,starts_at,status,home_team,away_team").eq("season",season).order("starts_at",{ascending:true});
     if(ge)throw ge;
-    const gameRows=games||[],gameIds=new Set(gameRows.map((g:any)=>g.id));
-    const coverage=new Map<string,{skaters:number;goalies:number;total:number}>();
-    for(let from=0;;from+=1000){
-      const{data,error}=await db.from("fantasy_player_game_stats").select("game_id,did_play,position_snapshot").range(from,from+999);
+    const gameRows=games||[];
+    const gameIds=gameRows.map((g:any)=>g.id);
+    const stats:any[]=[];
+    // IMPORTANT: query only this season's game IDs, exactly like the coverage diagnostic.
+    // The old global pagination could stop before reaching historical rows in a large table.
+    for(let i=0;i<gameIds.length;i+=300){
+      const{data,error}=await db.from("fantasy_player_game_stats")
+        .select("game_id,did_play,position_snapshot")
+        .in("game_id",gameIds.slice(i,i+300));
       if(error)throw error;
-      const batch=data||[];
-      for(const r of batch){
-        if(!gameIds.has(r.game_id)||r.did_play===false)continue;
-        const c=coverage.get(r.game_id)||{skaters:0,goalies:0,total:0};
-        c.total++;
-        if(String(r.position_snapshot||"").toUpperCase()==="G")c.goalies++;else c.skaters++;
-        coverage.set(r.game_id,c);
-      }
-      if(batch.length<1000)break;
+      stats.push(...(data||[]));
+    }
+    const coverage=new Map<string,{skaters:number;goalies:number;total:number}>();
+    for(const r of stats){
+      if(r.did_play===false)continue;
+      const c=coverage.get(r.game_id)||{skaters:0,goalies:0,total:0};
+      c.total++;
+      if(String(r.position_snapshot||"").toUpperCase()==="G")c.goalies++;else c.skaters++;
+      coverage.set(r.game_id,c);
     }
     const healthy=(g:any)=>{const c=coverage.get(g.id)||{skaters:0,goalies:0,total:0};return c.skaters>=20&&c.goalies>=2};
     const imported=gameRows.filter(healthy);
@@ -51,6 +56,7 @@ export async function GET(request:NextRequest){
     return NextResponse.json({ok:true,result:{
       season,totalGames:gameRows.length,importedGames:imported.length,pendingGames:pending.length,
       healthyGames:imported.length,thinGames:thin.length,emptyGames:empty.length,
+      statRows:stats.length,
       percent:gameRows.length?Math.round(imported.length/gameRows.length*1000)/10:0,
       importedMatchIds:imported.map((g:any)=>matchId(g.external_id)).filter(Boolean),
       pendingMatchIds:pending.map((g:any)=>matchId(g.external_id)).filter(Boolean),
