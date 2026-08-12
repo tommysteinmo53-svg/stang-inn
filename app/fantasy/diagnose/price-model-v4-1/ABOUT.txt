@@ -1,0 +1,1 @@
+Stang Inn fantasy price model v4.1: continuous repricing + 100m market calibration.
