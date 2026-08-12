@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { compareRosters, PreviousPlayer } from "@/lib/fantasy/roster-diff";
+import { compareRosters } from "../../../../lib/fantasy/roster-diff";
+import type { PreviousPlayer } from "../../../../lib/fantasy/roster-diff";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
