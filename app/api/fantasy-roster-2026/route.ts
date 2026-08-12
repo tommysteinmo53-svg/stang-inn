@@ -8,6 +8,7 @@ const NIF_ROOT = "https://data.nif.no";
 const TOURNAMENT_ID = process.env.HOCKEYLIVE_TOURNAMENT_ID || "448981";
 
 type AnyRow = Record<string, any>;
+type RosterClass = "player" | "staff" | "unresolved";
 
 function first(row:any,...keys:string[]) {
   for (const k of keys) if (row?.[k] !== undefined && row?.[k] !== null && row?.[k] !== "") return row[k];
@@ -78,15 +79,37 @@ function extractPlayers(payload:any,inheritedTeam=""){
   walk(payload,inheritedTeam);
   return found;
 }
+function memberRole(row:any):string {
+  const values=[
+    first(row,"memberTypeName","memberType","roleName","role","functionName","function","title","positionName","position"),
+    first(row?.person||{},"memberTypeName","roleName","role","functionName","function","title"),
+  ].map(textValue).filter(Boolean);
+  return [...new Set(values)].join(" · ");
+}
+function classify(row:any,position:string|null):RosterClass {
+  if(position) return "player";
+  const role=memberRole(row).toLocaleLowerCase("nb-NO");
+  if(!role) return "unresolved";
+  const staffTerms=["coach","trener","head coach","assistant coach","assistenttrener","keepertrener","goalie coach","manager","lagleder","team leader","material","equipment","fysio","physio","fysioterapeut","lege","doctor","medical","terapeut","massør","massor","sportslig leder","sportssjef","daglig leder","administrasjon","styre","president","video","analyst","analytiker"];
+  if(staffTerms.some(term=>role.includes(term))) return "staff";
+  const playerTerms=["player","spiller","utøver","utover","athlete","goalie","målvakt","malvakt","back","defence","defense","forward","center","wing"];
+  if(playerTerms.some(term=>role.includes(term))) return "player";
+  return "unresolved";
+}
 function normalizePlayers(source:{row:AnyRow;inheritedTeam:string}[]){
-  const rows=source.map(({row:x,inheritedTeam})=>({
-    personId:first(x,"personId","PersonId","playerId","memberId","id") ?? first(x?.person||{},"personId","id"),
-    name:normName(x),
-    team:ownTeam(x)||inheritedTeam,
-    position:pos(first(x,"position","playerPosition","positionName","pos","role","memberTypeName")),
-    shirtNo:first(x,"shirtNo","jerseyNo","number","shirtNumber"),
-    raw:x,
-  })).filter((x:any)=>x.name&&x.team);
+  const rows=source.map(({row:x,inheritedTeam})=>{
+    const position=pos(first(x,"position","playerPosition","positionName","pos","role","memberTypeName"));
+    return {
+      personId:first(x,"personId","PersonId","playerId","memberId","id") ?? first(x?.person||{},"personId","id"),
+      name:normName(x),
+      team:ownTeam(x)||inheritedTeam,
+      position,
+      shirtNo:first(x,"shirtNo","jerseyNo","number","shirtNumber"),
+      memberRole:memberRole(x),
+      rosterClass:classify(x,position),
+      raw:x,
+    };
+  }).filter((x:any)=>x.name&&x.team);
   return [...new Map(rows.map((x:any)=>[String(x.personId||`${x.team}|${x.name}`),x])).values()];
 }
 async function fetchAttempt(url:string,attempts:any[]){
@@ -97,6 +120,13 @@ async function fetchAttempt(url:string,attempts:any[]){
     attempts.push({url,status:r.status,ok:r.ok,payloadType:Array.isArray(payload)?"array":typeof payload,topLevelKeys:payload&&typeof payload==="object"&&!Array.isArray(payload)?Object.keys(payload).slice(0,30):[],arrayLength:Array.isArray(payload)?payload.length:null,bodyPreview:text.slice(0,700)});
     return {r,text,payload};
   }catch(e:any){attempts.push({url,error:e?.message||String(e)});return null}
+}
+function rosterResponse(unique:any[],extra:any){
+  const staff=unique.filter(x=>x.rosterClass==="staff");
+  const rows=unique.filter(x=>x.rosterClass!=="staff");
+  const confirmed=rows.filter(x=>x.rosterClass==="player");
+  const unresolved=rows.filter(x=>x.rosterClass==="unresolved");
+  return NextResponse.json({ok:true,tournamentId:TOURNAMENT_ID,players:rows.length,confirmedPlayers:confirmed.length,unresolvedPlayers:unresolved.length,staffFiltered:staff.length,rows,unresolved:unresolved.map(x=>({personId:x.personId,name:x.name,team:x.team,memberRole:x.memberRole,position:x.position})),staff:staff.map(x=>({personId:x.personId,name:x.name,team:x.team,memberRole:x.memberRole})),...extra});
 }
 
 const directCandidates = [
@@ -116,11 +146,9 @@ export async function GET(){
       const source=a.payload==null?[]:extractPlayers(a.payload);
       const unique=normalizePlayers(source);
       const last=attempts[attempts.length-1]; last.sourceRows=source.length; last.players=unique.length;
-      if(a.r.ok && unique.length) return NextResponse.json({ok:true,tournamentId:TOURNAMENT_ID,source:"tournament-players",sourceUrl:url,sourceRows:source.length,players:unique.length,rows:unique,attempts});
+      if(a.r.ok && unique.length) return rosterResponse(unique,{source:"tournament-players",sourceUrl:url,sourceRows:source.length,attempts});
     }
 
-    // TournamentPlayers er ikke offentlig for 2026/27. Bygg i stedet spillerpoolen fra
-    // de offentlige TA-kildene: TournamentTeams -> TeamMembers per org/team.
     const teamUrls=[
       `${ROOT}/ta/TournamentTeams/?tournamentId=${encodeURIComponent(TOURNAMENT_ID)}`,
       `${ROOT}/ta/TournamentTeams?tournamentId=${encodeURIComponent(TOURNAMENT_ID)}`,
@@ -156,7 +184,7 @@ export async function GET(){
       teamDiagnostics.push({team:teamName||"?",orgId:String(orgId),members:got});
     }
     const unique=normalizePlayers(combined);
-    if(unique.length) return NextResponse.json({ok:true,tournamentId:TOURNAMENT_ID,source:"tournament-teams+team-members",sourceRows:combined.length,players:unique.length,rows:unique,teamDiagnostics,attempts});
+    if(unique.length) return rosterResponse(unique,{source:"tournament-teams+team-members",sourceRows:combined.length,teamDiagnostics,attempts});
 
     return NextResponse.json({ok:true,tournamentId:TOURNAMENT_ID,sourceRows:0,players:0,rows:[],diagnostic:{message:"Ingen offentlig rosterkilde ga spillere. NIF TournamentPlayers krever partnerautentisering; offentlig fallback TournamentTeams → TeamMembers ga heller ingen spillere.",teamRows:teamRows.length,teamDiagnostics,attempts}});
   }catch(e:any){return NextResponse.json({ok:false,error:e?.message||"Ukjent feil"},{status:500})}
