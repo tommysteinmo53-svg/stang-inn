@@ -19,8 +19,8 @@ export async function enrichMissingPositions<T extends RosterRow>(rows:T[]){
     const hit=CACHE.get(norm(row.name));
     if(!hit)continue;
     (row as any).position=hit.position;
-    (row as any).positionSource="eliteprospects";
-    (row as any).positionSourceDetail=hit.sourceNote||"Verified EliteProspects position · local 2026/27 cache";
+    (row as any).positionSource=hit.source==="Manual"?"manual":"eliteprospects";
+    (row as any).positionSourceDetail=hit.sourceNote||(hit.source==="Manual"?"Manuelt verifisert posisjon":"Verified EliteProspects position · local 2026/27 cache");
     enriched++;
     matches.push({name:row.name,team:row.team,position:hit.position,source:hit.source,detail:hit.sourceNote||null});
   }
@@ -28,7 +28,7 @@ export async function enrichMissingPositions<T extends RosterRow>(rows:T[]){
   const remainingRows=out.filter(r=>!r.position);
   const diagnostics=[{
     mode:"local-cache",
-    source:"Versioned EliteProspects position cache",
+    source:"Versioned verified position cache",
     liveFetchEnabled:false,
     reason:"EliteProspects returns HTTP 403 to Vercel, so production uses a verified local cache instead of live scraping.",
     cacheEntries:CACHE.size,
