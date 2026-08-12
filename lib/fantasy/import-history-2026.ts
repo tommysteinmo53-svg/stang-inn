@@ -42,10 +42,12 @@ export const LEAGUE_STRENGTH: Record<string, number> = {
   EIHL: 0.82,
   "Metal Ligaen": 0.80,
   Poland: 0.78,
-  HockeyEttan: 0.72,
   Mestis: 0.76,
+  Latvia: 0.74,
+  HockeyEttan: 0.72,
   NAHL: 0.68,
   Norway2: 0.66,
+  USHL: 0.66,
   "J20 Nationell": 0.58,
 };
 
@@ -89,6 +91,13 @@ export const IMPORT_HISTORY_2026: Record<string, ImportHistory> = {
   "Jakob Aasen Rian": { kind: "skater", season: "2025/26", previousTeam: "Ringerike", league: "Norway2", games: 9, goals: 6, assists: 4, points: 10, source: "EliteProspects", sourceNote: "2025/26 Norway2 regular-season sample; 9 GP, 6 G, 4 A, 10 P" },
   "Ludvik Kind Bakkevig": { kind: "skater", season: "2025/26", previousTeam: "Malmö Redhawks J20", league: "J20 Nationell", games: 34, goals: 3, assists: 8, points: 11, source: "EliteProspects", sourceNote: "2025/26 J20 Nationell; junior production translated conservatively into EHL prior" },
   "Viktor Natanael Lundseie Lindholm": { kind: "skater", season: "2025/26", previousTeam: "Gjøvik Hockey", league: "Norway2", games: 32, goals: 11, assists: 18, points: 29, source: "EliteProspects", sourceNote: "Roster name corresponds to Natanael Lindholm; 2025/26 Norway2 regular season, 32 GP, 11 G, 18 A, 29 P" },
+
+  // Next verified import batch. Prefer full regular-season totals over partial
+  // mid-season snapshots so V4.2 does not underprice late-season production.
+  "Elias Straume Vatne": { kind: "skater", season: "2025/26", previousTeam: "Sioux City Musketeers", league: "USHL", games: 56, goals: 13, assists: 17, points: 30, source: "EliteProspects", sourceNote: "2025/26 USHL regular season; 56 GP, 13 G, 17 A, 30 P" },
+  "Isak Hansen": { kind: "skater", season: "2025/26", previousTeam: "Vimmerby HC", league: "HockeyAllsvenskan", games: 43, goals: 1, assists: 3, points: 4, source: "EliteProspects", sourceNote: "2025/26 HockeyAllsvenskan regular season; 43 GP, 1 G, 3 A, 4 P" },
+  "Rasmus Olsen Brekke": { kind: "skater", season: "2025/26", previousTeam: "Skellefteå AIK U20", league: "J20 Nationell", games: 32, goals: 9, assists: 2, points: 11, source: "EliteProspects", sourceNote: "2025/26 U20 Nationell regular season; 32 GP, 9 G, 2 A, 11 P" },
+  "Niks Fenenko": { kind: "skater", season: "2025/26", previousTeam: "HK Mogo", league: "Latvia", games: 18, goals: 8, assists: 23, points: 31, source: "ClubOfficial", sourceNote: "Latvian federation 2025/26 OHL regular season; 18 GP, 8 G, 23 A, 31 P. Playoffs excluded from model row." },
 };
 
 export function importHistoryFor(name: string): ImportHistory | null {
