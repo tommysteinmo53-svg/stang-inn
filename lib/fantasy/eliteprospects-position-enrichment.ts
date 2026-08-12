@@ -1,16 +1,18 @@
 type RosterRow = { name:string; team:string; position?:string|null; [key:string]:any };
 
+type FantasyPosition = "G"|"D"|"C"|"W";
+
 const TEAM_PAGES: Record<string,string> = {
-  "Frisk Asker": "https://www.eliteprospects.com/team/175/frisk-asker",
-  "Lillehammer": "https://www.eliteprospects.com/team/176/lillehammer",
-  "Narvik": "https://www.eliteprospects.com/team/8229/narvik-hockey",
-  "Nidaros": "https://www.eliteprospects.com/team/12510/nidaros-hockey",
-  "Ringerike": "https://www.eliteprospects.com/team/5384/ringerike",
+  "Frisk Asker": "https://www.eliteprospects.com/team/175/frisk-asker/2026-2027",
+  "Lillehammer": "https://www.eliteprospects.com/team/176/lillehammer/2026-2027",
+  "Narvik": "https://www.eliteprospects.com/team/8229/narvik-hockey/2026-2027",
+  "Nidaros": "https://www.eliteprospects.com/team/12510/nidaros-hockey/2026-2027",
+  "Ringerike": "https://www.eliteprospects.com/team/5384/ringerike/2026-2027",
   "Sparta": "https://www.eliteprospects.com/team/621/sparta-sarpsborg/2026-2027",
-  "Stavanger": "https://www.eliteprospects.com/team/845/stavanger-oilers",
-  "Stjernen": "https://www.eliteprospects.com/team/180/stjernen-hockey",
-  "Storhamar": "https://www.eliteprospects.com/team/181/storhamar",
-  "Vålerenga": "https://www.eliteprospects.com/team/183/valerenga",
+  "Stavanger": "https://www.eliteprospects.com/team/845/stavanger-oilers/2026-2027",
+  "Stjernen": "https://www.eliteprospects.com/team/180/stjernen-hockey/2026-2027",
+  "Storhamar": "https://www.eliteprospects.com/team/181/storhamar/2026-2027",
+  "Vålerenga": "https://www.eliteprospects.com/team/183/valerenga/2026-2027",
 };
 
 const NAME_ALIASES: Record<string,string[]> = {
@@ -65,7 +67,7 @@ function canonTeam(v:string){
   if(s.includes("nidaros"))return"Nidaros";
   return String(v||"").trim();
 }
-function fantasyPos(raw:string):"G"|"D"|"C"|"W"|null{
+function fantasyPos(raw:string):FantasyPosition|null{
   const p=String(raw||"").toUpperCase().replace(/\s/g,"");
   const primary=p.split(/[\/,-]/)[0];
   if(primary==="G")return"G";
@@ -79,26 +81,57 @@ function fantasyPos(raw:string):"G"|"D"|"C"|"W"|null{
   return null;
 }
 function decodeHtml(s:string){
-  return s.replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&#39;|&apos;/gi,"'").replace(/&quot;/gi,'"').replace(/&oslash;/gi,"ø").replace(/&Oslash;/g,"Ø").replace(/&aelig;/gi,"æ").replace(/&aring;/gi,"å");
+  return s
+    .replace(/&nbsp;|&#160;/gi," ")
+    .replace(/&amp;/gi,"&")
+    .replace(/&#39;|&apos;/gi,"'")
+    .replace(/&quot;/gi,'"')
+    .replace(/&oslash;/gi,"ø")
+    .replace(/&Oslash;/g,"Ø")
+    .replace(/&aelig;/gi,"æ")
+    .replace(/&aring;/gi,"å")
+    .replace(/&#248;/gi,"ø")
+    .replace(/&#230;/gi,"æ")
+    .replace(/&#229;/gi,"å");
+}
+function textOnly(html:string){
+  return decodeHtml(html)
+    .replace(/<script[\s\S]*?<\/script>/gi," ")
+    .replace(/<style[\s\S]*?<\/style>/gi," ")
+    .replace(/<[^>]+>/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+function addCandidate(found:{name:string;position:FantasyPosition;rawPosition:string}[],seen:Set<string>,nameRaw:string,posRaw:string){
+  const name=textOnly(nameRaw).replace(/^#?\d+\s+/,"").trim();
+  const position=fantasyPos(posRaw);
+  if(!position||name.length<3||name.length>100)return;
+  const key=`${norm(name)}|${position}`;
+  if(seen.has(key))return;
+  seen.add(key);
+  found.push({name,position,rawPosition:posRaw});
 }
 function parseRoster(html:string){
-  const found:{name:string;position:"G"|"D"|"C"|"W";rawPosition:string}[]=[];
+  const found:{name:string;position:FantasyPosition;rawPosition:string}[]=[];
   const seen=new Set<string>();
-  const patterns=[
-    />([^<>\n]{2,90}?)\s*\((G|D|C|LW|RW|W|F|C\/W|W\/C|C\/LW|C\/RW|LW\/C|RW\/C|LW\/RW|RW\/LW)\)<\/a>/gi,
-    />([^<>\n]{2,90}?)\s*\((G|D|C|LW|RW|W|F|C\/W|W\/C|C\/LW|C\/RW|LW\/C|RW\/C|LW\/RW|RW\/LW)\)</gi,
-  ];
-  for(const re of patterns){
-    let m:RegExpExecArray|null;
-    while((m=re.exec(html))){
-      const name=decodeHtml(m[1]).replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();
-      const position=fantasyPos(m[2]);
-      if(!position||name.length<3)continue;
-      const key=`${norm(name)}|${position}`;
-      if(seen.has(key))continue;
-      seen.add(key); found.push({name,position,rawPosition:m[2]});
-    }
+  const posPattern="G|D|C|LW|RW|W|F|C\\/W|W\\/C|C\\/LW|C\\/RW|LW\\/C|RW\\/C|LW\\/RW|RW\\/LW";
+
+  // Current EliteProspects markup: player name/position lives in a player anchor,
+  // often with nested spans/images. Capture the complete anchor, strip markup, then parse text.
+  const playerAnchor=/<a\b[^>]*href=["'][^"']*\/player\/[^"']+["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let anchor:RegExpExecArray|null;
+  while((anchor=playerAnchor.exec(html))){
+    const label=textOnly(anchor[1]);
+    const m=label.match(new RegExp(`^(.+?)\\s*\\((${posPattern})\\)\\s*$`,`i`));
+    if(m)addCandidate(found,seen,m[1],m[2]);
   }
+
+  // Fallback for alternate/server-rendered markup where the anchor boundary differs.
+  const plain=textOnly(html);
+  const textRe=new RegExp(`([A-ZÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]+(?:\\s+[A-ZÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]+){1,6})\\s*\\((${posPattern})\\)`,`g`);
+  let m:RegExpExecArray|null;
+  while((m=textRe.exec(plain)))addCandidate(found,seen,m[1],m[2]);
+
   return found;
 }
 function matchScore(fullName:string,candidate:string){
@@ -126,12 +159,13 @@ export async function enrichMissingPositions<T extends RosterRow>(rows:T[]){
     if(!url)continue;
     try{
       const controller=new AbortController();
-      const timer=setTimeout(()=>controller.abort(),6500);
-      const res=await fetch(url,{cache:"no-store",signal:controller.signal,headers:{Accept:"text/html,application/xhtml+xml","User-Agent":"Mozilla/5.0 (compatible; StangInn/1.0; +fantasy-position-enrichment)"}});
+      const timer=setTimeout(()=>controller.abort(),8000);
+      const res=await fetch(url,{cache:"no-store",signal:controller.signal,headers:{Accept:"text/html,application/xhtml+xml","Accept-Language":"en-US,en;q=0.9","User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131 Safari/537.36"}});
       clearTimeout(timer);
       const html=await res.text();
       const roster=res.ok?parseRoster(html):[];
       let teamEnriched=0;
+      const matches:any[]=[];
       for(const row of out.filter(r=>!r.position&&canonTeam(r.team)===team)){
         let best:any=null,bestScore=0;
         for(const cand of roster){const s=matchScore(row.name,cand.name);if(s>bestScore){bestScore=s;best=cand}}
@@ -141,9 +175,10 @@ export async function enrichMissingPositions<T extends RosterRow>(rows:T[]){
           (row as any).positionSourceDetail=best.rawPosition;
           (row as any).eliteProspectsMatchedName=best.name;
           enriched++;teamEnriched++;
+          matches.push({hockeyLive:row.name,eliteProspects:best.name,position:best.position,score:bestScore});
         }
       }
-      diagnostics.push({team,url,status:res.status,rosterParsed:roster.length,enriched:teamEnriched});
+      diagnostics.push({team,url,status:res.status,htmlLength:html.length,playerAnchorCount:(html.match(/\/player\//gi)||[]).length,rosterParsed:roster.length,enriched:teamEnriched,matches:matches.slice(0,20),sample:roster.slice(0,8)});
     }catch(e:any){diagnostics.push({team,url,error:e?.name==="AbortError"?"timeout":e?.message||String(e),rosterParsed:0,enriched:0})}
   }
   return {rows:out,enriched,remaining:out.filter(r=>!r.position).length,diagnostics};
