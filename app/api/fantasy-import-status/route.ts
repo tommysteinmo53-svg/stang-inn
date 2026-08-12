@@ -31,12 +31,14 @@ export async function GET(request:NextRequest){
     const gameRows=games||[];
     const gameIds=gameRows.map((g:any)=>g.id);
     const stats:any[]=[];
-    // IMPORTANT: query only this season's game IDs, exactly like the coverage diagnostic.
-    // The old global pagination could stop before reaching historical rows in a large table.
-    for(let i=0;i<gameIds.length;i+=300){
+    // Supabase projects commonly cap a SELECT at 1000 rows. A whole EHL season
+    // contains far more player-game rows, so query small groups of game IDs.
+    // With 10 games per request we stay comfortably below the cap and count
+    // every game, not just the first ~23 games returned by a capped response.
+    for(let i=0;i<gameIds.length;i+=10){
       const{data,error}=await db.from("fantasy_player_game_stats")
         .select("game_id,did_play,position_snapshot")
-        .in("game_id",gameIds.slice(i,i+300));
+        .in("game_id",gameIds.slice(i,i+10));
       if(error)throw error;
       stats.push(...(data||[]));
     }
@@ -61,7 +63,8 @@ export async function GET(request:NextRequest){
       importedMatchIds:imported.map((g:any)=>matchId(g.external_id)).filter(Boolean),
       pendingMatchIds:pending.map((g:any)=>matchId(g.external_id)).filter(Boolean),
       lastImported:imported.at(-1)||null,
-      rule:{minSkaters:20,minGoalies:2}
+      rule:{minSkaters:20,minGoalies:2},
+      queryBatchSize:10
     }});
   }catch(error:any){return NextResponse.json({ok:false,error:error?.message||"Kunne ikke hente importstatus"},{status:500})}
 }
