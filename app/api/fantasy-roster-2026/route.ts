@@ -90,7 +90,7 @@ function classify(row:any,position:string|null):RosterClass {
   if(position) return "player";
   const role=memberRole(row).toLocaleLowerCase("nb-NO");
   if(!role) return "unresolved";
-  const staffTerms=["coach","trener","head coach","assistant coach","assistenttrener","keepertrener","goalie coach","manager","lagleder","team leader","material","equipment","fysio","physio","fysioterapeut","lege","doctor","medical","terapeut","massør","massor","sportslig leder","sportssjef","daglig leder","administrasjon","styre","president","video","analyst","analytiker"];
+  const staffTerms=["teamsupport","team support","coach","trener","head coach","assistant coach","assistenttrener","keepertrener","goalie coach","manager","lagleder","team leader","material","equipment","fysio","physio","fysioterapeut","lege","doctor","medical","terapeut","massør","massor","sportslig leder","sportssjef","daglig leder","administrasjon","styre","president","video","analyst","analytiker"];
   if(staffTerms.some(term=>role.includes(term))) return "staff";
   const playerTerms=["player","spiller","utøver","utover","athlete","goalie","målvakt","malvakt","back","defence","defense","forward","center","wing"];
   if(playerTerms.some(term=>role.includes(term))) return "player";
