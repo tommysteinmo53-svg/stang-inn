@@ -79,6 +79,11 @@ export const IMPORT_HISTORY_2026: Record<string, ImportHistory> = {
     league: "Slovakia", games: 25, savePct: 0.898, gaa: 3.15,
     source: "EliteProspects", sourceNote: "2025/26 Slovak Extraliga regular season"
   },
+  "Eirik Østrem Salsten": {
+    kind: "skater", season: "2025/26", previousTeam: "Iserlohn Roosters",
+    league: "DEL", games: 52, goals: 8, assists: 12, points: 20,
+    source: "ClubOfficial", sourceNote: "PENNY DEL official 2025/26 regular-season statistics; returning Storhamar player with extensive prior EHL history"
+  },
   "Kristoffer Gunnarsson": {
     kind: "skater", season: "2025/26", previousTeam: "Mora IK",
     league: "HockeyAllsvenskan", games: 52, goals: 3, assists: 10, points: 13,
