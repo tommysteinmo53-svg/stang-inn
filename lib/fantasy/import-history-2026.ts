@@ -19,7 +19,7 @@ export type ImportGoalieHistory = {
   games: number;
   savePct: number;
   gaa: number;
-  source: "EliteProspects";
+  source: "EliteProspects" | "ClubOfficial";
   sourceNote?: string;
 };
 
@@ -118,6 +118,26 @@ export const IMPORT_HISTORY_2026: Record<string, ImportHistory> = {
     kind: "goalie", season: "2025/26", previousTeam: "Pelicans",
     league: "Liiga", games: 17, savePct: 0.894, gaa: 2.83,
     source: "EliteProspects", sourceNote: "2025/26 regular season"
+  },
+  "Jack Avery York": {
+    kind: "skater", season: "2025/26", previousTeam: "AIK",
+    league: "HockeyAllsvenskan", games: 37, goals: 2, assists: 5, points: 7,
+    source: "EliteProspects", sourceNote: "2025/26 HockeyAllsvenskan regular season"
+  },
+  "Anton Karl Yngve Hjalmarsson": {
+    kind: "goalie", season: "2025/26", previousTeam: "Boden Hockey",
+    league: "HockeyEttan", games: 20, savePct: 0.907, gaa: 2.08,
+    source: "ClubOfficial", sourceNote: "2025/26 HockeyEttan regular season; verified against published league statistics"
+  },
+  "Faustas Nauseda": {
+    kind: "goalie", season: "2025/26", previousTeam: "Pyry Hockey",
+    league: "Mestis", games: 32, savePct: 0.897, gaa: 2.98,
+    source: "EliteProspects", sourceNote: "2025/26 Mestis regular season"
+  },
+  "Lars Volden": {
+    kind: "goalie", season: "2025/26", previousTeam: "BIK Karlskoga",
+    league: "HockeyAllsvenskan", games: 22, savePct: 0.9161, gaa: 1.95,
+    source: "ClubOfficial", sourceNote: "BIK Karlskoga/HockeyAllsvenskan official 2025/26 regular-season statistics; 22 appearances, 91.61 SV%, 1.95 GAA"
   },
 };
 
