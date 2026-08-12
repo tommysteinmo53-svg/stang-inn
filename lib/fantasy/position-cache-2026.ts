@@ -2,12 +2,12 @@ export type FantasyPosition = "G" | "D" | "C" | "W";
 
 export type CachedPosition = {
   position: FantasyPosition;
-  source: "EliteProspects";
+  source: "EliteProspects" | "Manual";
   sourceNote?: string;
 };
 
 // Versioned 2026/27 position cache. HockeyLive remains the roster source of truth;
-// this file only fills missing fantasy positions with externally verified positions.
+// this file only fills missing fantasy positions with externally/manual verified positions.
 // Forward-only EP positions (F/LW/RW) are mapped to fantasy W; C/* keeps C.
 export const POSITION_CACHE_2026: Record<string, CachedPosition> = {
   "Alexander Anderberg": { position: "D", source: "EliteProspects" },
@@ -29,6 +29,7 @@ export const POSITION_CACHE_2026: Record<string, CachedPosition> = {
   "Daniel Lebedeff": { position: "G", source: "EliteProspects" },
   "Jack Avery York": { position: "D", source: "EliteProspects", sourceNote: "EP: Jack York (D)" },
 
+  "Isac Elias Farmen Andersen": { position: "W", source: "Manual", sourceNote: "Manuelt verifisert: wing" },
   "Iver Wick Karlsen": { position: "W", source: "EliteProspects", sourceNote: "EP: F" },
   "Jørgen Rønning": { position: "G", source: "EliteProspects" },
   "Kim Robin Bjørnstad": { position: "D", source: "EliteProspects", sourceNote: "EP: Robin Bjørnstad (D)" },
