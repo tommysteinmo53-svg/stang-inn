@@ -32,7 +32,7 @@ function pos(v:any) {
   return null;
 }
 
-function normName(row:any){
+function normName(row:any):string {
   const full=first(row,"fullName","name","playerName","personName","displayName");
   if(full && typeof full !== "object") return String(full).trim();
   const person=first(row,"person","player","member");
