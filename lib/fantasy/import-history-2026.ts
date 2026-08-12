@@ -25,9 +25,6 @@ export type ImportGoalieHistory = {
 
 export type ImportHistory = ImportSkaterHistory | ImportGoalieHistory;
 
-// Conservative league-strength multipliers for translation into EHL fantasy value.
-// These are not 1:1 scoring equivalencies; they only scale the size of the
-// adjustment away from the existing EHL positional-median prior.
 export const LEAGUE_STRENGTH: Record<string, number> = {
   NHL: 1.30,
   AHL: 1.16,
@@ -53,9 +50,6 @@ export const LEAGUE_STRENGTH: Record<string, number> = {
   "Norway U18": 0.44,
 };
 
-// Versioned, manually verified previous-season import cache.
-// Runtime scraping is intentionally avoided because EliteProspects blocks Vercel.
-// Only add rows when previous-season statistics are reliably verified.
 export const IMPORT_HISTORY_2026: Record<string, ImportHistory> = {
   "Albin Erik Eriksson": { kind: "skater", season: "2025/26", previousTeam: "Almtuna IS", league: "HockeyAllsvenskan", games: 42, goals: 8, assists: 4, points: 12, source: "ClubOfficial", sourceNote: "Almtuna official player profile; 2025/26 HockeyAllsvenskan regular season" },
   "Sebastian Dyk": { kind: "skater", season: "2025/26", previousTeam: "Södertälje SK", league: "HockeyAllsvenskan", games: 51, goals: 16, assists: 19, points: 35, source: "EliteProspects", sourceNote: "2025/26 regular season" },
@@ -98,6 +92,9 @@ export const IMPORT_HISTORY_2026: Record<string, ImportHistory> = {
   "Isak Hansen": { kind: "skater", season: "2025/26", previousTeam: "Vimmerby HC", league: "HockeyAllsvenskan", games: 43, goals: 1, assists: 3, points: 4, source: "EliteProspects", sourceNote: "2025/26 HockeyAllsvenskan regular season; 43 GP, 1 G, 3 A, 4 P" },
   "Rasmus Olsen Brekke": { kind: "skater", season: "2025/26", previousTeam: "Skellefteå AIK U20", league: "J20 Nationell", games: 32, goals: 9, assists: 2, points: 11, source: "EliteProspects", sourceNote: "2025/26 U20 Nationell regular season; 32 GP, 9 G, 2 A, 11 P" },
   "Niks Fenenko": { kind: "skater", season: "2025/26", previousTeam: "HK Mogo", league: "Latvia", games: 18, goals: 8, assists: 23, points: 31, source: "ClubOfficial", sourceNote: "Latvian federation 2025/26 OHL regular season; 18 GP, 8 G, 23 A, 31 P. Playoffs excluded from model row." },
+  "Alex Sjøthun": { kind: "skater", season: "2025/26", previousTeam: "Ringerike", league: "Norway2", games: 33, goals: 2, assists: 12, points: 14, source: "EliteProspects", sourceNote: "2025/26 Norway2 regular season; 33 GP, 2 G, 12 A, 14 P" },
+  "Kim Robin Bjørnstad": { kind: "skater", season: "2025/26", previousTeam: "Ringerike", league: "Norway2", games: 32, goals: 3, assists: 8, points: 11, source: "EliteProspects", sourceNote: "Roster full name corresponds to Robin Bjørnstad; 2025/26 Norway2 regular season, 32 GP, 3 G, 8 A, 11 P" },
+  "Isac Elias Farmen Andersen": { kind: "skater", season: "2025/26", previousTeam: "Vimmerby HC", league: "HockeyAllsvenskan", games: 49, goals: 2, assists: 4, points: 6, source: "EliteProspects", sourceNote: "Roster name corresponds to Isac Andersson; 2025/26 HockeyAllsvenskan regular season, 49 GP, 2 G, 4 A, 6 P" },
 };
 
 export function importHistoryFor(name: string): ImportHistory | null {
