@@ -41,6 +41,7 @@ export const LEAGUE_STRENGTH: Record<string, number> = {
   ECHL: 0.84,
   EIHL: 0.82,
   "Metal Ligaen": 0.80,
+  Poland: 0.78,
   HockeyEttan: 0.72,
   Mestis: 0.76,
   NAHL: 0.68,
@@ -155,6 +156,11 @@ export const IMPORT_HISTORY_2026: Record<string, ImportHistory> = {
     kind: "skater", season: "2025/26", previousTeam: "NAHL",
     league: "NAHL", games: 42, goals: 3, assists: 4, points: 7,
     source: "EliteProspects", sourceNote: "2025/26 NAHL totals; 42 GP, 3 G, 4 A, 7 P; cross-checked against published NAHL aggregate statistics"
+  },
+  "Niilo Ensio Halonen": {
+    kind: "goalie", season: "2025/26", previousTeam: "Zagłębie Sosnowiec",
+    league: "Poland", games: 25, savePct: 0.926, gaa: 2.15,
+    source: "ClubOfficial", sourceNote: "2025/26 Polish regular season: 25 GP, 92.6 SV%, 2.15 GAA; also 11 playoff GP at 91.7 SV% and 2.62 GAA"
   },
   "Oliver Tufte Langland": {
     kind: "skater", season: "2025/26", previousTeam: "Grüner",
