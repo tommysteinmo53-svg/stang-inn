@@ -177,6 +177,31 @@ export const IMPORT_HISTORY_2026: Record<string, ImportHistory> = {
     league: "HockeyEttan", games: 4, goals: 1, assists: 1, points: 2,
     source: "EliteProspects", sourceNote: "2025/26 senior HockeyEttan sample; also played Brynäs IF U20"
   },
+  "Max Mikael Freyschuss Nordin": {
+    kind: "skater", season: "2025/26", previousTeam: "Ringerike",
+    league: "Norway2", games: 28, goals: 22, assists: 18, points: 40,
+    source: "EliteProspects", sourceNote: "2025/26 Norway2 regular season; Ringerike team statistics"
+  },
+  "Tobias Skogstad Falkeid": {
+    kind: "skater", season: "2025/26", previousTeam: "Ringerike",
+    league: "Norway2", games: 32, goals: 11, assists: 23, points: 34,
+    source: "EliteProspects", sourceNote: "2025/26 Norway2 regular season; Ringerike team statistics"
+  },
+  "Thomas Bækken": {
+    kind: "skater", season: "2025/26", previousTeam: "Ringerike",
+    league: "Norway2", games: 29, goals: 11, assists: 14, points: 25,
+    source: "EliteProspects", sourceNote: "2025/26 Norway2 regular season; Ringerike team statistics"
+  },
+  "Iver Wick Karlsen": {
+    kind: "skater", season: "2025/26", previousTeam: "Ringerike",
+    league: "Norway2", games: 35, goals: 8, assists: 7, points: 15,
+    source: "EliteProspects", sourceNote: "2025/26 Norway2 regular season; Ringerike team statistics"
+  },
+  "Jørgen Rønning": {
+    kind: "goalie", season: "2025/26", previousTeam: "Ringerike",
+    league: "Norway2", games: 15, savePct: 0.910, gaa: 1.78,
+    source: "EliteProspects", sourceNote: "2025/26 Norway2 regular season goaltending: 15 GP, 91.0 SV%, 1.78 GAA"
+  },
 };
 
 export function importHistoryFor(name: string): ImportHistory | null {
