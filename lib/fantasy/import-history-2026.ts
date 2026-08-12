@@ -7,7 +7,7 @@ export type ImportSkaterHistory = {
   goals: number;
   assists: number;
   points: number;
-  source: "EliteProspects" | "SHL";
+  source: "EliteProspects" | "SHL" | "ClubOfficial";
   sourceNote?: string;
 };
 
@@ -48,6 +48,11 @@ export const LEAGUE_STRENGTH: Record<string, number> = {
 // Runtime scraping is intentionally avoided because EliteProspects blocks Vercel.
 // Only add rows when previous-season senior statistics are reliably verified.
 export const IMPORT_HISTORY_2026: Record<string, ImportHistory> = {
+  "Albin Erik Eriksson": {
+    kind: "skater", season: "2025/26", previousTeam: "Almtuna IS",
+    league: "HockeyAllsvenskan", games: 42, goals: 8, assists: 4, points: 12,
+    source: "ClubOfficial", sourceNote: "Almtuna official player profile; 2025/26 HockeyAllsvenskan regular season"
+  },
   "Sebastian Dyk": {
     kind: "skater", season: "2025/26", previousTeam: "Södertälje SK",
     league: "HockeyAllsvenskan", games: 51, goals: 16, assists: 19, points: 35,
