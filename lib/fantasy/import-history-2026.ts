@@ -37,6 +37,7 @@ export const LEAGUE_STRENGTH: Record<string, number> = {
   DEL: 0.98,
   HockeyAllsvenskan: 0.88,
   ICEHL: 0.86,
+  Slovakia: 0.86,
   ECHL: 0.84,
   EIHL: 0.82,
   "Metal Ligaen": 0.80,
@@ -63,10 +64,35 @@ export const IMPORT_HISTORY_2026: Record<string, ImportHistory> = {
     league: "HockeyAllsvenskan", games: 31, goals: 9, assists: 3, points: 12,
     source: "EliteProspects", sourceNote: "2025/26 regular season"
   },
+  "Case McCarthy": {
+    kind: "skater", season: "2025/26", previousTeam: "Worcester Railers",
+    league: "ECHL", games: 18, goals: 4, assists: 6, points: 10,
+    source: "EliteProspects", sourceNote: "2025/26 ECHL regular season; also appeared in AHL"
+  },
   "Carl Ludvig Rensfeldt": {
     kind: "skater", season: "2025/26", previousTeam: "Djurgårdens IF",
     league: "SHL", games: 51, goals: 2, assists: 2, points: 4,
     source: "EliteProspects", sourceNote: "EP lists Ludvig Rensfeldt (C); fantasy roster uses W"
+  },
+  "Daniel Lebedeff": {
+    kind: "goalie", season: "2025/26", previousTeam: "HK 32 Liptovsky Mikulas",
+    league: "Slovakia", games: 25, savePct: 0.898, gaa: 3.15,
+    source: "EliteProspects", sourceNote: "2025/26 Slovak Extraliga regular season"
+  },
+  "Kristoffer Gunnarsson": {
+    kind: "skater", season: "2025/26", previousTeam: "Mora IK",
+    league: "HockeyAllsvenskan", games: 52, goals: 3, assists: 10, points: 13,
+    source: "EliteProspects", sourceNote: "2025/26 HockeyAllsvenskan regular season"
+  },
+  "Tyler Parks": {
+    kind: "goalie", season: "2025/26", previousTeam: "HK Poprad",
+    league: "Slovakia", games: 21, savePct: 0.921, gaa: 2.18,
+    source: "EliteProspects", sourceNote: "2025/26 Slovak Extraliga regular season"
+  },
+  "Viljami Arvid Juusola": {
+    kind: "skater", season: "2025/26", previousTeam: "Kärpät",
+    league: "Liiga", games: 25, goals: 1, assists: 5, points: 6,
+    source: "EliteProspects", sourceNote: "2025/26 Liiga regular season"
   },
   "Juuso Vainio": {
     kind: "skater", season: "2025/26", previousTeam: "Örebro HK",
