@@ -43,6 +43,7 @@ export const LEAGUE_STRENGTH: Record<string, number> = {
   "Metal Ligaen": 0.80,
   HockeyEttan: 0.72,
   Mestis: 0.76,
+  Norway2: 0.66,
 };
 
 // Versioned, manually verified previous-season import cache.
@@ -138,6 +139,36 @@ export const IMPORT_HISTORY_2026: Record<string, ImportHistory> = {
     kind: "goalie", season: "2025/26", previousTeam: "BIK Karlskoga",
     league: "HockeyAllsvenskan", games: 22, savePct: 0.9161, gaa: 1.95,
     source: "ClubOfficial", sourceNote: "BIK Karlskoga/HockeyAllsvenskan official 2025/26 regular-season statistics; 22 appearances, 91.61 SV%, 1.95 GAA"
+  },
+  "Alexander Anderberg": {
+    kind: "skater", season: "2025/26", previousTeam: "Östersunds IK",
+    league: "HockeyAllsvenskan", games: 49, goals: 6, assists: 23, points: 29,
+    source: "ClubOfficial", sourceNote: "Östersunds IK official career statistics; 2025/26 HockeyAllsvenskan regular season"
+  },
+  "Adam Isac Bäckstrand": {
+    kind: "skater", season: "2025/26", previousTeam: "Tingsryds AIF",
+    league: "HockeyEttan", games: 38, goals: 10, assists: 16, points: 26,
+    source: "EliteProspects", sourceNote: "2025/26 HockeyEttan overall regular-season totals"
+  },
+  "Mathias Despotovic Kristiansen": {
+    kind: "skater", season: "2025/26", previousTeam: "NAHL",
+    league: "NAHL", games: 42, goals: 3, assists: 4, points: 7,
+    source: "EliteProspects", sourceNote: "2025/26 NAHL totals; league coefficient intentionally absent pending calibration"
+  },
+  "Oliver Tufte Langland": {
+    kind: "skater", season: "2025/26", previousTeam: "Grüner",
+    league: "Norway2", games: 28, goals: 14, assists: 14, points: 28,
+    source: "EliteProspects", sourceNote: "2025/26 Norway2 regular-season totals"
+  },
+  "Erlend Sletmoe-Kjærnet": {
+    kind: "skater", season: "2025/26", previousTeam: "Grüner",
+    league: "Norway2", games: 34, goals: 3, assists: 13, points: 16,
+    source: "EliteProspects", sourceNote: "2025/26 Norway2 regular-season totals"
+  },
+  "Alieu Moldal Bah": {
+    kind: "skater", season: "2025/26", previousTeam: "Strömsbro IF",
+    league: "HockeyEttan", games: 4, goals: 1, assists: 1, points: 2,
+    source: "EliteProspects", sourceNote: "2025/26 senior HockeyEttan sample; also played Brynäs IF U20"
   },
 };
 
