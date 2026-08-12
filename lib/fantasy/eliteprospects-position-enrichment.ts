@@ -19,8 +19,8 @@ export async function enrichMissingPositions<T extends RosterRow>(rows:T[]){
     const hit=CACHE.get(norm(row.name));
     if(!hit)continue;
     (row as any).position=hit.position;
-    (row as any).positionSource="eliteprospects-cache";
-    (row as any).positionSourceDetail=hit.sourceNote||"Verified EliteProspects position";
+    (row as any).positionSource="eliteprospects";
+    (row as any).positionSourceDetail=hit.sourceNote||"Verified EliteProspects position · local 2026/27 cache";
     enriched++;
     matches.push({name:row.name,team:row.team,position:hit.position,source:hit.source,detail:hit.sourceNote||null});
   }
