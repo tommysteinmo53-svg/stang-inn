@@ -24,6 +24,7 @@ export const POSITION_CACHE_2026: Record<string, CachedPosition> = {
 
   "Anton Karl Yngve Hjalmarsson": { position: "G", source: "EliteProspects", sourceNote: "EP: Anton Hjalmarsson (G)" },
   "Isak Anders Samuel Pantzare": { position: "D", source: "EliteProspects", sourceNote: "EP: Isak Pantzare (D)" },
+  "Sondre Berg": { position: "D", source: "EliteProspects", sourceNote: "EP player 980839: D" },
 
   "Alieu Moldal Bah": { position: "W", source: "EliteProspects", sourceNote: "EP: RW" },
   "Daniel Lebedeff": { position: "G", source: "EliteProspects" },
