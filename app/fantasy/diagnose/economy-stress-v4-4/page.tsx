@@ -44,28 +44,44 @@ function candidatePool(rows:P[],pos:V43Position){
  const ps=rows.filter(r=>r.pos===pos),m=new Map<string,P>();
  const add=(xs:P[])=>xs.forEach(p=>m.set(p.name,p));
  add([...ps].sort((a,b)=>b.value-a.value).slice(0,35));
- add([...ps].sort((a,b)=>(b.value/Math.max(1,b.price))-(a.value/Math.max(1,a.price))).slice(0,30));
- add([...ps].sort((a,b)=>a.price-b.price||b.value-a.value).slice(0,25));
+ add([...ps].sort((a,b)=>(b.value/Math.max(1,b.price))-(a.value/Math.max(1,a.price))).slice(0,35));
+ add([...ps].sort((a,b)=>a.price-b.price||b.value-a.value).slice(0,35));
  return [...m.values()];
+}
+function stratifyByCost(states:BeamState[],maxCost:number){
+ const buckets=new Map<number,BeamState[]>();
+ for(const st of states){const a=buckets.get(st.cost)||[];a.push(st);buckets.set(st.cost,a)}
+ const kept:BeamState[]=[];
+ for(let cost=0;cost<=maxCost;cost++){
+  const a=buckets.get(cost);if(!a)continue;
+  a.sort((x,y)=>y.score-x.score);
+  kept.push(...a.slice(0,45));
+ }
+ return kept;
 }
 function buildTeam(rows:P[],budget:number){
  const pools:Record<V43Position,P[]>={C:candidatePool(rows,"C"),W:candidatePool(rows,"W"),D:candidatePool(rows,"D"),G:candidatePool(rows,"G")};
+ const minCost:Record<V43Position,number>={C:Math.min(...pools.C.map(p=>Math.round(p.price*2))),W:Math.min(...pools.W.map(p=>Math.round(p.price*2))),D:Math.min(...pools.D.map(p=>Math.round(p.price*2))),G:Math.min(...pools.G.map(p=>Math.round(p.price*2)))};
+ const remainingMin=SLOTS.map((_,i)=>SLOTS.slice(i+1).reduce((s,slot)=>s+minCost[slot.pos],0));
  let beam:BeamState[]=[{score:0,cost:0,picks:[],used:new Set<string>(),clubs:{}}];
- const maxCost=Math.round(budget*2),BEAM=7000;
- for(const slot of SLOTS){
-  const next:BeamState[]=[];
+ const maxCost=Math.round(budget*2);
+ for(let i=0;i<SLOTS.length;i++){
+  const slot=SLOTS[i],next:BeamState[]=[];
   for(const st of beam)for(const p of pools[slot.pos]){
    if(st.used.has(p.name))continue;
    const clubCount=st.clubs[p.team]||0;if(clubCount>=MAX_PER_CLUB)continue;
-   const nc=st.cost+Math.round(p.price*2);if(nc>maxCost)continue;
-   const used=new Set<string>(st.used);used.add(p.name);const clubs:Record<string,number>={...st.clubs,[p.team]:clubCount+1};
+   const nc=st.cost+Math.round(p.price*2);
+   if(nc+remainingMin[i]>maxCost)continue;
+   const used=new Set<string>(st.used);used.add(p.name);
+   const clubs:Record<string,number>={...st.clubs,[p.team]:clubCount+1};
    const weightedValue=p.value*slot.weight;
    next.push({score:st.score+weightedValue,cost:nc,picks:[...st.picks,{...p,line:slot.line,weight:slot.weight,weightedValue}],used,clubs});
   }
-  next.sort((a,b)=>{const ar=a.score+(maxCost-a.cost)*0.006,br=b.score+(maxCost-b.cost)*0.006;return br-ar||a.cost-b.cost});
-  beam=next.slice(0,BEAM);if(!beam.length)return null;
+  beam=stratifyByCost(next,maxCost);
+  if(!beam.length)return null;
  }
- let best:BeamState|null=null;for(const st of beam)if(!best||st.score>best.score||(st.score===best.score&&st.cost>best.cost))best=st;
+ let best:BeamState|null=null;
+ for(const st of beam)if(!best||st.score>best.score||(st.score===best.score&&st.cost>best.cost))best=st;
  if(!best)return null;
  const parts=best.picks,rawScore=parts.reduce((s,p)=>s+p.value,0);
  return{players:parts,cost:best.cost/2,score:best.score,rawScore,premium:parts.filter(p=>p.price>=12).length,cheap:parts.filter(p=>p.price<=5).length,stars:parts.filter(p=>p.price>=14.5).length,clubMax:Math.max(...Object.values(best.clubs)),clubs:best.clubs};
