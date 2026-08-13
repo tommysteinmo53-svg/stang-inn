@@ -1,5 +1,5 @@
 export const TEAM_BUDGET_M = 100;
-export const DEFAULT_ROSTER_SIZE = 10;
+export const DEFAULT_ROSTER_SIZE = 12;
 export const TARGET_AVG_PRICE_M = TEAM_BUDGET_M / DEFAULT_ROSTER_SIZE;
 export const MAX_AVG_INFLATION = 0.03;
 
@@ -18,7 +18,7 @@ export function repricingScore(r:{old:number;ppg:number;games:number;position?:s
   return Math.round(clamp((0.45+0.34*performanceGap+0.28*cheapBreakout+0.18*expensiveMiss-goaliePenalty)*reliability,0.02,0.98)*100);
 }
 
-// Calibrate the entire player market so a 100m team budget remains meaningful.
+// Calibrate the entire player market so a 100m team budget remains meaningful for a 12-player roster (2C, 4W, 4D, 2G).
 // We preserve relative player ranking while preventing broad price inflation.
 export function calibrateMarket<T extends {old:number;rawEst:number}>(rows:T[]){
   if(!rows.length)return {rows:[] as (T&{est:number;marketSharePct:number;budgetSharePct:number})[],stats:{oldAvg:0,rawAvg:0,calibratedAvg:0,scale:1,totalOld:0,totalRaw:0,totalCalibrated:0,targetAvg:0}};
