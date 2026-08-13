@@ -1,8 +1,9 @@
 "use client";
 
-import {useState} from "react";
+import {useMemo,useState} from "react";
 import {getSupabaseBrowserClient} from "../../../../lib/supabase";
 import {HISTORICAL_PRICES_2025} from "../../../../lib/fantasy/historical-prices-2025";
+import {preEhlBacktestHistoryFor} from "../../../../lib/fantasy/import-backtest-history-2025";
 import "../../fantasy.css";
 
 const S24="2024/25",S25="2025/26";
@@ -14,32 +15,17 @@ function score(a:string,b:string){if(norm(a)===norm(natural(b)))return 1000;if(s
 function best(name:string,src:any[]){let row:any=null,bs=0;for(const x of src){const s=score(name,x.name??x[0]);if(s>bs){bs=s;row=x}}return bs>=800?row:null}
 async function auth(){const s=getSupabaseBrowserClient(),{data}=await s!.auth.getSession();if(!data.session?.access_token)throw new Error("Logg inn som admin");return data.session.access_token}
 
-type Row={name:string;team:string;pos:string;games:number;fpPerGame:number;startPrice:number|null;value:number|null;status:string};
+type Row={name:string;team:string;pos:string;games:number;fpPerGame:number;startPrice:number|null;value:number|null;status:string;prevLeague:string|null;prevGames:number|null;prevPpg:number|null;prevSavePct:number|null;track:string|null};
 
 export default function Page(){
  const[busy,setBusy]=useState(false),[msg,setMsg]=useState("Klar for historisk backtest"),[rows,setRows]=useState<Row[]>([]);
  async function run(){setBusy(true);try{
-  const t=await auth();
-  const[a,b]=await Promise.all([
-   fetch(`/api/fantasy-player-form?season=${encodeURIComponent(S24)}`,{headers:{Authorization:`Bearer ${t}`}}),
-   fetch(`/api/fantasy-player-form?season=${encodeURIComponent(S25)}`,{headers:{Authorization:`Bearer ${t}`}})
-  ]);
+  const t=await auth();const[a,b]=await Promise.all([fetch(`/api/fantasy-player-form?season=${encodeURIComponent(S24)}`,{headers:{Authorization:`Bearer ${t}`}}),fetch(`/api/fantasy-player-form?season=${encodeURIComponent(S25)}`,{headers:{Authorization:`Bearer ${t}`}})]);
   const p24=await a.json(),p25=await b.json();if(!a.ok||!p24.ok||!b.ok||!p25.ok)throw new Error("Kunne ikke hente historiske spillerdata");
-  const old=p24.result?.rows||[],cur=p25.result?.rows||[];
-  const out:Row[]=[];
-  for(const p of cur){
-   const games=Number(p.games||0);if(games<10)continue;
-   const prev=best(String(p.name),old);if(prev&&Number(prev.games||0)>=3)continue;
-   const pr=best(String(p.name),HISTORICAL_PRICES_2025 as any[]);
-   const startPrice=pr?Number(pr[2])/1e6:null;
-   const fpPerGame=Number(p.ppg||0);
-   out.push({name:String(p.name),team:String(p.team||pr?.[1]||""),pos:String(p.position||""),games,fpPerGame,startPrice,value:startPrice&&startPrice>0?fpPerGame/startPrice:null,status:startPrice?"Klar for ligaberikelse":"Mangler 19F-startpris"});
-  }
-  out.sort((x,y)=>(y.value??-1)-(x.value??-1)||y.fpPerGame-x.fpPerGame);
-  setRows(out);setMsg(`Ferdig · ${out.length} sannsynlige nye/returnerende 2025/26-spillere identifisert`);
+  const old=p24.result?.rows||[],cur=p25.result?.rows||[],out:Row[]=[];
+  for(const p of cur){const games=Number(p.games||0);if(games<10)continue;const prev=best(String(p.name),old);if(prev&&Number(prev.games||0)>=3)continue;const pr=best(String(p.name),HISTORICAL_PRICES_2025 as any[]);const startPrice=pr?Number(pr[2])/1e6:null,fpPerGame=Number(p.ppg||0),h=preEhlBacktestHistoryFor(String(p.name));out.push({name:String(p.name),team:String(p.team||pr?.[1]||""),pos:String(p.position||""),games,fpPerGame,startPrice,value:startPrice&&startPrice>0?fpPerGame/startPrice:null,status:h?"Beriket":startPrice?"Klar for ligaberikelse":"Mangler 19F-startpris",prevLeague:h?.league??null,prevGames:h?.games??null,prevPpg:h&&h.points!=null?h.points/h.games:null,prevSavePct:h?.savePct??null,track:h?.track??null});}
+  out.sort((x,y)=>(x.status==="Beriket"?-1:0)-(y.status==="Beriket"?-1:0)||(y.value??-1)-(x.value??-1));setRows(out);setMsg(`Ferdig · ${out.length} kandidater · ${out.filter(x=>x.status==="Beriket").length} historisk beriket`);
  }catch(e:any){setMsg(`Feil: ${e.message||e}`)}finally{setBusy(false)}}
- return <main className="fantasy-page">
-  <section className="fantasy-card"><h1>V4.5 · Historisk import-backtest</h1><p>Første steg: identifiserer spillere som hadde minst 10 kamper i EHL 2025/26, men manglet et reelt EHL-utvalg i 2024/25. Disse kobles mot 19F-startprisen fra 2025/26 og faktisk fantasyproduksjon i EHL. Neste steg er å berike denne eksakte spillerlisten med liga og produksjon fra 2024/25.</p><button onClick={run} disabled={busy}>{busy?"Analyserer…":"Kjør V4.5 kandidat-backtest"}</button><p><strong>{msg}</strong></p></section>
-  {rows.length>0&&<><section className="fantasy-card"><h2>Hva testen viser</h2><p><strong>FP/K</strong> er faktisk fantasyproduksjon i EHL 2025/26. <strong>FP/K per million</strong> viser hvor mye produksjon spilleren ga mot 19F-startprisen. Når vi har beriket forrige liga og P/GP, kan vi beregne empiriske ligatranslasjoner.</p></section><section className="fantasy-card"><h2>Kandidater for historisk ligaberikelse</h2><table><thead><tr><th>Spiller</th><th>Lag 25/26</th><th>Pos</th><th>K</th><th>FP/K</th><th>19F start</th><th>FP/K per m</th><th>Status</th></tr></thead><tbody>{rows.map(r=><tr key={`${r.team}-${r.name}`}><td>{r.name}</td><td>{r.team}</td><td>{r.pos}</td><td>{r.games}</td><td>{r.fpPerGame.toFixed(2)}</td><td>{r.startPrice==null?"—":`${r.startPrice.toFixed(1)}m`}</td><td>{r.value==null?"—":r.value.toFixed(3)}</td><td>{r.status}</td></tr>)}</tbody></table></section></>}
- </main>;
+ const leagueSummary=useMemo(()=>{const m=new Map<string,Row[]>();for(const r of rows)if(r.prevLeague&&r.track==="senior-import"){const a=m.get(r.prevLeague)||[];a.push(r);m.set(r.prevLeague,a)}return[...m.entries()].map(([league,rs])=>({league,n:rs.length,pre:rs.filter(r=>r.prevPpg!=null).reduce((s,r)=>s+Number(r.prevPpg),0)/Math.max(1,rs.filter(r=>r.prevPpg!=null).length),ehl:rs.reduce((s,r)=>s+r.fpPerGame,0)/rs.length})).sort((a,b)=>b.n-a.n)},[rows]);
+ return <main className="fantasy-page"><section className="fantasy-card"><h1>V4.5 · Historisk import-backtest</h1><p>Backtesten kobler 2025/26-nykommere mot 19F-startpris, faktisk EHL-fantasyproduksjon og verifisert 2024/25-liga/produksjon. Seniorimporter og junior/talent holdes separat.</p><button onClick={run} disabled={busy}>{busy?"Analyserer…":"Kjør V4.5 kandidat-backtest"}</button><p><strong>{msg}</strong></p></section>{rows.length>0&&<><section className="fantasy-card"><h2>Foreløpig ligagrunnlag</h2><p>Dette er ennå små utvalg. Ingen ny ligakoeffisient låses før flere spillere per liga er beriket.</p><table><thead><tr><th>Liga 24/25</th><th>N</th><th>P/GP før EHL</th><th>FP/K i EHL</th></tr></thead><tbody>{leagueSummary.map(x=><tr key={x.league}><td>{x.league}</td><td>{x.n}</td><td>{Number.isFinite(x.pre)?x.pre.toFixed(2):"—"}</td><td>{x.ehl.toFixed(2)}</td></tr>)}</tbody></table></section><section className="fantasy-card"><h2>Kandidater for historisk ligaberikelse</h2><table><thead><tr><th>Spiller</th><th>Lag 25/26</th><th>Pos</th><th>K</th><th>FP/K</th><th>19F start</th><th>24/25 liga</th><th>24/25 metric</th><th>Track</th><th>Status</th></tr></thead><tbody>{rows.map(r=><tr key={`${r.team}-${r.name}`}><td>{r.name}</td><td>{r.team}</td><td>{r.pos}</td><td>{r.games}</td><td>{r.fpPerGame.toFixed(2)}</td><td>{r.startPrice==null?"—":`${r.startPrice.toFixed(1)}m`}</td><td>{r.prevLeague??"—"}</td><td>{r.prevPpg!=null?`${r.prevPpg.toFixed(2)} P/GP`:r.prevSavePct!=null?`${(r.prevSavePct*100).toFixed(1)} SV%`:"—"}</td><td>{r.track??"—"}</td><td>{r.status}</td></tr>)}</tbody></table></section></>}</main>;
 }
