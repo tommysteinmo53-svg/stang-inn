@@ -7,6 +7,7 @@ export const dynamic="force-dynamic";
 const CONFIRM="SYNK 2026/27 ROSTER";
 const KEEP="e9647e74-9745-450d-a27a-3cc5852026ed";
 const DROP="99c086a2-3742-4478-9a6c-ad7425c50605";
+const VALID=new Set(["C","W","D","G"]);
 
 async function requireAdmin(request:NextRequest){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -28,20 +29,44 @@ export async function POST(request:NextRequest){
     const rows=Array.isArray(body?.rows)?body.rows:[];
     if(rows.length<200||rows.length>300)return NextResponse.json({ok:false,error:`Uventet rosterstørrelse: ${rows.length}`},{status:400});
 
-    const invalid=rows.map((r:any)=>({name:String(r?.name||"").trim(),team:String(r?.team||"").trim(),position:String(r?.position||"").trim().toUpperCase()})).filter((r:any)=>!r.name||!r.team||!["C","W","D","G"].includes(r.position));
-    if(invalid.length){
-      const detail=invalid.map((r:any)=>`${r.name||"(uten navn)"} [${r.position||"mangler posisjon"}]`).join(", ");
-      return NextResponse.json({ok:false,error:`${invalid.length} ugyldige roster-rader: ${detail}`,invalidRows:invalid},{status:400});
-    }
-
     const seen=new Set<string>(),duplicates:string[]=[];
-    for(const r of rows){const name=String(r.name).trim(),k=name.toLocaleLowerCase("nb-NO");if(seen.has(k))duplicates.push(name);else seen.add(k)}
+    for(const r of rows){const name=String(r?.name||"").trim(),k=name.toLocaleLowerCase("nb-NO");if(seen.has(k))duplicates.push(name);else seen.add(k)}
     if(duplicates.length)return NextResponse.json({ok:false,error:`Dupliserte navn i roster-payload: ${duplicates.join(", ")}`,duplicates},{status:400});
 
     const sb=serverClient();
-    const payload=rows.map((r:any)=>({name:String(r.name),team:String(r.team),position:String(r.position).toUpperCase(),personId:r.personId==null?null:String(r.personId)}));
+    const{data:existing,error:existingError}=await sb.from("fantasy_players").select("name,position,active").eq("active",true);
+    if(existingError)throw existingError;
+
+    const dbPositions=new Map<string,Set<string>>();
+    for(const p of existing||[]){
+      const name=String((p as any).name||"").trim().toLocaleLowerCase("nb-NO");
+      const pos=String((p as any).position||"").trim().toUpperCase();
+      if(!name||!VALID.has(pos))continue;
+      const set=dbPositions.get(name)||new Set<string>();set.add(pos);dbPositions.set(name,set);
+    }
+
+    let reusedDatabasePositions=0;
+    const resolved=rows.map((r:any)=>{
+      const name=String(r?.name||"").trim();
+      const team=String(r?.team||"").trim();
+      let position=String(r?.position||"").trim().toUpperCase();
+      let positionSource=String(r?.positionSource||"");
+      if(!VALID.has(position)&&name){
+        const options=dbPositions.get(name.toLocaleLowerCase("nb-NO"));
+        if(options&&options.size===1){position=[...options][0];positionSource="fantasy_players-existing";reusedDatabasePositions++}
+      }
+      return {...r,name,team,position,positionSource};
+    });
+
+    const invalid=resolved.filter((r:any)=>!r.name||!r.team||!VALID.has(r.position)).map((r:any)=>({name:r.name,team:r.team,position:r.position||"",personId:r.personId??null}));
+    if(invalid.length){
+      const detail=invalid.map((r:any)=>`${r.name||"(uten navn)"} [${r.position||"mangler posisjon"}]`).join(", ");
+      return NextResponse.json({ok:false,error:`${invalid.length} roster-rader mangler fortsatt sikker posisjon etter DB-fallback: ${detail}`,invalidRows:invalid,reusedDatabasePositions},{status:400});
+    }
+
+    const payload=resolved.map((r:any)=>({name:r.name,team:r.team,position:r.position,personId:r.personId==null?null:String(r.personId)}));
     const{data,error}=await sb.rpc("sync_fantasy_roster_2026",{p_rows:payload,p_admin:admin,p_duplicate_keep:KEEP,p_duplicate_drop:DROP});
     if(error){const missing=String(error.message||"").includes("sync_fantasy_roster_2026");return NextResponse.json({ok:false,error:missing?"Supabase v0.9 roster-sync migrasjonen må kjøres først.":error.message},{status:missing?503:500})}
-    return NextResponse.json({ok:true,result:data});
+    return NextResponse.json({ok:true,result:data,reusedDatabasePositions});
   }catch(e:any){return NextResponse.json({ok:false,error:e?.message||"Roster-sync feilet"},{status:500})}
 }
