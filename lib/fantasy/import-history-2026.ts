@@ -26,28 +26,11 @@ export type ImportGoalieHistory = {
 export type ImportHistory = ImportSkaterHistory | ImportGoalieHistory;
 
 export const LEAGUE_STRENGTH: Record<string, number> = {
-  NHL: 1.30,
-  AHL: 1.16,
-  SHL: 1.08,
-  Liiga: 1.06,
-  NL: 1.06,
-  DEL: 0.98,
-  HockeyAllsvenskan: 0.88,
-  ICEHL: 0.86,
-  Slovakia: 0.86,
-  ECHL: 0.84,
-  EIHL: 0.82,
-  "Metal Ligaen": 0.80,
-  Poland: 0.78,
-  Mestis: 0.76,
-  Latvia: 0.74,
-  HockeyEttan: 0.72,
-  NAHL: 0.68,
-  Norway2: 0.66,
-  USHL: 0.66,
-  "J20 Nationell": 0.58,
-  "Norway U20": 0.52,
-  "Norway U18": 0.44,
+  NHL: 1.30, AHL: 1.16, SHL: 1.08, Liiga: 1.06, NL: 1.06, DEL: 0.98,
+  HockeyAllsvenskan: 0.88, ICEHL: 0.86, Slovakia: 0.86, ECHL: 0.84, EIHL: 0.82,
+  "Metal Ligaen": 0.80, Poland: 0.78, Mestis: 0.76, USports: 0.76, Latvia: 0.74,
+  HockeyEttan: 0.72, CEHL: 0.68, NAHL: 0.68, Norway2: 0.66, USHL: 0.66,
+  "J20 Nationell": 0.58, "Norway U20": 0.52, "Norway U18": 0.44,
 };
 
 export const IMPORT_HISTORY_2026: Record<string, ImportHistory> = {
@@ -95,13 +78,10 @@ export const IMPORT_HISTORY_2026: Record<string, ImportHistory> = {
   "Alex Sjøthun": { kind: "skater", season: "2025/26", previousTeam: "Ringerike", league: "Norway2", games: 33, goals: 2, assists: 12, points: 14, source: "EliteProspects", sourceNote: "2025/26 Norway2 regular season; 33 GP, 2 G, 12 A, 14 P" },
   "Kim Robin Bjørnstad": { kind: "skater", season: "2025/26", previousTeam: "Ringerike", league: "Norway2", games: 32, goals: 3, assists: 8, points: 11, source: "EliteProspects", sourceNote: "Roster full name corresponds to Robin Bjørnstad; 2025/26 Norway2 regular season, 32 GP, 3 G, 8 A, 11 P" },
   "Isac Elias Farmen Andersen": { kind: "skater", season: "2025/26", previousTeam: "Vimmerby HC", league: "HockeyAllsvenskan", games: 49, goals: 2, assists: 4, points: 6, source: "EliteProspects", sourceNote: "Roster name corresponds to Isac Andersson; 2025/26 HockeyAllsvenskan regular season, 49 GP, 2 G, 4 A, 6 P" },
+  "Neil John David Beaton": { kind: "skater", season: "2025/26", previousTeam: "Ringerike", league: "Norway2", games: 35, goals: 30, assists: 38, points: 68, source: "EliteProspects", sourceNote: "EliteProspects lists John Beaton; 2025/26 Norway2 regular season, 35 GP, 30 G, 38 A, 68 P (1.94 P/GP)." },
+  "Charles Francis Callaghan": { kind: "skater", season: "2025/26", previousTeam: "St. Francis Xavier Univ.", league: "USports", games: 27, goals: 8, assists: 15, points: 23, source: "EliteProspects", sourceNote: "EliteProspects lists Charlie Callaghan; 2025/26 USports regular season, 27 GP, 8 G, 15 A, 23 P (0.85 P/GP). AUS First Team All-Star." },
+  "Lars Ludvig Alexius Hedström": { kind: "skater", season: "2025/26", previousTeam: "EHC Neuwied", league: "CEHL", games: 35, goals: 8, assists: 21, points: 29, source: "EliteProspects", sourceNote: "Roster full name corresponds to Ludvig Hedström; 2025/26 CEHL/Be-Ne Liga regular season, 35 GP, 8 G, 21 A, 29 P. League strength kept conservative pending EHL calibration sample." },
 };
 
-export function importHistoryFor(name: string): ImportHistory | null {
-  return IMPORT_HISTORY_2026[name] ?? null;
-}
-
-export function leagueStrength(league: string): number | null {
-  const value = LEAGUE_STRENGTH[league];
-  return Number.isFinite(value) ? value : null;
-}
+export function importHistoryFor(name: string): ImportHistory | null { return IMPORT_HISTORY_2026[name] ?? null; }
+export function leagueStrength(league: string): number | null { const value=LEAGUE_STRENGTH[league]; return Number.isFinite(value)?value:null; }
