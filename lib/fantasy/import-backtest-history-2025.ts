@@ -20,6 +20,10 @@ export const PRE_EHL_BACKTEST_2025: PreEhlBacktestHistory[] = [
   { name:"Blake Douglas Pietila", track:"senior-import", league:"HockeyAllsvenskan", games:27, savePct:0.898, gaa:2.77, source:"EliteProspects", note:"Kalmar HC 2024/25 regular season goaltending." },
   { name:"Trenton Beck Bliss", track:"senior-import", league:"ECHL", games:57, points:42, source:"EliteProspects", note:"Toledo Walleye 2024/25 regular season: 15G+27A=42P." },
   { name:"Teemu Siironen", track:"senior-import", league:"HockeyEttan", games:34, points:41, source:"EliteProspects", note:"Kiruna IF 2024/25 regular season: 20G+21A=41P before joining Nidaros for 2025/26." },
+  { name:"Sebastian Kaijser", track:"senior-import", league:"HockeyEttan", games:37, points:42, source:"EliteProspects", note:"IF Sundsvall Hockey 2024/25 regular season: 22G+20A=42P. Qualification games are deliberately excluded." },
+  { name:"Jesper Kokkonen", track:"senior-import", league:"HockeyAllsvenskan", games:55, points:12, source:"EliteProspects", note:"Vimmerby HC 2024/25 regular season: 7G+5A=12P. Relegation games are deliberately excluded." },
+  { name:"Olle Liss", track:"senior-import", league:"DEL2", games:46, points:35, source:"EliteProspects", note:"Eisbären Regensburg 2024/25 regular season: 19G+16A=35P before joining Storhamar." },
+  { name:"Colin Campbell", track:"senior-import", league:"KHL", games:55, points:22, source:"EliteProspects", note:"Kunlun Red Star 2024/25 regular season: 14G+8A=22P before joining Storhamar." },
 
   // Norway2 -> EHL promotion cohort. This is the key empirical control group for 2026/27 Ringerike pricing.
   { name:"Nils David Hallström", track:"norway2-transition", league:"Norway2", games:32, points:56, source:"EliteProspects", note:"Nidaros 2024/25 regular season: 13G+43A=56P." },
