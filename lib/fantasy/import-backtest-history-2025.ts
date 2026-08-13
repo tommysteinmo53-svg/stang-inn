@@ -6,7 +6,7 @@ export type PreEhlBacktestHistory = {
   points?: number;
   savePct?: number;
   gaa?: number;
-  source: "EliteProspects" | "QuantHockey";
+  source: "EliteProspects" | "QuantHockey" | "ClubOfficial" | "BenchRates";
   note: string;
 };
 
@@ -29,6 +29,10 @@ export const PRE_EHL_BACKTEST_2025: PreEhlBacktestHistory[] = [
   { name:"Anton Öhman", track:"senior-import", league:"HockeyAllsvenskan", games:40, points:21, source:"QuantHockey", note:"Östersunds IK 2024/25 regular season: 2G+19A=21P. Verified 2024/25 Allsvenskan row." },
   { name:"Hampus Rydqvist", track:"senior-import", league:"NCAA", games:28, points:5, source:"EliteProspects", note:"Miami Univ. (Ohio) 2024/25 regular season: 2G+3A=5P before joining Sparta." },
   { name:"Joona Voutilainen", track:"senior-import", league:"HockeyAllsvenskan", games:25, savePct:0.892, gaa:2.95, source:"EliteProspects", note:"IF Björklöven 2024/25 regular season goaltending. Qualification sample deliberately excluded." },
+
+  // V4.5.3: add high-confidence senior defense comparables.
+  { name:"Henrik Larsson", track:"senior-import", league:"HockeyAllsvenskan", games:51, points:50, source:"ClubOfficial", note:"BIK Karlskoga 2024/25 regular season: 50 points in 51 games from defense. Vålerenga's signing announcement identifies him as the Allsvenskan MVP; playoff production deliberately excluded." },
+  { name:"Christian Johansen Kåsastul", track:"senior-import", league:"Liiga", games:34, points:8, source:"BenchRates", note:"2024/25 Liiga combined regular season: KooKoo 27 GP, 7 P plus Ilves 7 GP, 1 P = 34 GP, 8 P. Season ended early after ACL injury; no extrapolation is applied." },
 
   // Norway2 -> EHL promotion cohort. This is the key empirical control group for 2026/27 Ringerike pricing.
   { name:"Nils David Hallström", track:"norway2-transition", league:"Norway2", games:32, points:56, source:"EliteProspects", note:"Nidaros 2024/25 regular season: 13G+43A=56P." },
