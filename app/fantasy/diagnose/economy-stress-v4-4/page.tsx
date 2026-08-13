@@ -12,7 +12,6 @@ import {calibrateMarket,clamp,repricingScore} from "../../../../lib/fantasy/mark
 import "../../fantasy.css";
 
 const S24="2024/25",S25="2025/26",POS=["C","W","D","G"] as const;
-const ROSTER_REQ:Record<V43Position,number>={C:2,W:4,D:4,G:2};
 const MAX_PER_CLUB=3;
 const EXTRA_TALENTS:TalentHistoryV43[]=[{name:"Markus Walberg",position:"G",league:"Norway U20",games:33,savePct:0.916,gaa:3.0,sourceNote:"Sparta U20 2025/26; promoted to A-team goalie duo."}];
 const norm=(v:any)=>String(v??"").toLocaleLowerCase("nb-NO").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ø/g,"o").replace(/æ/g,"ae").replace(/[^a-z0-9]+/g," ").trim();
@@ -34,8 +33,8 @@ async function auth(){const s=getSupabaseBrowserClient(),{data}=await s!.auth.ge
 
 type P={name:string;team:string;pos:V43Position;price:number;raw:number;cls:string;ppg:number;games:number;value:number};
 type Slot={pos:V43Position;line:1|2;weight:number};
-type Pick=P&{line:1|2;weight:number;weightedValue:number};
-type BeamState={score:number;cost:number;picks:Pick[];used:Set<string>;clubs:Record<string,number>};
+type LinePick=P&{line:1|2;weight:number;weightedValue:number};
+type BeamState={score:number;cost:number;picks:LinePick[];used:Set<string>;clubs:Record<string,number>};
 function projection(r:any){const ppg=Number(r.ppg||0);if(ppg>0)return ppg;const price=Number(r.est||r.price||0);return Math.max(0.25,price*0.72)}
 const SLOTS:Slot[]=[
  {pos:"C",line:1,weight:1},{pos:"W",line:1,weight:1},{pos:"W",line:1,weight:1},{pos:"D",line:1,weight:1},{pos:"D",line:1,weight:1},{pos:"G",line:1,weight:1},
@@ -50,16 +49,16 @@ function candidatePool(rows:P[],pos:V43Position){
  return [...m.values()];
 }
 function buildTeam(rows:P[],budget:number){
- const pools:any={C:candidatePool(rows,"C"),W:candidatePool(rows,"W"),D:candidatePool(rows,"D"),G:candidatePool(rows,"G")};
- let beam:BeamState[]=[{score:0,cost:0,picks:[],used:new Set(),clubs:{}}];
+ const pools:Record<V43Position,P[]>={C:candidatePool(rows,"C"),W:candidatePool(rows,"W"),D:candidatePool(rows,"D"),G:candidatePool(rows,"G")};
+ let beam:BeamState[]=[{score:0,cost:0,picks:[],used:new Set<string>(),clubs:{}}];
  const maxCost=Math.round(budget*2),BEAM=7000;
  for(const slot of SLOTS){
   const next:BeamState[]=[];
-  for(const st of beam)for(const p of pools[slot.pos] as P[]){
+  for(const st of beam)for(const p of pools[slot.pos]){
    if(st.used.has(p.name))continue;
    const clubCount=st.clubs[p.team]||0;if(clubCount>=MAX_PER_CLUB)continue;
    const nc=st.cost+Math.round(p.price*2);if(nc>maxCost)continue;
-   const used=new Set(st.used);used.add(p.name);const clubs={...st.clubs,[p.team]:clubCount+1};
+   const used=new Set<string>(st.used);used.add(p.name);const clubs:Record<string,number>={...st.clubs,[p.team]:clubCount+1};
    const weightedValue=p.value*slot.weight;
    next.push({score:st.score+weightedValue,cost:nc,picks:[...st.picks,{...p,line:slot.line,weight:slot.weight,weightedValue}],used,clubs});
   }
@@ -82,5 +81,5 @@ export default function Page(){
  raw.push({name,team,pos,old:Number(old??allMedian),rawEst,cls,ppg,games});}
  const cal=calibrateMarket(raw).rows.map((r:any)=>({...r,price:r.est,value:projection(r)}));setRows(cal);setMsg(`Ferdig · ${cal.length} spillere · 12 plasser · maks ${MAX_PER_CLUB} fra samme klubb`);}catch(e:any){setMsg(`Feil: ${e.message||e}`)}finally{setBusy(false)}}
  const budgets=[60,70,80,90,100],tests=useMemo(()=>budgets.map(b=>({budget:b,result:buildTeam(rows,b)})),[rows]);
- return <main className="fantasy-page"><section className="fantasy-card"><h1>V4.4 · Fantasy Economy Stress Test</h1><p>Stresstester V4.3.3-prisene etter faktiske lagregler: 12 spillere (2 C, 4 W, 4 D, 2 G), maks 3 spillere fra samme klubb. 1. rekke får 100% poengopptjening og 2. rekke får 50%.</p><p><strong>1. rekke:</strong> 1 C · 2 W · 2 D · 1 G · 100% &nbsp; | &nbsp; <strong>2. rekke:</strong> 1 C · 2 W · 2 D · 1 G · 50%</p><button onClick={run} disabled={busy}>{busy?"Tester…":"Kjør V4.4-stresstest"}</button><p><strong>{msg}</strong></p></section>{rows.length>0&&<><section className="fantasy-card"><h2>Budsjettstresstest</h2><table><thead><tr><th>Budsjett</th><th>Lagpris</th><th>Vektet signal</th><th>Premium ≥12m</th><th>Stjerner ≥14.5m</th><th>Billige ≤5m</th><th>Maks fra klubb</th><th>Resultat</th></tr></thead><tbody>{tests.map(t=><tr key={t.budget}><td>{t.budget}m</td><td>{t.result?`${t.result.cost.toFixed(1)}m`:"—"}</td><td>{t.result?.score.toFixed(2)??"—"}</td><td>{t.result?.premium??"—"}</td><td>{t.result?.stars??"—"}</td><td>{t.result?.cheap??"—"}</td><td>{t.result?.clubMax??"—"}</td><td>{t.result?"Mulig":"Ingen gyldig kombinasjon"}</td></tr>)}</tbody></table></section>{tests.map(t=>t.result&&<section className="fantasy-card" key={`team-${t.budget}`}><h2>Beste lag · {t.budget}m</h2><p>Totalpris <strong>{t.result.cost.toFixed(1)}m</strong> · vektet produksjon {t.result.score.toFixed(2)} · rått signal {t.result.rawScore.toFixed(2)} · premium {t.result.premium} · stjerner {t.result.stars} · ≤5m {t.result.cheap}</p>{([1,2] as const).map(line=><div key={`${t.budget}-line-${line}`}><h3>{line}. rekke · {line===1?"100%":"50%"} poeng</h3><table><thead><tr><th>Spiller</th><th>Lag</th><th>Pos</th><th>Pris</th><th>Klasse</th><th>Rått signal</th><th>Vektet</th></tr></thead><tbody>{t.result.players.filter((p:Pick)=>p.line===line).sort((a:Pick,b:Pick)=>a.pos.localeCompare(b.pos)||b.value-a.value).map((p:Pick)=><tr key={`${t.budget}-${line}-${p.name}`}><td>{p.name}</td><td>{p.team}</td><td>{p.pos}</td><td><strong>{p.price.toFixed(1)}m</strong></td><td>{p.cls}</td><td>{p.value.toFixed(2)}</td><td><strong>{p.weightedValue.toFixed(2)}</strong></td></tr>)}</tbody></table></div>)}</section>)}</>}</main>;
+ return <main className="fantasy-page"><section className="fantasy-card"><h1>V4.4 · Fantasy Economy Stress Test</h1><p>Stresstester V4.3.3-prisene etter faktiske lagregler: 12 spillere (2 C, 4 W, 4 D, 2 G), maks 3 spillere fra samme klubb. 1. rekke får 100% poengopptjening og 2. rekke får 50%.</p><p><strong>1. rekke:</strong> 1 C · 2 W · 2 D · 1 G · 100% &nbsp; | &nbsp; <strong>2. rekke:</strong> 1 C · 2 W · 2 D · 1 G · 50%</p><button onClick={run} disabled={busy}>{busy?"Tester…":"Kjør V4.4-stresstest"}</button><p><strong>{msg}</strong></p></section>{rows.length>0&&<><section className="fantasy-card"><h2>Budsjettstresstest</h2><table><thead><tr><th>Budsjett</th><th>Lagpris</th><th>Vektet signal</th><th>Premium ≥12m</th><th>Stjerner ≥14.5m</th><th>Billige ≤5m</th><th>Maks fra klubb</th><th>Resultat</th></tr></thead><tbody>{tests.map(t=><tr key={t.budget}><td>{t.budget}m</td><td>{t.result?`${t.result.cost.toFixed(1)}m`:"—"}</td><td>{t.result?.score.toFixed(2)??"—"}</td><td>{t.result?.premium??"—"}</td><td>{t.result?.stars??"—"}</td><td>{t.result?.cheap??"—"}</td><td>{t.result?.clubMax??"—"}</td><td>{t.result?"Mulig":"Ingen gyldig kombinasjon"}</td></tr>)}</tbody></table></section>{tests.map(t=>{const result=t.result;if(!result)return null;return <section className="fantasy-card" key={`team-${t.budget}`}><h2>Beste lag · {t.budget}m</h2><p>Totalpris <strong>{result.cost.toFixed(1)}m</strong> · vektet produksjon {result.score.toFixed(2)} · rått signal {result.rawScore.toFixed(2)} · premium {result.premium} · stjerner {result.stars} · ≤5m {result.cheap}</p>{([1,2] as const).map(line=><div key={`${t.budget}-line-${line}`}><h3>{line}. rekke · {line===1?"100%":"50%"} poeng</h3><table><thead><tr><th>Spiller</th><th>Lag</th><th>Pos</th><th>Pris</th><th>Klasse</th><th>Rått signal</th><th>Vektet</th></tr></thead><tbody>{result.players.filter((p:LinePick)=>p.line===line).sort((a:LinePick,b:LinePick)=>a.pos.localeCompare(b.pos)||b.value-a.value).map((p:LinePick)=><tr key={`${t.budget}-${line}-${p.name}`}><td>{p.name}</td><td>{p.team}</td><td>{p.pos}</td><td><strong>{p.price.toFixed(1)}m</strong></td><td>{p.cls}</td><td>{p.value.toFixed(2)}</td><td><strong>{p.weightedValue.toFixed(2)}</strong></td></tr>)}</tbody></table></div>)}</section>})}</>}</main>;
 }
