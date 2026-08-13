@@ -11,7 +11,7 @@ export type CachedPosition = {
 // Forward-only EP positions (F/LW/RW) are mapped to fantasy W; C/* keeps C.
 export const POSITION_CACHE_2026: Record<string, CachedPosition> = {
   "Alexander Anderberg": { position: "D", source: "EliteProspects" },
-  "Charles Francis Callaghan": { position: "D", source: "EliteProspects", sourceNote: "EP: Charlie Callaghan (D)" },
+  "Charles Francis Callaghan": { position: "D", source: "EliteProspects", sourceNote: "EP player 504241: Charlie Callaghan (D), Frisk Asker 2026/27" },
   "Gustavs Arnis": { position: "G", source: "EliteProspects" },
   "Sebastian Dyk": { position: "W", source: "EliteProspects", sourceNote: "EP: F" },
 
@@ -33,8 +33,9 @@ export const POSITION_CACHE_2026: Record<string, CachedPosition> = {
   "Iver Wick Karlsen": { position: "W", source: "EliteProspects", sourceNote: "EP: F" },
   "Jørgen Rønning": { position: "G", source: "EliteProspects" },
   "Kim Robin Bjørnstad": { position: "D", source: "EliteProspects", sourceNote: "EP: Robin Bjørnstad (D)" },
-  "Lars Ludvig Alexius Hedström": { position: "D", source: "EliteProspects", sourceNote: "EP: Ludvig Hedström (D)" },
+  "Lars Ludvig Alexius Hedström": { position: "D", source: "EliteProspects", sourceNote: "EP player 344853: Ludvig Hedström (D), Ringerike 2026/27" },
   "Ludvik Kind Bakkevig": { position: "W", source: "EliteProspects", sourceNote: "EP: F" },
+  "Neil John David Beaton": { position: "C", source: "EliteProspects", sourceNote: "EP player 300798: John Beaton (C), Ringerike 2026/27" },
   "Thomas Lyngaas Higson": { position: "D", source: "EliteProspects" },
   "Victor Slettebråten Karadas": { position: "D", source: "EliteProspects" },
   "Viktor Natanael Lundseie Lindholm": { position: "C", source: "EliteProspects", sourceNote: "EP: Natanael Lindholm (C/RW)" },
