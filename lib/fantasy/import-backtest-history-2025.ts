@@ -34,6 +34,10 @@ export const PRE_EHL_BACKTEST_2025: PreEhlBacktestHistory[] = [
   { name:"Henrik Larsson", track:"senior-import", league:"HockeyAllsvenskan", games:51, points:50, source:"ClubOfficial", note:"BIK Karlskoga 2024/25 regular season: 50 points in 51 games from defense. Vålerenga's signing announcement identifies him as the Allsvenskan MVP; playoff production deliberately excluded." },
   { name:"Christian Johansen Kåsastul", track:"senior-import", league:"Liiga", games:34, points:8, source:"BenchRates", note:"2024/25 Liiga combined regular season: KooKoo 27 GP, 7 P plus Ilves 7 GP, 1 P = 34 GP, 8 P. Season ended early after ACL injury; no extrapolation is applied." },
 
+  // V4.5.4: expand HockeyAllsvenskan defense and add a productive Slovakia forward comparable.
+  { name:"Theo Nordlund", track:"senior-import", league:"HockeyAllsvenskan", games:52, points:6, source:"EliteProspects", note:"Tingsryds AIF 2024/25 regular season: 1G+5A=6P in 52 HockeyAllsvenskan games. Qualification games are excluded." },
+  { name:"Zackari Logan Elijah Andrusiak", track:"senior-import", league:"Slovakia", games:39, points:36, source:"EliteProspects", note:"2024/25 Slovakia regular-season total: 39 GP, 18G+18A=36P across HK Spisska Nova Ves and HKM Zvolen. A later short Vienna ICEHL stint is excluded so leagues are not mixed." },
+
   // Norway2 -> EHL promotion cohort. This is the key empirical control group for 2026/27 Ringerike pricing.
   { name:"Nils David Hallström", track:"norway2-transition", league:"Norway2", games:32, points:56, source:"EliteProspects", note:"Nidaros 2024/25 regular season: 13G+43A=56P." },
   { name:"Svein Petter Falk-Larssen", track:"norway2-transition", league:"Norway2", games:33, points:47, source:"EliteProspects", note:"Nidaros 2024/25 regular season: 15G+32A=47P." },
