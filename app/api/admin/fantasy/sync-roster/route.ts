@@ -27,33 +27,41 @@ export async function POST(request:NextRequest){
     const body=await request.json();
     if(body?.confirmation!==CONFIRM)return NextResponse.json({ok:false,error:`Skriv nøyaktig «${CONFIRM}».`},{status:400});
     const rows=Array.isArray(body?.rows)?body.rows:[];
-    if(rows.length<200||rows.length>300)return NextResponse.json({ok:false,error:`Uventet rosterstørrelse: ${rows.length}`},{status:400});
+    if(rows.length!==243)return NextResponse.json({ok:false,error:`Uventet rosterstørrelse: ${rows.length}. Forventet 243.`},{status:400});
 
     const seen=new Set<string>(),duplicates:string[]=[];
     for(const r of rows){const name=String(r?.name||"").trim(),k=name.toLocaleLowerCase("nb-NO");if(seen.has(k))duplicates.push(name);else seen.add(k)}
     if(duplicates.length)return NextResponse.json({ok:false,error:`Dupliserte navn i roster-payload: ${duplicates.join(", ")}`,duplicates},{status:400});
 
     const sb=serverClient();
-    const{data:existing,error:existingError}=await sb.from("fantasy_players").select("name,position,active").eq("active",true);
+    const{data:existing,error:existingError}=await sb.from("fantasy_players").select("name,position,active,external_id");
     if(existingError)throw existingError;
 
-    const dbPositions=new Map<string,Set<string>>();
+    const dbPositionsByName=new Map<string,Set<string>>();
+    const dbPositionsByExternal=new Map<string,Set<string>>();
     for(const p of existing||[]){
-      const name=String((p as any).name||"").trim().toLocaleLowerCase("nb-NO");
       const pos=String((p as any).position||"").trim().toUpperCase();
-      if(!name||!VALID.has(pos))continue;
-      const set=dbPositions.get(name)||new Set<string>();set.add(pos);dbPositions.set(name,set);
+      if(!VALID.has(pos))continue;
+      const name=String((p as any).name||"").trim().toLocaleLowerCase("nb-NO");
+      if((p as any).active!==false&&name){const set=dbPositionsByName.get(name)||new Set<string>();set.add(pos);dbPositionsByName.set(name,set)}
+      const external=String((p as any).external_id||"").trim();
+      if(external){const set=dbPositionsByExternal.get(external)||new Set<string>();set.add(pos);dbPositionsByExternal.set(external,set)}
     }
 
-    let reusedDatabasePositions=0;
+    let reusedDatabasePositions=0,reusedByExternalId=0,reusedByName=0;
     const resolved=rows.map((r:any)=>{
       const name=String(r?.name||"").trim();
       const team=String(r?.team||"").trim();
+      const external=r?.personId==null?"":`nif:${String(r.personId).trim()}`;
       let position=String(r?.position||"").trim().toUpperCase();
       let positionSource=String(r?.positionSource||"");
+      if(!VALID.has(position)&&external){
+        const options=dbPositionsByExternal.get(external);
+        if(options&&options.size===1){position=[...options][0];positionSource="fantasy_players-external_id";reusedDatabasePositions++;reusedByExternalId++}
+      }
       if(!VALID.has(position)&&name){
-        const options=dbPositions.get(name.toLocaleLowerCase("nb-NO"));
-        if(options&&options.size===1){position=[...options][0];positionSource="fantasy_players-existing";reusedDatabasePositions++}
+        const options=dbPositionsByName.get(name.toLocaleLowerCase("nb-NO"));
+        if(options&&options.size===1){position=[...options][0];positionSource="fantasy_players-name";reusedDatabasePositions++;reusedByName++}
       }
       return {...r,name,team,position,positionSource};
     });
@@ -61,12 +69,12 @@ export async function POST(request:NextRequest){
     const invalid=resolved.filter((r:any)=>!r.name||!r.team||!VALID.has(r.position)).map((r:any)=>({name:r.name,team:r.team,position:r.position||"",personId:r.personId??null}));
     if(invalid.length){
       const detail=invalid.map((r:any)=>`${r.name||"(uten navn)"} [${r.position||"mangler posisjon"}]`).join(", ");
-      return NextResponse.json({ok:false,error:`${invalid.length} roster-rader mangler fortsatt sikker posisjon etter DB-fallback: ${detail}`,invalidRows:invalid,reusedDatabasePositions},{status:400});
+      return NextResponse.json({ok:false,error:`${invalid.length} roster-rader mangler fortsatt sikker posisjon etter ID/navn-fallback: ${detail}`,invalidRows:invalid,reusedDatabasePositions,reusedByExternalId,reusedByName},{status:400});
     }
 
     const payload=resolved.map((r:any)=>({name:r.name,team:r.team,position:r.position,personId:r.personId==null?null:String(r.personId)}));
     const{data,error}=await sb.rpc("sync_fantasy_roster_2026",{p_rows:payload,p_admin:admin,p_duplicate_keep:KEEP,p_duplicate_drop:DROP});
     if(error){const missing=String(error.message||"").includes("sync_fantasy_roster_2026");return NextResponse.json({ok:false,error:missing?"Supabase v0.9 roster-sync migrasjonen må kjøres først.":error.message},{status:missing?503:500})}
-    return NextResponse.json({ok:true,result:data,reusedDatabasePositions});
+    return NextResponse.json({ok:true,result:data,reusedDatabasePositions,reusedByExternalId,reusedByName});
   }catch(e:any){return NextResponse.json({ok:false,error:e?.message||"Roster-sync feilet"},{status:500})}
 }
