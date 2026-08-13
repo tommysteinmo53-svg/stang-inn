@@ -36,7 +36,11 @@ export async function POST(request:NextRequest){
     const body=await request.json();
     if(body?.confirmation!==CONFIRM)return NextResponse.json({ok:false,error:`Skriv nøyaktig «${CONFIRM}» for å publisere.`},{status:400});
     if(body?.modelVersion!==MODEL||body?.season!==SEASON)return NextResponse.json({ok:false,error:"Feil modellversjon eller sesong."},{status:400});
-    if(Number(body?.blockingCount)!==0||Number(body?.missingPositionCount)!==0)return NextResponse.json({ok:false,error:"Publisering blokkert: preview har reelle kontrollsaker eller manglende posisjoner."},{status:409});
+    const blockingRaw=body?.blockingCount ?? body?.realReviewCount;
+    const blockingCount=Number(blockingRaw);
+    const missingPositionCount=Number(body?.missingPositionCount);
+    if(!Number.isFinite(blockingCount)||!Number.isFinite(missingPositionCount))return NextResponse.json({ok:false,error:"Publisering blokkert: preview-kontrollfeltene mangler eller er ugyldige."},{status:400});
+    if(blockingCount!==0||missingPositionCount!==0)return NextResponse.json({ok:false,error:"Publisering blokkert: preview har reelle kontrollsaker eller manglende posisjoner."},{status:409});
     const rows=Array.isArray(body?.rows)?body.rows:[];
     if(rows.length!==EXPECTED)return NextResponse.json({ok:false,error:`Forventet ${EXPECTED} spillere, fikk ${rows.length}.`},{status:400});
     const seen=new Set<string>();
