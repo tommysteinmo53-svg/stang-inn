@@ -6,7 +6,7 @@ export type ImportEstimateV43 = { raw:number; prior:number; weight:number; trans
 
 export const NEW_PLAYER_PRIOR_M: Record<V43Position, number> = { C:6.5, W:6.0, D:4.5, G:7.0 };
 export const LEAGUE_TRANSLATION_V43: Record<string, number> = {
-  NHL:1.08,AHL:1.04,SHL:1.00,Liiga:0.98,NL:0.98,DEL:0.92,HockeyAllsvenskan:0.78,ICEHL:0.76,Slovakia:0.75,ECHL:0.72,EIHL:0.70,"Metal Ligaen":0.66,Poland:0.62,Mestis:0.62,Latvia:0.62,HockeyEttan:0.56,USHL:0.50,NAHL:0.44,Norway2:0.45,"J20 Nationell":0.36,"Norway U20":0.30,"Norway U18":0.22,
+  NHL:1.08,AHL:1.04,SHL:1.00,Liiga:0.98,NL:0.98,DEL:0.92,HockeyAllsvenskan:0.78,ICEHL:0.76,Slovakia:0.75,ECHL:0.72,EIHL:0.70,"Metal Ligaen":0.66,Poland:0.62,Mestis:0.62,USports:0.60,Latvia:0.62,HockeyEttan:0.56,CEHL:0.50,USHL:0.50,NAHL:0.44,Norway2:0.45,"J20 Nationell":0.36,"Norway U20":0.30,"Norway U18":0.22,
 };
 const BOUNDS: Record<V43Position,[number,number]>={C:[3.5,18],W:[3,18],D:[2,14],G:[4,17]};
 
