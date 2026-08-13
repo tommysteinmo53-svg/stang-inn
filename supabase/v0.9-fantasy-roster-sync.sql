@@ -1,6 +1,8 @@
 -- Stang Inn Fantasy Hockey – v0.9
 -- Atomic sync of the current HockeyLive roster into fantasy_players.
+-- HockeyLive/NIF external_id is the primary identity; exact active name is fallback.
 -- Does NOT deactivate stale players outside the supplied roster.
+-- Does NOT publish or change fantasy prices.
 
 create or replace function sync_fantasy_roster_2026(
   p_rows jsonb,
@@ -20,11 +22,13 @@ declare
   v_external text;
   v_count integer;
   v_matches integer;
+  v_name_matches integer;
   v_player fantasy_players%rowtype;
   v_inserted integer := 0;
   v_updated integer := 0;
+  v_id_matched integer := 0;
+  v_name_matched integer := 0;
   v_duplicate_fixed integer := 0;
-  v_conflicts integer;
 begin
   if jsonb_typeof(p_rows) <> 'array' then
     raise exception 'Roster payload must be a JSON array';
@@ -39,7 +43,7 @@ begin
     raise exception 'Publisher is not an admin';
   end if;
 
-  -- Resolve the one verified duplicate without deleting historical rows.
+  -- Resolve the one verified Joakim duplicate without deleting historical rows.
   if p_duplicate_keep is not null and p_duplicate_drop is not null then
     if not exists(select 1 from fantasy_players where id = p_duplicate_keep)
        or not exists(select 1 from fantasy_players where id = p_duplicate_drop) then
@@ -71,25 +75,58 @@ begin
       raise exception 'Invalid/missing position for %: %', v_name, v_position;
     end if;
 
-    select count(*) into v_matches
-    from fantasy_players fp
-    where fp.active=true and lower(fp.name)=lower(v_name);
+    v_player := null;
+    v_matches := 0;
 
-    if v_matches > 1 then
-      raise exception 'Ambiguous active fantasy_players match for %: %', v_name, v_matches;
-    end if;
-
+    -- Primary identity: HockeyLive/NIF external ID, including inactive historical rows.
     if v_external is not null then
-      select count(*) into v_conflicts
+      select count(*) into v_matches
       from fantasy_players fp
-      where fp.external_id=v_external
-        and not (fp.active=true and lower(fp.name)=lower(v_name));
-      if v_conflicts > 0 then
-        raise exception 'External ID conflict for %: %', v_name, v_external;
+      where fp.external_id = v_external;
+
+      if v_matches > 1 then
+        raise exception 'Ambiguous external ID for %: % (% rows)', v_name, v_external, v_matches;
+      end if;
+
+      if v_matches = 1 then
+        select * into v_player
+        from fantasy_players fp
+        where fp.external_id = v_external
+        limit 1;
+
+        -- A different active row must not already own the incoming canonical name.
+        select count(*) into v_name_matches
+        from fantasy_players fp
+        where fp.active=true
+          and lower(fp.name)=lower(v_name)
+          and fp.id<>v_player.id;
+        if v_name_matches > 0 then
+          raise exception 'Identity conflict for %: external ID % maps to %, but another active row has the roster name', v_name, v_external, v_player.name;
+        end if;
+
+        update fantasy_players
+        set name=v_name,
+            team=v_team,
+            position=v_position,
+            active=true,
+            updated_at=now()
+        where id=v_player.id;
+        v_updated := v_updated + 1;
+        v_id_matched := v_id_matched + 1;
+        continue;
       end if;
     end if;
 
-    if v_matches = 1 then
+    -- Fallback identity: exact active name when no external-ID row exists.
+    select count(*) into v_name_matches
+    from fantasy_players fp
+    where fp.active=true and lower(fp.name)=lower(v_name);
+
+    if v_name_matches > 1 then
+      raise exception 'Ambiguous active fantasy_players match for %: %', v_name, v_name_matches;
+    end if;
+
+    if v_name_matches = 1 then
       select * into v_player
       from fantasy_players fp
       where fp.active=true and lower(fp.name)=lower(v_name)
@@ -103,6 +140,7 @@ begin
           updated_at=now()
       where id=v_player.id;
       v_updated := v_updated + 1;
+      v_name_matched := v_name_matched + 1;
     else
       insert into fantasy_players(external_id,name,team,position,price,active)
       values(v_external,v_name,v_team,v_position,null,true);
@@ -114,6 +152,8 @@ begin
     'rosterCount',v_count,
     'inserted',v_inserted,
     'updated',v_updated,
+    'idMatched',v_id_matched,
+    'nameMatched',v_name_matched,
     'duplicateFixed',v_duplicate_fixed
   );
 end;
