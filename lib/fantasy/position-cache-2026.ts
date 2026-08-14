@@ -34,7 +34,7 @@ export const POSITION_CACHE_2026: Record<string, CachedPosition> = {
   "Daniel Lebedeff": { position: "G", source: "EliteProspects" },
   "Jack Avery York": { position: "D", source: "EliteProspects", sourceNote: "EP: Jack York (D)" },
 
-  "Isac Elias Farmen Andersen": { position: "W", source: "Manual", sourceNote: "Manuelt verifisert: wing" },
+  "Isac Tomas Andersson": { position: "C", source: "EliteProspects", sourceNote: "EP: Isac Andersson (C/LW), Vimmerby HC to Ringerike 2026/27; fantasy mapping keeps C" },
   "Iver Wick Karlsen": { position: "W", source: "EliteProspects", sourceNote: "EP: F" },
   "Jørgen Rønning": { position: "G", source: "EliteProspects" },
   "Kim Robin Bjørnstad": { position: "D", source: "EliteProspects", sourceNote: "EP: Robin Bjørnstad (D)" },
