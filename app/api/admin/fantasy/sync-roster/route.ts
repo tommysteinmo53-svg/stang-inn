@@ -27,7 +27,7 @@ export async function POST(request:NextRequest){
     const body=await request.json();
     if(body?.confirmation!==CONFIRM)return NextResponse.json({ok:false,error:`Skriv nøyaktig «${CONFIRM}».`},{status:400});
     const rows=Array.isArray(body?.rows)?body.rows:[];
-    if(rows.length!==243)return NextResponse.json({ok:false,error:`Uventet rosterstørrelse: ${rows.length}. Forventet 243.`},{status:400});
+    if(rows.length!==244)return NextResponse.json({ok:false,error:`Uventet rosterstørrelse: ${rows.length}. Forventet 244.`},{status:400});
 
     const seen=new Set<string>(),duplicates:string[]=[];
     for(const r of rows){const name=String(r?.name||"").trim(),k=name.toLocaleLowerCase("nb-NO");if(seen.has(k))duplicates.push(name);else seen.add(k)}
