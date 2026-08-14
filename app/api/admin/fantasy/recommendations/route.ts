@@ -20,5 +20,19 @@ export async function GET(request:NextRequest){
   if(!sb)return NextResponse.json({ok:false,error:"Supabase-konfigurasjon mangler."},{status:503});
   const{data,error}=await sb.rpc("get_fantasy_recommendation_data_admin_v1",{p_season:"2026/27"});
   if(error)return NextResponse.json({ok:false,error:error.message},{status:500});
-  return NextResponse.json({ok:true,rows:data||[]});
+
+  // The command-center UI originally required >=5 current-season games before a player
+  // could enter Spillerradar. xFP v2 now has a validated 2025/26 baseline, so medium/high
+  // historical confidence is sufficient during preseason and games 1-4. Keep the actual
+  // current-season game count separately for diagnostics while exposing an eligibility count
+  // compatible with the existing UI. Low-confidence priors remain excluded.
+  const rows=(data||[]).map((row:any)=>({
+    ...row,
+    actual_games_scored:Number(row.games_scored||0),
+    games_scored:row.data_confidence!=="low"
+      ?Math.max(5,Number(row.games_scored||0))
+      :Number(row.games_scored||0),
+  }));
+
+  return NextResponse.json({ok:true,rows});
 }
