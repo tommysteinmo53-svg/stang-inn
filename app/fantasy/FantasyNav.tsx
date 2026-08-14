@@ -9,10 +9,10 @@ const items=[
  {href:"/fantasy/leaderboard",label:"Leaderboard",icon:"🏆"},
  {href:"/fantasy/achievements",label:"Achievements",icon:"🔥"},
  {href:"/fantasy/rounds",label:"Runder",icon:"📅"},
- {href:"/fantasy/scoring",label:"Regler",icon:"📖"},
+ {href:"/fantasy/rules",label:"Regler",icon:"📖"},
 ];
 
-const productionPrefixes=["/fantasy/play","/fantasy/team","/fantasy/my-rounds","/fantasy/leaderboard","/fantasy/achievements","/fantasy/rounds","/fantasy/scoring"];
+const productionPrefixes=["/fantasy/play","/fantasy/team","/fantasy/my-rounds","/fantasy/leaderboard","/fantasy/achievements","/fantasy/rounds","/fantasy/rules"];
 
 export default function FantasyNav(){
  const pathname=usePathname();
