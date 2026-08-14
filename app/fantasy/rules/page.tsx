@@ -1,4 +1,5 @@
 import "../fantasy.css";
+import "./rules.css";
 
 const skaterRows=[
  {event:"Deltakelse i kamp",forward:"+2",defense:"+2",goalie:"+2",note:"Gis når spilleren faktisk deltar."},
