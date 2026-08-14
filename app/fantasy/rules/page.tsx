@@ -17,12 +17,12 @@ const goalieRows=[
  {event:"Shutout",points:"+10",note:"Når keeperen spiller og holder nullen."},
 ];
 
-const disabledRows=[
- {event:"Overtallsmål (PP)",points:"0",note:"Registreres, men gir ingen ekstra bonus utover ordinært mål."},
- {event:"Overtallsassist (PP)",points:"0",note:"Registreres, men gir ingen ekstra bonus utover ordinær assist."},
- {event:"Undertallsmål (SH)",points:"0",note:"Registreres, men gir ingen ekstra bonus utover ordinært mål."},
- {event:"Undertallsassist (SH)",points:"0",note:"Registreres, men gir ingen ekstra bonus utover ordinær assist."},
- {event:"Vunnet dropp",points:"0",note:"Faceoffs registreres, men gir foreløpig ingen fantasy-poeng."},
+const bonusRows=[
+ {event:"Overtallsmål (PP)",points:"+2",note:"Ekstra bonus i tillegg til ordinære målpoeng."},
+ {event:"Overtallsassist (PP)",points:"+1",note:"Ekstra bonus i tillegg til ordinære assistpoeng."},
+ {event:"Undertallsmål (SH)",points:"+6",note:"Ekstra bonus i tillegg til ordinære målpoeng."},
+ {event:"Undertallsassist (SH)",points:"+4",note:"Ekstra bonus i tillegg til ordinære assistpoeng."},
+ {event:"Vunnet dropp",points:"+0,25",note:"Per vunnet dropp."},
 ];
 
 export default function FantasyRulesPage(){
@@ -65,9 +65,9 @@ export default function FantasyRulesPage(){
   </section>
 
   <section className="rules-section team-panel">
-   <p className="eyebrow">REGISTRERES, MEN GIR IKKE EKSTRAPOENG NÅ</p><h2>Special teams og faceoffs</h2>
-   <div className="rules-table-wrap"><table className="rules-table rules-table-simple"><thead><tr><th>Hendelse</th><th>Ekstra poeng</th><th>Forklaring</th></tr></thead><tbody>{disabledRows.map(r=><tr key={r.event}><td><strong>{r.event}</strong></td><td>{r.points}</td><td>{r.note}</td></tr>)}</tbody></table></div>
-   <p className="rules-footnote">Et overtallsmål gir fortsatt ordinære målpoeng. Det er bare den separate PP-bonusen som står til 0.</p>
+   <p className="eyebrow">BONUSPOENG</p><h2>Special teams og faceoffs</h2>
+   <div className="rules-table-wrap"><table className="rules-table rules-table-simple"><thead><tr><th>Hendelse</th><th>Ekstra poeng</th><th>Forklaring</th></tr></thead><tbody>{bonusRows.map(r=><tr key={r.event}><td><strong>{r.event}</strong></td><td>{r.points}</td><td>{r.note}</td></tr>)}</tbody></table></div>
+   <p className="rules-footnote">PP- og SH-poengene er bonuspoeng. Et mål eller en assist i special teams gir derfor både ordinære mål-/assistpoeng og bonusen over. Vunnet dropp gir 0,25 poeng per seier.</p>
   </section>
 
   <section className="rules-section team-panel">
