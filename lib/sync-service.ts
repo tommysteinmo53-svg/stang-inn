@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getMatchProvider, type ProviderName } from "./providers";
 import { fetchHockeyLiveStandings } from "./providers/hockeylive";
 import { scoreFinishedMatches } from "./score-engine";
+import { syncFantasySchedule } from "./fantasy/import-service";
 import type { ImportedMatch } from "../types/data-provider";
 
 export type SyncResult = {
@@ -13,6 +14,21 @@ export type SyncResult = {
   tipsChanged: number;
   standingsImported?: number;
   standingsError?: string;
+  fantasyScheduleImported?: number;
+  fantasyAutomation?: {
+    dueRounds: number;
+    teamsChecked: number;
+    snapshotsCreated: number;
+    alreadyFrozen: number;
+    snapshotErrors: number;
+    readyRounds: number;
+    scoredRounds: number;
+    scoredSnapshots: number;
+    skippedUnfinished: number;
+    skippedPointsNotReady: number;
+    statusUpdates: number;
+  };
+  fantasyError?: string;
   error?: string;
 };
 
@@ -29,6 +45,11 @@ function canonicalStandingTeam(name: string) {
   if (value.includes("nidaros")) return "Nidaros";
   if (value.includes("ringerike")) return "Ringerike";
   return name.trim();
+}
+
+function firstRpcRow(data: any) {
+  if (Array.isArray(data)) return data[0] ?? null;
+  return data ?? null;
 }
 
 export async function syncMatches(providerName: ProviderName = "hockeylive", manualMatches: ImportedMatch[] = []): Promise<SyncResult> {
@@ -138,6 +159,43 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
       }
     }
 
+    let fantasyScheduleImported: number | undefined;
+    let fantasyAutomation: SyncResult["fantasyAutomation"];
+    let fantasyError: string | undefined;
+
+    if (providerName === "hockeylive") {
+      try {
+        const schedule = await syncFantasySchedule();
+        fantasyScheduleImported = schedule.imported;
+
+        const fantasySeason = process.env.NIF_SEASON_LABEL || "2026/27";
+        const { data: automationData, error: automationError } = await supabase.rpc(
+          "process_fantasy_rounds_automation",
+          { p_season: fantasySeason, p_include_test_rounds: false },
+        );
+        if (automationError) throw automationError;
+
+        const automation = firstRpcRow(automationData);
+        if (automation) {
+          fantasyAutomation = {
+            dueRounds: Number(automation.due_rounds ?? 0),
+            teamsChecked: Number(automation.teams_checked ?? 0),
+            snapshotsCreated: Number(automation.snapshots_created ?? 0),
+            alreadyFrozen: Number(automation.already_frozen ?? 0),
+            snapshotErrors: Number(automation.snapshot_errors ?? 0),
+            readyRounds: Number(automation.ready_rounds ?? 0),
+            scoredRounds: Number(automation.scored_rounds ?? 0),
+            scoredSnapshots: Number(automation.scored_snapshots ?? 0),
+            skippedUnfinished: Number(automation.skipped_unfinished ?? 0),
+            skippedPointsNotReady: Number(automation.skipped_points_not_ready ?? 0),
+            statusUpdates: Number(automation.status_updates ?? 0),
+          };
+        }
+      } catch (error: any) {
+        fantasyError = error?.message || "Ukjent feil ved Fantasy-livssyklus";
+      }
+    }
+
     const result: SyncResult = {
       ok: true,
       provider: provider.name,
@@ -147,6 +205,9 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
       tipsChanged: scoring.tipsChanged + reopenedTipsCleared,
       standingsImported,
       ...(standingsError ? { standingsError } : {}),
+      ...(fantasyScheduleImported !== undefined ? { fantasyScheduleImported } : {}),
+      ...(fantasyAutomation ? { fantasyAutomation } : {}),
+      ...(fantasyError ? { fantasyError } : {}),
     };
 
     await supabase.from("sync_runs").insert({
