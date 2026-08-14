@@ -51,12 +51,12 @@ as $$
     select
       s.month_start,
       s.team_id,
-      max(s.user_id) as user_id,
+      s.user_id,
       sum(s.total_points)::numeric as monthly_points,
       count(*)::bigint as rounds_scored,
       count(*) filter(where s.round_rank=1)::bigint as round_wins
     from scored s
-    group by s.month_start,s.team_id
+    group by s.month_start,s.team_id,s.user_id
   ), ranked as (
     select
       m.*,
