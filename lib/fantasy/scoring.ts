@@ -13,6 +13,21 @@ export type FantasyStatLine = {
   goalsAgainst?: number | null;
   win?: boolean | null;
   shutout?: boolean | null;
+  powerplayGoals?: number | null;
+  powerplayAssists?: number | null;
+  shorthandedGoals?: number | null;
+  shorthandedAssists?: number | null;
+  faceoffsWon?: number | null;
+  faceoffsTaken?: number | null;
+};
+
+export type FantasyScoringConfig = {
+  powerplayGoalBonus?: number;
+  powerplayAssistBonus?: number;
+  shorthandedGoalBonus?: number;
+  shorthandedAssistBonus?: number;
+  faceoffWinPoints?: number;
+  faceoffWinBonus?: number;
 };
 
 export type FantasyPointBreakdown = {
@@ -26,6 +41,12 @@ export type FantasyPointBreakdown = {
   goalsAgainst: number;
   shutout: number;
   win: number;
+  powerplayGoals: number;
+  powerplayAssists: number;
+  shorthandedGoals: number;
+  shorthandedAssists: number;
+  faceoffsWon: number;
+  faceoffBonus: number;
   total: number;
 };
 
@@ -33,7 +54,10 @@ function n(value: number | null | undefined) {
   return Number.isFinite(Number(value)) ? Number(value) : 0;
 }
 
-export function calculate19FantasyPoints(stat: FantasyStatLine): FantasyPointBreakdown {
+export function calculate19FantasyPoints(
+  stat: FantasyStatLine,
+  config: FantasyScoringConfig = {},
+): FantasyPointBreakdown {
   const position = String(stat.position || "W").toUpperCase() as FantasyPosition;
   const isGoalie = position === "G";
   // HockeyLive does not always expose goalie TOI. Saves/GA are therefore authoritative evidence
@@ -57,6 +81,36 @@ export function calculate19FantasyPoints(stat: FantasyStatLine): FantasyPointBre
   const shutout = isGoalie && actuallyPlayed && Boolean(stat.shutout) ? 10 : 0;
   const win = isGoalie && actuallyPlayed && Boolean(stat.win) ? 5 : 0;
 
-  const total = participation + goals + assists + shots + plusMinus + pim + saves + goalsAgainst + shutout + win;
-  return { participation, goals, assists, shots, plusMinus, pim, saves, goalsAgainst, shutout, win, total };
+  // Special-teams and faceoff rules are deliberately separate from ordinary goal/assist scoring.
+  // Their configured values currently default to zero, so introducing these fields cannot change
+  // historical totals until an admin explicitly configures a non-zero rule.
+  const powerplayGoals = n(stat.powerplayGoals) * n(config.powerplayGoalBonus);
+  const powerplayAssists = n(stat.powerplayAssists) * n(config.powerplayAssistBonus);
+  const shorthandedGoals = n(stat.shorthandedGoals) * n(config.shorthandedGoalBonus);
+  const shorthandedAssists = n(stat.shorthandedAssists) * n(config.shorthandedAssistBonus);
+  const faceoffsWon = n(stat.faceoffsWon) * n(config.faceoffWinPoints);
+  const faceoffBonus = n(stat.faceoffsWon) > 0 ? n(config.faceoffWinBonus) : 0;
+
+  const total = participation + goals + assists + shots + plusMinus + pim + saves + goalsAgainst + shutout + win
+    + powerplayGoals + powerplayAssists + shorthandedGoals + shorthandedAssists + faceoffsWon + faceoffBonus;
+
+  return {
+    participation,
+    goals,
+    assists,
+    shots,
+    plusMinus,
+    pim,
+    saves,
+    goalsAgainst,
+    shutout,
+    win,
+    powerplayGoals,
+    powerplayAssists,
+    shorthandedGoals,
+    shorthandedAssists,
+    faceoffsWon,
+    faceoffBonus,
+    total,
+  };
 }
