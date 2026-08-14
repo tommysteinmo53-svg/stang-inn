@@ -20,7 +20,7 @@ create or replace function get_my_fantasy_round_details_v1(
   calculated_at timestamptz,
   player_id uuid,
   player_name text,
-  position text,
+  player_position text,
   player_team text,
   is_captain boolean,
   is_vice_captain boolean,
