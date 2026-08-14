@@ -3,6 +3,7 @@ import { getMatchProvider, type ProviderName } from "./providers";
 import { fetchHockeyLiveStandings } from "./providers/hockeylive";
 import { scoreFinishedMatches } from "./score-engine";
 import { syncFantasySchedule } from "./fantasy/import-service";
+import { processFinishedFantasyGames } from "./fantasy/production-import";
 import type { ImportedMatch } from "../types/data-provider";
 
 export type SyncResult = {
@@ -15,6 +16,15 @@ export type SyncResult = {
   standingsImported?: number;
   standingsError?: string;
   fantasyScheduleImported?: number;
+  fantasyGames?: {
+    finishedGames: number;
+    alreadyComplete: number;
+    queued: number;
+    processed: number;
+    failed: number;
+    invalidExternalIds: number;
+    errors: any[];
+  };
   fantasyAutomation?: {
     dueRounds: number;
     teamsChecked: number;
@@ -50,6 +60,41 @@ function canonicalStandingTeam(name: string) {
 function firstRpcRow(data: any) {
   if (Array.isArray(data)) return data[0] ?? null;
   return data ?? null;
+}
+
+function automationResult(row: any): NonNullable<SyncResult["fantasyAutomation"]> {
+  return {
+    dueRounds: Number(row?.due_rounds ?? 0),
+    teamsChecked: Number(row?.teams_checked ?? 0),
+    snapshotsCreated: Number(row?.snapshots_created ?? 0),
+    alreadyFrozen: Number(row?.already_frozen ?? 0),
+    snapshotErrors: Number(row?.snapshot_errors ?? 0),
+    readyRounds: Number(row?.ready_rounds ?? 0),
+    scoredRounds: Number(row?.scored_rounds ?? 0),
+    scoredSnapshots: Number(row?.scored_snapshots ?? 0),
+    skippedUnfinished: Number(row?.skipped_unfinished ?? 0),
+    skippedPointsNotReady: Number(row?.skipped_points_not_ready ?? 0),
+    statusUpdates: Number(row?.status_updates ?? 0),
+  };
+}
+
+function combineAutomation(
+  before: NonNullable<SyncResult["fantasyAutomation"]>,
+  after: NonNullable<SyncResult["fantasyAutomation"]>,
+): NonNullable<SyncResult["fantasyAutomation"]> {
+  return {
+    dueRounds: after.dueRounds,
+    teamsChecked: before.teamsChecked + after.teamsChecked,
+    snapshotsCreated: before.snapshotsCreated + after.snapshotsCreated,
+    alreadyFrozen: before.alreadyFrozen + after.alreadyFrozen,
+    snapshotErrors: before.snapshotErrors + after.snapshotErrors,
+    readyRounds: after.readyRounds,
+    scoredRounds: before.scoredRounds + after.scoredRounds,
+    scoredSnapshots: before.scoredSnapshots + after.scoredSnapshots,
+    skippedUnfinished: after.skippedUnfinished,
+    skippedPointsNotReady: after.skippedPointsNotReady,
+    statusUpdates: before.statusUpdates + after.statusUpdates,
+  };
 }
 
 export async function syncMatches(providerName: ProviderName = "hockeylive", manualMatches: ImportedMatch[] = []): Promise<SyncResult> {
@@ -160,6 +205,7 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
     }
 
     let fantasyScheduleImported: number | undefined;
+    let fantasyGames: SyncResult["fantasyGames"];
     let fantasyAutomation: SyncResult["fantasyAutomation"];
     let fantasyError: string | undefined;
 
@@ -167,30 +213,36 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
       try {
         const schedule = await syncFantasySchedule();
         fantasyScheduleImported = schedule.imported;
-
         const fantasySeason = process.env.NIF_SEASON_LABEL || "2026/27";
-        const { data: automationData, error: automationError } = await supabase.rpc(
+
+        // First pass freezes teams as soon as the deadline has passed, independently of match-data imports.
+        const { data: beforeData, error: beforeError } = await supabase.rpc(
           "process_fantasy_rounds_automation",
           { p_season: fantasySeason, p_include_test_rounds: false },
         );
-        if (automationError) throw automationError;
+        if (beforeError) throw beforeError;
+        const before = automationResult(firstRpcRow(beforeData));
 
-        const automation = firstRpcRow(automationData);
-        if (automation) {
-          fantasyAutomation = {
-            dueRounds: Number(automation.due_rounds ?? 0),
-            teamsChecked: Number(automation.teams_checked ?? 0),
-            snapshotsCreated: Number(automation.snapshots_created ?? 0),
-            alreadyFrozen: Number(automation.already_frozen ?? 0),
-            snapshotErrors: Number(automation.snapshot_errors ?? 0),
-            readyRounds: Number(automation.ready_rounds ?? 0),
-            scoredRounds: Number(automation.scored_rounds ?? 0),
-            scoredSnapshots: Number(automation.scored_snapshots ?? 0),
-            skippedUnfinished: Number(automation.skipped_unfinished ?? 0),
-            skippedPointsNotReady: Number(automation.skipped_points_not_ready ?? 0),
-            statusUpdates: Number(automation.status_updates ?? 0),
-          };
-        }
+        // Process only a small queue per five-minute run to stay safely inside the cron timeout.
+        const gameProcessing = await processFinishedFantasyGames({ season: fantasySeason, limit: 3 });
+        fantasyGames = {
+          finishedGames: gameProcessing.finishedGames,
+          alreadyComplete: gameProcessing.alreadyComplete,
+          queued: gameProcessing.queued,
+          processed: gameProcessing.processed,
+          failed: gameProcessing.failed,
+          invalidExternalIds: gameProcessing.invalidExternalIds,
+          errors: gameProcessing.errors,
+        };
+
+        // Second pass can score a round immediately after the last missing game was materialized.
+        const { data: afterData, error: afterError } = await supabase.rpc(
+          "process_fantasy_rounds_automation",
+          { p_season: fantasySeason, p_include_test_rounds: false },
+        );
+        if (afterError) throw afterError;
+        const after = automationResult(firstRpcRow(afterData));
+        fantasyAutomation = combineAutomation(before, after);
       } catch (error: any) {
         fantasyError = error?.message || "Ukjent feil ved Fantasy-livssyklus";
       }
@@ -206,6 +258,7 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
       standingsImported,
       ...(standingsError ? { standingsError } : {}),
       ...(fantasyScheduleImported !== undefined ? { fantasyScheduleImported } : {}),
+      ...(fantasyGames ? { fantasyGames } : {}),
       ...(fantasyAutomation ? { fantasyAutomation } : {}),
       ...(fantasyError ? { fantasyError } : {}),
     };
