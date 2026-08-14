@@ -21,6 +21,7 @@ export const POSITION_CACHE_2026: Record<string, CachedPosition> = {
   "Niilo Ensio Halonen": { position: "G", source: "EliteProspects", sourceNote: "EP: Niilo Halonen (G)" },
   "Oliver Tufte Langland": { position: "W", source: "EliteProspects", sourceNote: "EP: RW" },
   "Viljami Arvid Juusola": { position: "D", source: "EliteProspects", sourceNote: "EP: Viljami Juusola (D)" },
+  "Santeri Arvo Sakari Hartikainen": { position: "C", source: "EliteProspects", sourceNote: "EP player 277086: Santeri Hartikainen (C/RW); fantasy mapping keeps C" },
 
   "Anton Karl Yngve Hjalmarsson": { position: "G", source: "EliteProspects", sourceNote: "EP: Anton Hjalmarsson (G)" },
   "Isak Anders Samuel Pantzare": { position: "D", source: "EliteProspects", sourceNote: "EP: Isak Pantzare (D)" },
