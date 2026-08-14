@@ -6,6 +6,7 @@ import "./round-carousel.css";
 import "./home-live-table.css";
 import "./awards.css";
 import AuthGate from "../components/AuthGate";
+import AuthReturnRedirect from "../components/AuthReturnRedirect";
 import AnnouncementBanner from "../components/AnnouncementBanner";
 import GlobalMobileNav from "../components/GlobalMobileNav";
 import TopStatusBar from "../components/TopStatusBar";
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="no">
       <body>
+        <AuthReturnRedirect />
         <TopStatusBar />
         <AuthGate>
           <PremiumNextMatch />
