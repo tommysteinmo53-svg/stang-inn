@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../../lib/supabase";
 import styles from "./page.module.css";
 
+const AUTH_RETURN_KEY="stanginn_auth_return";
 function safeNext(value:string|null){
  if(!value||!value.startsWith("/")||value.startsWith("//"))return "/";
  return value;
@@ -26,14 +27,21 @@ export default function LoginPage() {
     });
   }, [next]);
 
+  function rememberReturn(){
+    if(next!=="/")window.localStorage.setItem(AUTH_RETURN_KEY,next);
+    else window.localStorage.removeItem(AUTH_RETURN_KEY);
+  }
+
   async function signInWithGoogle() {
     if (!isSupabaseConfigured) { setMessage("Supabase er ikke koblet til ennå."); return; }
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
+    rememberReturn();
     setGoogleLoading(true); setMessage("");
+    const callback=next==="/"?`${window.location.origin}/`:`${window.location.origin}/?next=${encodeURIComponent(next)}`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}${next}` },
+      options: { redirectTo: callback },
     });
     if (error) { setGoogleLoading(false); setMessage(`${error.message}${error.status ? ` (HTTP ${error.status})` : ""}`); }
   }
@@ -43,10 +51,12 @@ export default function LoginPage() {
     if (!isSupabaseConfigured) { setMessage("Supabase er ikke koblet til ennå. Legg inn miljøvariablene først."); return; }
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
+    rememberReturn();
     setLoading(true); setMessage("");
+    const callback=next==="/"?`${window.location.origin}/`:`${window.location.origin}/?next=${encodeURIComponent(next)}`;
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options:{ emailRedirectTo:`${window.location.origin}${next}` },
+      options:{ emailRedirectTo:callback },
     });
     setLoading(false);
     setMessage(error ? `${error.message}${error.status ? ` (HTTP ${error.status})` : ""}` : "Innloggingslenken er sendt. Sjekk e-posten din 🏒");
