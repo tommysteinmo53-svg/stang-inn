@@ -6,6 +6,7 @@ import { getSupabaseBrowserClient } from "../../../lib/supabase";
 type RoundRow={round_id:string;round_no:number;round_name:string|null;deadline_at:string;status:string;game_count:number;snapshot_count:number};
 type TeamScore={team_round_points_id:string;snapshot_id:string;team_id:string;user_id:string;team_name:string;base_points:number;captain_bonus:number;vice_captain_bonus:number;total_points:number;player_rows:number;calculated_at:string};
 type PlayerBreakdown={player_id:string;player_name:string;player_position:string;team:string;is_captain:boolean;is_vice_captain:boolean;played:boolean;games_played:number;raw_points:number;multiplier:number;bonus_points:number;total_points:number};
+type TestResult={scenario_name:string;round_no:number;expected_base_points:number;actual_base_points:number;expected_captain_bonus:number;actual_captain_bonus:number;expected_vice_bonus:number;actual_vice_bonus:number;expected_total_points:number;actual_total_points:number;player_rows:number;passed:boolean};
 
 export default function FantasyScoringAdmin(){
  const season="2026/27";
@@ -15,6 +16,7 @@ export default function FantasyScoringAdmin(){
  const[scores,setScores]=useState<TeamScore[]>([]);
  const[breakdowns,setBreakdowns]=useState<Record<string,PlayerBreakdown[]>>({});
  const[openScore,setOpenScore]=useState<string|null>(null);
+ const[testResults,setTestResults]=useState<TestResult[]>([]);
  const[busy,setBusy]=useState(false);
  const[message,setMessage]=useState("");
 
@@ -27,8 +29,8 @@ export default function FantasyScoringAdmin(){
   const sb=getSupabaseBrowserClient();if(!sb)return;
   const{data,error}=await sb.rpc("get_fantasy_round_admin_overview",{p_season:season});
   if(error){setMessage(`Kunne ikke hente runder: ${error.message}`);return}
-  const rows=(data||[]) as RoundRow[];setRounds(rows);
-  if(!selectedRound&&rows.length)setSelectedRound(rows[0].round_id);
+  const rows=(data||[]) as RoundRow[];setRounds(rows.filter(r=>r.round_no<9000));
+  if(!selectedRound&&rows.length)setSelectedRound(rows.find(r=>r.round_no<9000)?.round_id||"");
  }
  useEffect(()=>{if(allowed)loadRounds()},[allowed]);
  useEffect(()=>{if(selectedRound)loadScores(selectedRound)},[selectedRound]);
@@ -53,6 +55,39 @@ export default function FantasyScoringAdmin(){
   }catch(e:any){setMessage(`Poengberegning feilet: ${e?.message||"ukjent feil"}`)}finally{setBusy(false)}
  }
 
+ async function setupTest(){
+  setBusy(true);setTestResults([]);setMessage("Oppretter isolerte scoring-tester …");
+  try{
+   const sb=getSupabaseBrowserClient();if(!sb)throw new Error("Supabase er ikke tilgjengelig");
+   const{data,error}=await sb.rpc("create_fantasy_scoring_e2e_test",{p_season:season});
+   if(error)throw error;
+   const rows=(data||[]) as any[];
+   setMessage(`Scoring-test opprettet: ${rows.length} scenarier. A forventer 30 FP med kapteinbonus; B forventer 17 FP med visekaptein-fallback.`);
+  }catch(e:any){setMessage(`Kunne ikke opprette scoring-test: ${e?.message||"ukjent feil"}`)}finally{setBusy(false)}
+ }
+
+ async function runTest(){
+  setBusy(true);setMessage("Kjører scoring-test …");
+  try{
+   const sb=getSupabaseBrowserClient();if(!sb)throw new Error("Supabase er ikke tilgjengelig");
+   const{data,error}=await sb.rpc("run_fantasy_scoring_e2e_test",{p_season:season});
+   if(error)throw error;
+   const rows=(data||[]) as TestResult[];setTestResults(rows);
+   const passed=rows.filter(r=>r.passed).length;
+   setMessage(`Scoring-test: ${passed}/${rows.length} scenarier bestått.`);
+  }catch(e:any){setMessage(`Scoring-test feilet: ${e?.message||"ukjent feil"}`)}finally{setBusy(false)}
+ }
+
+ async function cleanupTest(){
+  setBusy(true);
+  try{
+   const sb=getSupabaseBrowserClient();if(!sb)throw new Error("Supabase er ikke tilgjengelig");
+   const{data,error}=await sb.rpc("cleanup_fantasy_scoring_e2e_test",{p_season:season});
+   if(error)throw error;
+   setTestResults([]);await loadRounds();setMessage(`Scoring-test ryddet bort · ${Number(data||0)} testobjekter slettet. Ekte 2026/27-runder og kampdata er urørt.`);
+  }catch(e:any){setMessage(`Opprydding feilet: ${e?.message||"ukjent feil"}`)}finally{setBusy(false)}
+ }
+
  async function toggleBreakdown(score:TeamScore){
   if(openScore===score.team_round_points_id){setOpenScore(null);return}
   setOpenScore(score.team_round_points_id);
@@ -71,6 +106,18 @@ export default function FantasyScoringAdmin(){
   <p style={{fontWeight:700,letterSpacing:1,fontSize:12}}>STANG INN · ADMIN</p>
   <h1>Fantasy-poeng 2026/27</h1>
   <p>Rundepoeng beregnes fra det låste snapshotet. Kaptein får sesongens kapteinsmultiplikator dersom han har registrert kampstatistikk i runden. Hvis kapteinen ikke spiller, overtar visekapteinen multiplikatoren.</p>
+
+  <section style={{padding:16,border:"1px solid #d1d5db",borderRadius:12,margin:"20px 0"}}>
+   <h2 style={{marginTop:0,fontSize:20}}>Scoring E2E-test</h2>
+   <p>Isolert test av kaptein ×2 og visekaptein-fallback. Testen bruker runde 9997/9998 og egne testkamper som kan slettes helt etterpå.</p>
+   <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+    <button onClick={setupTest} disabled={busy} style={{padding:"10px 14px"}}>1. Opprett scoring-test</button>
+    <button onClick={runTest} disabled={busy} style={{padding:"10px 14px"}}>2. Kjør og kontroller</button>
+    <button onClick={cleanupTest} disabled={busy} style={{padding:"10px 14px"}}>3. Rydd test</button>
+   </div>
+   {testResults.length>0&&<div style={{display:"grid",gap:8,marginTop:12}}>{testResults.map(r=><div key={r.round_no} style={{padding:10,background:"#fff",color:"#000",border:"1px solid #d1d5db",borderRadius:8}}><b>{r.passed?"✅":"❌"} {r.scenario_name}</b> · base {n(r.actual_base_points)}/{n(r.expected_base_points)} · C-bonus {n(r.actual_captain_bonus)}/{n(r.expected_captain_bonus)} · VC-bonus {n(r.actual_vice_bonus)}/{n(r.expected_vice_bonus)} · total <b>{n(r.actual_total_points)}/{n(r.expected_total_points)} FP</b> · {r.player_rows}/12 spillerrader</div>)}</div>}
+  </section>
+
   <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",margin:"20px 0"}}>
    <select value={selectedRound} onChange={e=>setSelectedRound(e.target.value)} style={{padding:"10px 12px"}}>
     {rounds.map(r=><option key={r.round_id} value={r.round_id}>Fantasy-runde {r.round_no} · {r.snapshot_count} snapshots</option>)}
