@@ -2,8 +2,8 @@
 -- Separate official EHL round_no from calendar-based fantasy rounds.
 -- Official fantasy_games.round_no remains untouched.
 -- fantasy_round_no is assigned by actual game date to the nearest round anchor.
--- Each anchor is the median actual start time of the 5 games in an official EHL round.
--- This naturally moves postponed/advanced games into the fantasy round where they are actually played.
+-- Each anchor is the median actual start time of the games in an official EHL round.
+-- Postponed/advanced games therefore move to the fantasy round where they are actually played.
 
 alter table fantasy_games
   add column if not exists fantasy_round_no integer;
@@ -28,8 +28,6 @@ as $$
 declare
   v_user uuid := auth.uid();
   v_anchor record;
-  v_game record;
-  v_existing fantasy_rounds%rowtype;
   v_rounds integer := 0;
   v_games integer := 0;
   v_min integer := 0;
@@ -67,7 +65,9 @@ begin
     raise exception 'All games must have official round_no and starts_at before calendar round sync';
   end if;
 
-  -- Build one robust anchor per official EHL round using the median actual game start.
+  drop table if exists _fantasy_round_anchors;
+
+  -- One robust calendar anchor per official EHL round: median actual game start.
   create temporary table _fantasy_round_anchors on commit drop as
   with ranked as (
     select
@@ -97,23 +97,21 @@ begin
     raise exception 'Could not derive fantasy round anchors';
   end if;
 
-  -- Assign each game to the nearest calendar anchor by absolute time distance.
-  -- Ties go to the earlier anchor for deterministic behavior.
+  -- Place every game in the nearest calendar anchor by actual start time.
+  -- Ties go to the earlier anchor, making repeated syncs deterministic.
   update fantasy_games g
-  set fantasy_round_no = pick.fantasy_round_no,
+  set fantasy_round_no = (
+        select a.fantasy_round_no
+        from _fantasy_round_anchors a
+        order by abs(extract(epoch from (g.starts_at-a.anchor_at))), a.anchor_at
+        limit 1
+      ),
       updated_at = now()
-  from lateral (
-    select a.fantasy_round_no
-    from _fantasy_round_anchors a
-    order by abs(extract(epoch from (g.starts_at-a.anchor_at))), a.anchor_at
-    limit 1
-  ) pick
   where g.season=p_season;
 
   get diagnostics v_games = row_count;
 
-  -- Rebuild fantasy_rounds from fantasy_round_no, while official round_no on games stays intact.
-  -- Existing rows can be safely repurposed because snapshots were explicitly prohibited above.
+  -- Rebuild fantasy_rounds from fantasy_round_no. Official g.round_no is untouched.
   for v_anchor in
     select
       g.fantasy_round_no,
@@ -127,10 +125,6 @@ begin
     group by g.fantasy_round_no
     order by g.fantasy_round_no
   loop
-    select * into v_existing
-    from fantasy_rounds
-    where season=p_season and round_no=v_anchor.fantasy_round_no;
-
     insert into fantasy_rounds(
       season,round_no,name,starts_at,deadline_at,ends_at,status,updated_at
     ) values(
@@ -158,7 +152,6 @@ begin
     v_rounds := v_rounds + 1;
   end loop;
 
-  -- Remove obsolete fantasy_round rows if the anchor count changed.
   delete from fantasy_rounds r
   where r.season=p_season
     and not exists (
@@ -167,7 +160,7 @@ begin
         and g.fantasy_round_no=r.round_no
     );
 
-  -- Link games to calendar fantasy rounds, NOT official EHL rounds.
+  -- fantasy_round_id now points to the calendar fantasy round.
   update fantasy_games g
   set fantasy_round_id=r.id,
       updated_at=now()
@@ -177,9 +170,7 @@ begin
     and r.round_no=g.fantasy_round_no
     and g.fantasy_round_id is distinct from r.id;
 
-  select
-    coalesce(min(c),0),
-    coalesce(max(c),0)
+  select coalesce(min(c),0),coalesce(max(c),0)
   into v_min,v_max
   from (
     select count(*)::integer c
@@ -202,8 +193,8 @@ $$;
 revoke all on function sync_fantasy_calendar_rounds_from_games(text) from public;
 grant execute on function sync_fantasy_calendar_rounds_from_games(text) to authenticated;
 
--- Replace admin overview so it reports both fantasy-round game count and how many
--- different official EHL rounds are represented in each fantasy round.
+-- Admin overview: fantasy round size, number of clubs involved and how many
+-- official EHL rounds contribute games to the calendar round.
 drop function if exists get_fantasy_round_admin_overview(text);
 create function get_fantasy_round_admin_overview(
   p_season text
@@ -245,7 +236,7 @@ begin
     count(distinct g.id)::bigint,
     count(distinct s.id)::bigint,
     count(distinct g.round_no)::bigint,
-    count(distinct team_name)::bigint
+    count(distinct teams.team_name)::bigint
   from fantasy_rounds r
   left join fantasy_games g on g.fantasy_round_id=r.id
   left join lateral (
