@@ -30,39 +30,60 @@ function extractMatches(payload:any):Row[]{
 
 async function fetchTournamentMatches(tournamentId:string,season:string){
  const seasonId=SEASON_IDS[season];
- const urls=[
-  seasonId?`${PUBLIC_ROOT}/ta/TournamentMatches/?seasonId=${encodeURIComponent(seasonId)}&tournamentId=${encodeURIComponent(tournamentId)}`:null,
-  `${PUBLIC_ROOT}/ta/TournamentMatches/?tournamentId=${encodeURIComponent(tournamentId)}`
- ].filter(Boolean) as string[];
+ const urls=[seasonId?`${PUBLIC_ROOT}/ta/TournamentMatches/?seasonId=${encodeURIComponent(seasonId)}&tournamentId=${encodeURIComponent(tournamentId)}`:null,`${PUBLIC_ROOT}/ta/TournamentMatches/?tournamentId=${encodeURIComponent(tournamentId)}`].filter(Boolean) as string[];
  let lastStatus=0,lastPayload:any=null,lastUrl=urls[urls.length-1];
- for(const url of urls){
-  lastUrl=url;
-  const response=await fetch(url,{headers:{Accept:"application/json,text/plain,*/*","User-Agent":"StangInn/1.0 fantasy-season-import"},cache:"no-store"});
-  lastStatus=response.status;
-  if(!response.ok)continue;
-  const payload=await response.json();
-  lastPayload=payload;
-  const matches=extractMatches(payload);
-  if(matches.length)return{matches,url,seasonId};
- }
+ for(const url of urls){lastUrl=url;const response=await fetch(url,{headers:{Accept:"application/json,text/plain,*/*","User-Agent":"StangInn/1.0 fantasy-season-import"},cache:"no-store"});lastStatus=response.status;if(!response.ok)continue;const payload=await response.json();lastPayload=payload;const matches=extractMatches(payload);if(matches.length)return{matches,url,seasonId};}
  return{matches:extractMatches(lastPayload),url:lastUrl,seasonId,status:lastStatus};
 }
 
+function deriveRounds(matches:Row[]){
+ const ordered=[...matches].sort((a,b)=>new Date(startTime(a)||0).getTime()-new Date(startTime(b)||0).getTime()||matchIdOf(a)-matchIdOf(b));
+ const teams=[...new Set(ordered.flatMap(r=>[teamName(r,"home"),teamName(r,"away")]).filter(Boolean))];
+ if(teams.length!==10||ordered.length%5!==0)throw new Error(`Kan ikke utlede runder sikkert: ${teams.length} lag og ${ordered.length} kamper (forventet 10 lag og antall kamper delelig på 5).`);
+ const remaining=[...ordered],assigned=new Map<number,number>(),roundSummaries:any[]=[];
+ const findRound=(pool:Row[])=>{
+  if(pool.length<5)return null;
+  const anchor=pool[0],used=new Set([teamName(anchor,"home"),teamName(anchor,"away")]),chosen=[anchor];
+  const search=(from:number):Row[]|null=>{
+   if(chosen.length===5)return used.size===10?[...chosen]:null;
+   for(let i=from;i<Math.min(pool.length,24);i++){
+    const g=pool[i],h=teamName(g,"home"),a=teamName(g,"away");
+    if(!h||!a||used.has(h)||used.has(a))continue;
+    used.add(h);used.add(a);chosen.push(g);
+    const result=search(i+1);if(result)return result;
+    chosen.pop();used.delete(h);used.delete(a);
+   }
+   return null;
+  };
+  return search(1);
+ };
+ let round=1;
+ while(remaining.length){
+  const group=findRound(remaining);
+  if(!group){const g=remaining[0];throw new Error(`Kunne ikke utlede runde ${round} sikkert rundt ${teamName(g,"home")}–${teamName(g,"away")} (${startTime(g)||"ukjent tid"}). Terminlisten må kontrolleres manuelt.`)}
+  const ids=new Set(group.map(matchIdOf));
+  for(const g of group)assigned.set(matchIdOf(g),round);
+  const times=group.map(g=>new Date(startTime(g)||0).getTime()).filter(Number.isFinite);
+  roundSummaries.push({round,matchIds:group.map(matchIdOf),firstStart:new Date(Math.min(...times)).toISOString(),lastStart:new Date(Math.max(...times)).toISOString()});
+  for(let i=remaining.length-1;i>=0;i--)if(ids.has(matchIdOf(remaining[i])))remaining.splice(i,1);
+  remaining.sort((a,b)=>new Date(startTime(a)||0).getTime()-new Date(startTime(b)||0).getTime()||matchIdOf(a)-matchIdOf(b));
+  round++;
+ }
+ if(roundSummaries.some(r=>r.matchIds.length!==5))throw new Error("Rundeutledning feilet: minst én runde har ikke 5 kamper.");
+ return{assigned,roundSummaries,teams};
+}
+
 export async function prepareFantasySeason(tournamentId:string,season:string){
- const fetched=await fetchTournamentMatches(tournamentId,season);
- const matches=fetched.matches;
+ const fetched=await fetchTournamentMatches(tournamentId,season),matches=fetched.matches;
  const valid=matches.filter(r=>matchIdOf(r)>0&&teamName(r,"home")&&teamName(r,"away"));
  if(!valid.length){const sample=matches[0];throw new Error(`Fant 0 gyldige kamper i TournamentMatches for ${season}. seasonId=${fetched.seasonId||"ukjent"}, tournamentId=${tournamentId}, HTTP=${fetched.status||200}. Kandidatrader: ${matches.length}. Felt: ${sample?Object.keys(sample).slice(0,24).join(", "):"ingen"}`)}
- const rows=valid.map(r=>{const hs=score(r,"home"),as=score(r,"away"),iso=startTime(r);return{external_id:`hockeylive:${matchIdOf(r)}`,season,round_no:roundNo(r),starts_at:iso||new Date().toISOString(),home_team:teamName(r,"home"),away_team:teamName(r,"away"),home_score:hs==null?null:num(hs),away_score:as==null?null:num(as),status:isFinished(r)?"finished":"scheduled",updated_at:new Date().toISOString()}});
+ const nativeRoundCount=valid.filter(r=>roundNo(r)!=null).length;
+ let derived:ReturnType<typeof deriveRounds>|null=null;
+ if(nativeRoundCount===0&&season==="2026/27")derived=deriveRounds(valid);
+ const rows=valid.map(r=>{const hs=score(r,"home"),as=score(r,"away"),iso=startTime(r);return{external_id:`hockeylive:${matchIdOf(r)}`,season,round_no:roundNo(r)??derived?.assigned.get(matchIdOf(r))??null,starts_at:iso||new Date().toISOString(),home_team:teamName(r,"home"),away_team:teamName(r,"away"),home_score:hs==null?null:num(hs),away_score:as==null?null:num(as),status:isFinished(r)?"finished":"scheduled",updated_at:new Date().toISOString()}});
  const supabase=serverClient();const{error}=await supabase.from("fantasy_games").upsert(rows,{onConflict:"external_id"});if(error)throw error;
- const explicitlyFinished=valid.filter(isFinished).map(matchIdOf).filter(id=>id>0);
- const pastIds=valid.filter(isPastFixture).map(matchIdOf).filter(id=>id>0);
- const seasonYears=String(season).match(/(20\d{2})\s*\/\s*(\d{2,4})/);
- const startYear=seasonYears?Number(seasonYears[1]):null;
- const currentYear=new Date().getFullYear();
- const historicalSeason=startYear!=null&&startYear<currentYear;
- const useHistoricalFallback=historicalSeason&&explicitlyFinished.length===0;
- const matchIds=[...new Set(useHistoricalFallback?pastIds:explicitlyFinished)];
- const roundValues=[...new Set(valid.map(roundNo).filter((v):v is number=>v!=null))].sort((a,b)=>a-b);
- return{tournamentId,season,seasonId:fetched.seasonId,sourceUrl:fetched.url,totalMatches:valid.length,matchesWithRoundNo:valid.filter(r=>roundNo(r)!=null).length,roundValues,finishedMatches:explicitlyFinished.length,pastMatches:pastIds.length,usedHistoricalFallback:useHistoricalFallback,matchIds,sourceRows:matches.length,sampleFields:Object.keys(matches[0]||{}).slice(0,32)}
+ const explicitlyFinished=valid.filter(isFinished).map(matchIdOf).filter(id=>id>0),pastIds=valid.filter(isPastFixture).map(matchIdOf).filter(id=>id>0);
+ const seasonYears=String(season).match(/(20\d{2})\s*\/\s*(\d{2,4})/),startYear=seasonYears?Number(seasonYears[1]):null,currentYear=new Date().getFullYear(),historicalSeason=startYear!=null&&startYear<currentYear,useHistoricalFallback=historicalSeason&&explicitlyFinished.length===0,matchIds=[...new Set(useHistoricalFallback?pastIds:explicitlyFinished)];
+ const savedRoundValues=[...new Set(rows.map(r=>r.round_no).filter((v):v is number=>v!=null))].sort((a,b)=>a-b);
+ return{tournamentId,season,seasonId:fetched.seasonId,sourceUrl:fetched.url,totalMatches:valid.length,matchesWithRoundNo:rows.filter(r=>r.round_no!=null).length,nativeMatchesWithRoundNo:nativeRoundCount,roundsDerived:Boolean(derived),derivedRoundCount:derived?.roundSummaries.length??0,roundValues:savedRoundValues,finishedMatches:explicitlyFinished.length,pastMatches:pastIds.length,usedHistoricalFallback:useHistoricalFallback,matchIds,sourceRows:matches.length,sampleFields:Object.keys(matches[0]||{}).slice(0,32)}
 }
