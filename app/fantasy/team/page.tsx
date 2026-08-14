@@ -92,7 +92,7 @@ export default function FantasyTeamPage(){
  const linePlayers=(n:1|2)=>chosen.filter(p=>n===1?line1.includes(p.id):!line1.includes(p.id)).sort(lineupOrder);
  const renderPlayer=(p:Player,n:1|2)=>{const alternatives=linePlayers(n===1?2:1).filter(x=>group(x)===group(p));return <div key={p.id} className="team-player-row">
   <span className={`team-pos team-pos-${group(p).toLowerCase()}`}>{group(p)}</span>
-  <div className="team-player-main"><strong>{p.name}</strong><small>{p.team} · {p.position}</small></div>
+  <div className="team-player-main"><strong onClick={()=>window.location.assign(`/fantasy/players/${p.id}`)} title="Åpne spillerprofil" style={{cursor:"pointer",textDecoration:"underline",textUnderlineOffset:3}}>{p.name}</strong><small>{p.team} · {p.position}</small></div>
   <span className="team-price">{p.price.toFixed(1)}m</span>
   <div className="team-badges"><button className={captain===p.id?"active":""} onClick={()=>setC(p.id)} title="Kaptein">C</button><button className={viceCaptain===p.id?"active":""} onClick={()=>setVC(p.id)} title="Visekaptein">VC</button></div>
   <select className="team-line-select" value="" onChange={e=>swapLine(p.id,e.target.value)}><option value="">Bytt rekke</option>{alternatives.map(x=><option key={x.id} value={x.id}>med {x.name}</option>)}</select>
@@ -125,7 +125,7 @@ export default function FantasyTeamPage(){
     <input className="team-search" placeholder="Søk etter spiller eller lag …" value={q} onChange={e=>setQ(e.target.value)}/>
     <div className="team-filter-row">{(["ALL","F","D","G"] as const).map(x=><button key={x} className={filter===x?"active":""} onClick={()=>setFilter(x)}>{x}</button>)}</div>
     <select className="team-line-select" aria-label="Filtrer på klubb" value={clubFilter} onChange={e=>setClubFilter(e.target.value)}><option value="ALL">Alle klubber</option>{clubs.map(club=><option key={club} value={club}>{club}</option>)}</select>
-    <div className="team-pool-list" style={{marginTop:12}}>{visible.map(p=>{const on=selected.includes(p.id),clubFull=(clubCounts.get(p.team)||0)>=rules.max_players_per_club;return <button key={p.id} className="team-pool-player" onClick={()=>toggle(p)} disabled={on||clubFull}><div><strong>{p.name}</strong><small>{p.team} · {p.position} · {p.price.toFixed(1)}m{clubFull&&!on?` · klubbgrense ${rules.max_players_per_club}/${rules.max_players_per_club}`:""}</small></div><span>{on?"✓":"+"}</span></button>})}</div>
+    <div className="team-pool-list" style={{marginTop:12}}>{visible.map(p=>{const on=selected.includes(p.id),clubFull=(clubCounts.get(p.team)||0)>=rules.max_players_per_club;return <button key={p.id} className="team-pool-player" onClick={()=>toggle(p)} disabled={on||clubFull}><div><strong onClick={e=>{e.stopPropagation();window.location.assign(`/fantasy/players/${p.id}`)}} title="Åpne spillerprofil" style={{textDecoration:"underline",textUnderlineOffset:3}}>{p.name}</strong><small>{p.team} · {p.position} · {p.price.toFixed(1)}m{clubFull&&!on?` · klubbgrense ${rules.max_players_per_club}/${rules.max_players_per_club}`:""}</small></div><span>{on?"✓":"+"}</span></button>})}</div>
     <div className="team-price-lock">🔒 Faste spillerpriser hele sesongen</div>
    </aside>
   </section>
