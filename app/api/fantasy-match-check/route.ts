@@ -35,7 +35,32 @@ export async function GET(request:NextRequest){
     const candidates=[`hockeylive:${matchId}`,String(matchId),`nif:${matchId}`];
     const {data:game,error:gameError}=await supabase.from("fantasy_games").select("id,home_team,away_team,home_score,away_score,season").in("external_id",candidates).maybeSingle();
     if(gameError)throw gameError; if(!game)throw new Error(`Fant ikke kamp ${matchId}`);
-    const {data:stats,error:statsError}=await supabase.from("fantasy_player_game_stats").select("player_id,goals,assists,shots,plus_minus,pim,saves,goals_against,minutes_played,win,shutout,did_play,position_snapshot,team_snapshot").eq("game_id",game.id);
+
+    const {data:ruleRows,error:rulesError}=await supabase
+      .from("fantasy_scoring_rules")
+      .select("key,points")
+      .eq("season",game.season)
+      .eq("active",true)
+      .in("key",[
+        "powerplay_goal_bonus",
+        "powerplay_assist_bonus",
+        "shorthanded_goal_bonus",
+        "shorthanded_assist_bonus",
+        "faceoff_win_points",
+        "faceoff_win_bonus",
+      ]);
+    if(rulesError)throw rulesError;
+    const ruleMap=new Map((ruleRows??[]).map((r:any)=>[String(r.key),Number(r.points)||0]));
+    const scoringConfig={
+      powerplayGoalBonus:ruleMap.get("powerplay_goal_bonus")||0,
+      powerplayAssistBonus:ruleMap.get("powerplay_assist_bonus")||0,
+      shorthandedGoalBonus:ruleMap.get("shorthanded_goal_bonus")||0,
+      shorthandedAssistBonus:ruleMap.get("shorthanded_assist_bonus")||0,
+      faceoffWinPoints:ruleMap.get("faceoff_win_points")||0,
+      faceoffWinBonus:ruleMap.get("faceoff_win_bonus")||0,
+    };
+
+    const {data:stats,error:statsError}=await supabase.from("fantasy_player_game_stats").select("player_id,goals,assists,shots,plus_minus,pim,saves,goals_against,minutes_played,win,shutout,did_play,position_snapshot,team_snapshot,powerplay_goals,powerplay_assists,shorthanded_goals,shorthanded_assists,faceoffs_won,faceoffs_taken").eq("game_id",game.id);
     if(statsError)throw statsError;
     const ids=[...new Set((stats??[]).map((r:any)=>r.player_id))];
     const {data:players,error:playersError}=ids.length?await supabase.from("fantasy_players").select("id,name,team,position").in("id",ids):{data:[],error:null};
@@ -51,10 +76,16 @@ export async function GET(request:NextRequest){
         goals:s.goals||0,assists:s.assists||0,shots:s.shots||0,plusMinus:s.plus_minus||0,pim:s.pim||0,
         saves:s.saves||0,goalsAgainst:s.goals_against||0,minutesPlayed:Number(s.minutes_played||0),
         win:s.win,shutout:s.shutout,didPlay,
+        powerplayGoals:s.powerplay_goals||0,
+        powerplayAssists:s.powerplay_assists||0,
+        shorthandedGoals:s.shorthanded_goals||0,
+        shorthandedAssists:s.shorthanded_assists||0,
+        faceoffsWon:s.faceoffs_won||0,
+        faceoffsTaken:s.faceoffs_taken||0,
       };
-      const points=calculate19FantasyPoints(base);
+      const points=calculate19FantasyPoints(base,scoringConfig);
       return {...base,fantasyPoints:points.total,pointBreakdown:points};
     }).sort((a:any,b:any)=>a.team.localeCompare(b.team)||a.position.localeCompare(b.position)||a.name.localeCompare(b.name));
-    return NextResponse.json({ok:true,result:{matchId,game,rows}});
+    return NextResponse.json({ok:true,result:{matchId,game,scoringConfig,rows}});
   }catch(error:any){return NextResponse.json({ok:false,error:error?.message||"Ukjent kontrollfeil"},{status:500});}
 }
