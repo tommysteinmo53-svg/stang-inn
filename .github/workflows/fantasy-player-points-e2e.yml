@@ -16,13 +16,24 @@ jobs:
             exit 1
           fi
 
-          response=$(curl --fail-with-body --silent --show-error \
+          tmp=$(mktemp)
+          status=$(curl --silent --show-error \
             --retry 2 \
             --max-time 45 \
             -X POST \
             -H "Authorization: Bearer $CRON_SECRET" \
+            -o "$tmp" \
+            -w "%{http_code}" \
             "https://stang-inn-xi.vercel.app/api/admin/fantasy/e2e-player-points")
 
+          response=$(cat "$tmp")
+          rm -f "$tmp"
+
+          echo "HTTP $status"
           echo "$response"
+
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            exit 1
+          fi
 
           node -e 'const r=JSON.parse(process.argv[1]); if(!r.ok || r.passed!==5 || r.total!==5){process.exit(1)}' "$response"
