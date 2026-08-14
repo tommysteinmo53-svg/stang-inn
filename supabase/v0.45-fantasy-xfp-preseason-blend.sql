@@ -243,7 +243,7 @@ begin
   left join next_fixture nf on nf.player_id=fp.id
   left join next3_summary n3 on n3.player_id=fp.id
   where fp.active=true and fp.on_current_roster=true and sp.price is not null
-  order by xfp_next_game desc,fp.name;
+  order by round(coalesce(nf.xfp_next_game,0),2) desc,fp.name;
 end;
 $$;
 
