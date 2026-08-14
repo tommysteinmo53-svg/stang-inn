@@ -10,6 +10,7 @@ type Rules={max_players_per_club:number;captain_multiplier:number;vice_captain_e
 type TransferStatus={effective_round_no:number;deadline_at:string;max_transfers_per_round:number;transfers_used:number;transfers_remaining:number;team_cost:number};
 const SEASON="2026/27",BUDGET=100;
 const group=(p:Player)=>p.position==="D"?"D":p.position==="G"?"G":"F";
+const lineupOrder=(a:Player,b:Player)=>({G:0,D:1,F:2}[group(a)]-({G:0,D:1,F:2}[group(b)]));
 
 function buildLine1(ids:string[],players:Player[],preferred:string[]=[]){
  const chosen=ids.map(id=>players.find(p=>p.id===id)).filter(Boolean) as Player[];
@@ -87,7 +88,7 @@ export default function FantasyTeamPage(){
   setMsg(seasonStarted?"Endringer lagret ✓":"Lag og rekker lagret ✓");
  }catch(e:any){setMsg(`Lagring stoppet: ${e.message||e}`)}finally{setBusy(false)}}
 
- const linePlayers=(n:1|2)=>chosen.filter(p=>n===1?line1.includes(p.id):!line1.includes(p.id));
+ const linePlayers=(n:1|2)=>chosen.filter(p=>n===1?line1.includes(p.id):!line1.includes(p.id)).sort(lineupOrder);
  const renderPlayer=(p:Player,n:1|2)=>{const alternatives=linePlayers(n===1?2:1).filter(x=>group(x)===group(p));return <div key={p.id} className="team-player-row">
   <span className={`team-pos team-pos-${group(p).toLowerCase()}`}>{group(p)}</span>
   <div className="team-player-main"><strong>{p.name}</strong><small>{p.team} · {p.position}</small></div>
@@ -111,9 +112,9 @@ export default function FantasyTeamPage(){
    <div className="team-panel team-lineup-panel">
     <div className="team-panel-top"><div><p className="eyebrow">OPPSTILLING</p><h2>{teamName}</h2></div><input className="team-name-input" value={teamName} onChange={e=>setTeamName(e.target.value)}/></div>
     {seasonStarted&&transferStatus&&<div className="team-round-strip"><strong>Runde {transferStatus.effective_round_no}</strong><span>{transferStatus.transfers_remaining} av {transferStatus.max_transfers_per_round} bytter igjen</span><span>Frist {new Date(transferStatus.deadline_at).toLocaleString("nb-NO")}</span></div>}
-    {([1,2] as const).map(n=><div key={n} className="team-line-card"><div className="team-line-head"><h3>{n}. rekke</h3><span>3F · 2D · 1G</span></div>{linePlayers(n).map(p=>renderPlayer(p,n))}</div>)}
+    {([1,2] as const).map(n=><div key={n} className="team-line-card"><div className="team-line-head"><h3>{n}. rekke</h3><span>1G · 2D · 3F</span></div>{linePlayers(n).map(p=>renderPlayer(p,n))}</div>)}
     {clubOverflow&&<p className="team-error">For mange spillere fra {clubOverflow[0]}: {clubOverflow[1]}/{rules.max_players_per_club}</p>}
-    {!lineupValid&&selected.length===12&&<p className="team-error">Hver rekke må være 3F · 2D · 1G.</p>}
+    {!lineupValid&&selected.length===12&&<p className="team-error">Hver rekke må være 1G · 2D · 3F.</p>}
     <button className="team-save" onClick={save} disabled={!valid||busy}>{busy?"Lagrer …":seasonStarted?"Lagre bytter og oppstilling":"Lagre lag"}</button>
     <p className="team-save-note">Rekkeendringer og kaptein/visekaptein bruker ikke bytter.</p>
     <p className="team-message">{msg}</p>
@@ -129,7 +130,7 @@ export default function FantasyTeamPage(){
 
   <section className="team-info-grid">
    <article className="team-info-card"><h3>↪ Slik fungerer det</h3><p>Maks 2 bytter per fantasy-runde.</p><p>Bytter må gjøres før rundens deadline.</p><p>Flytting mellom 1. og 2. rekke er gratis.</p><p>Kaptein og visekaptein kan endres gratis.</p></article>
-   <article className="team-info-card"><h3>✓ Oppstilling</h3><p>Hver rekke skal inneholde 3 forwards, 2 backer og 1 keeper.</p><p>Spillerprisene endres ikke i løpet av sesongen.</p></article>
+   <article className="team-info-card"><h3>✓ Oppstilling</h3><p>Hver rekke vises som keeper, 2 backer og 3 forwards.</p><p>Spillerprisene endres ikke i løpet av sesongen.</p></article>
    <article className="team-info-card"><h3>🛡 Lagre laget ditt</h3><p>Husk å lagre når du er ferdig med bytter eller oppstillingsendringer.</p><p>Laget fryses automatisk ved rundens deadline.</p></article>
   </section>
  </main>
