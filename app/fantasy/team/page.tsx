@@ -33,12 +33,6 @@ export default function FantasyTeamPage(){
  const[captain,setCaptain]=useState<string|null>(null),[viceCaptain,setViceCaptain]=useState<string|null>(null),[teamId,setTeamId]=useState<string|null>(null);
  const[seasonStarted,setSeasonStarted]=useState(false),[transferStatus,setTransferStatus]=useState<TransferStatus|null>(null);
 
- async function refreshTransferStatus(){
-  const s=getSupabaseBrowserClient();if(!s||!teamId)return;
-  const{data,error}=await s.rpc("get_fantasy_transfer_status_v1",{p_season:SEASON});
-  if(!error&&data?.[0])setTransferStatus({...data[0],effective_round_no:Number(data[0].effective_round_no),max_transfers_per_round:Number(data[0].max_transfers_per_round),transfers_used:Number(data[0].transfers_used),transfers_remaining:Number(data[0].transfers_remaining),team_cost:Number(data[0].team_cost)});
- }
-
  useEffect(()=>{(async()=>{try{
   const s=getSupabaseBrowserClient();if(!s)throw new Error("Supabase er ikke tilgjengelig");const{data:session}=await s.auth.getSession();if(!session.session)throw new Error("Du må være logget inn");
   const[{data:p,error},{data:prices,error:pe},{data:r},{data:firstRound}]=await Promise.all([
@@ -79,7 +73,8 @@ export default function FantasyTeamPage(){
   if((clubCounts.get(p.team)||0)>=rules.max_players_per_club){setMsg(`Maks ${rules.max_players_per_club} spillere fra ${p.team}`);return}if(total+p.price>BUDGET){setMsg(`Budsjettet overskrides med ${(total+p.price-BUDGET).toFixed(1)}m`);return}
   const next=[...selected,p.id];setSelected(next);setLine1(buildLine1(next,players,line1));setMsg(`${p.name} lagt til`);
  }
- function setC(id:string){setCaptain(id);if(viceCaptain===id)setViceCaptain(null)}function setVC(id:string){setViceCaptain(id);if(captain===id)setCaptain(null)}
+ function setC(id:string){setCaptain(id);if(viceCaptain===id)setViceCaptain(null)}
+ function setVC(id:string){setViceCaptain(id);if(captain===id)setCaptain(null)}
  function swapLine(id:string,target:string){if(!target)return;const next=line1.includes(id)?[...line1.filter(x=>x!==id),target]:[...line1.filter(x=>x!==target),id];setLine1(next);setMsg("Rekke endret · dette bruker ikke et bytte")}
 
  async function save(){if(!valid)return;setBusy(true);try{
@@ -93,15 +88,49 @@ export default function FantasyTeamPage(){
  }catch(e:any){setMsg(`Lagring stoppet: ${e.message||e}`)}finally{setBusy(false)}}
 
  const linePlayers=(n:1|2)=>chosen.filter(p=>n===1?line1.includes(p.id):!line1.includes(p.id));
- const renderPlayer=(p:Player,n:1|2)=>{const alternatives=linePlayers(n===1?2:1).filter(x=>group(x)===group(p));return <div key={p.id} style={{display:"flex",gap:6,alignItems:"center",marginTop:6,flexWrap:"wrap"}}><button onClick={()=>toggle(p)} style={{flex:"1 1 260px",textAlign:"left"}}>{p.name} · {p.team} · {p.position} · {p.price.toFixed(1)}m ✕</button><button onClick={()=>setC(p.id)} disabled={captain===p.id}>{captain===p.id?"👑 C":"C"}</button><button onClick={()=>setVC(p.id)} disabled={viceCaptain===p.id}>{viceCaptain===p.id?"⭐ VC":"VC"}</button><select value="" onChange={e=>swapLine(p.id,e.target.value)}><option value="">Bytt rekke …</option>{alternatives.map(x=><option key={x.id} value={x.id}>med {x.name}</option>)}</select></div>};
+ const renderPlayer=(p:Player,n:1|2)=>{const alternatives=linePlayers(n===1?2:1).filter(x=>group(x)===group(p));return <div key={p.id} className="team-player-row">
+  <span className={`team-pos team-pos-${group(p).toLowerCase()}`}>{group(p)}</span>
+  <div className="team-player-main"><strong>{p.name}</strong><small>{p.team} · {p.position}</small></div>
+  <span className="team-price">{p.price.toFixed(1)}m</span>
+  <div className="team-badges"><button className={captain===p.id?"active":""} onClick={()=>setC(p.id)} title="Kaptein">C</button><button className={viceCaptain===p.id?"active":""} onClick={()=>setVC(p.id)} title="Visekaptein">VC</button></div>
+  <select className="team-line-select" value="" onChange={e=>swapLine(p.id,e.target.value)}><option value="">Bytt rekke</option>{alternatives.map(x=><option key={x.id} value={x.id}>med {x.name}</option>)}</select>
+  <button className="team-remove" onClick={()=>toggle(p)} title="Fjern spiller">×</button>
+ </div>};
 
- return <main className="fantasy-shell"><section className="fantasy-hero"><div><p className="fantasy-kicker">STANG INN · FANTASY 2026/27</p><h1>{seasonStarted?"Gjør bytter":"Bygg laget ditt"}</h1><p className="fantasy-lead">12 spillere · 6F · 4D · 2G · maks 100,0m · maks {rules.max_players_per_club} fra samme klubb · faste priser hele sesongen.</p></div></section>
- <section className="fantasy-metrics"><article><span>Spillere</span><strong>{selected.length}/12</strong></article><article><span>Brukt</span><strong>{total.toFixed(1)}m</strong></article><article><span>Igjen</span><strong>{left.toFixed(1)}m</strong></article><article><span>{seasonStarted?"Bytter":"Status"}</span><strong>{seasonStarted?`${used+pendingTransfers}/${transferLimit}`:(valid?"✓ Klar":"Bygg lag")}</strong></article></section>
- {seasonStarted&&transferStatus&&<section className="fantasy-card" style={{marginBottom:16}}><p className="eyebrow">RUNDE {transferStatus.effective_round_no}</p><h2>{transferStatus.transfers_remaining} av {transferStatus.max_transfers_per_round} bytter igjen</h2><p className="card-copy">Ventende endringer: {pendingTransfers}. Rekketøy og C/VC er gratis. Deadline: {new Date(transferStatus.deadline_at).toLocaleString("nb-NO")}.</p></section>}
- <section className="fantasy-grid"><div className="fantasy-card fantasy-main-card"><p className="eyebrow">DITT LAG</p><h2>{teamName}</h2><input value={teamName} onChange={e=>setTeamName(e.target.value)} style={{padding:10,borderRadius:10,width:"100%",maxWidth:320,marginBottom:12}}/>
- <p className="card-copy">Velg kaptein og visekaptein. Hver rekke skal ha 3F · 2D · 1G. Bytt spillere mellom rekkene med menyen ved spilleren.</p>
- {([1,2] as const).map(n=><div key={n} style={{marginBottom:18}}><h3>{n}. rekke</h3>{linePlayers(n).map(p=>renderPlayer(p,n))}<p className="card-copy">{linePlayers(n).filter(p=>group(p)==="F").length}/3 F · {linePlayers(n).filter(p=>p.position==="D").length}/2 D · {linePlayers(n).filter(p=>p.position==="G").length}/1 G</p></div>)}
- {clubOverflow&&<p className="card-copy"><strong>⛔ For mange spillere fra {clubOverflow[0]}: {clubOverflow[1]}/{rules.max_players_per_club}</strong></p>}{!lineupValid&&selected.length===12&&<p className="card-copy"><strong>⛔ Hver rekke må være 3F · 2D · 1G.</strong></p>}
- <button onClick={save} disabled={!valid||busy}>{busy?"Lagrer …":seasonStarted?"Lagre bytter og oppstilling":"Lagre lag"}</button><p className="card-copy"><strong>{msg}</strong></p></div>
- <div className="fantasy-card"><p className="eyebrow">SPILLERPOOL</p><h2>Velg spillere</h2><p className="card-copy">Prisene under er de låste 2026/27-prisene.</p><input placeholder="Søk spiller eller lag" value={q} onChange={e=>setQ(e.target.value)} style={{padding:10,borderRadius:10,width:"100%",marginBottom:8}}/><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>{(["ALL","F","C","W","D","G"] as const).map(x=><button key={x} onClick={()=>setFilter(x)} disabled={filter===x}>{x}</button>)}</div><div style={{maxHeight:650,overflowY:"auto"}}>{visible.map(p=>{const on=selected.includes(p.id),clubFull=(clubCounts.get(p.team)||0)>=rules.max_players_per_club;return <button key={p.id} onClick={()=>toggle(p)} style={{display:"block",width:"100%",textAlign:"left",marginBottom:6,opacity:on?.55:clubFull?.6:1}} disabled={on}>{p.name}<br/><small>{p.team} · {p.position} · {p.price.toFixed(1)}m{clubFull&&!on?` · klubbgrense ${rules.max_players_per_club}/${rules.max_players_per_club}`:""}</small></button>})}</div></div></section></main>
+ return <main className="fantasy-shell team-builder-shell">
+  <section className="team-builder-head"><div><p className="fantasy-kicker">STANG INN · FANTASY 2026/27</p><h1>Mitt lag</h1><p>Bygg laget innenfor budsjettet. Maks 2 spillerbytter per fantasy-runde.</p></div></section>
+  <section className="team-metric-grid">
+   <article><span>Spillere</span><strong>{selected.length}/12</strong></article>
+   <article><span>Budsjett brukt</span><strong>{total.toFixed(1)}m</strong></article>
+   <article><span>Igjen</span><strong>{left.toFixed(1)}m</strong></article>
+   <article><span>Bytter i runde</span><strong>{seasonStarted?`${used+pendingTransfers}/${transferLimit}`:"0/2"}</strong><small>{seasonStarted?`${Math.max(0,transferLimit-used-pendingTransfers)} igjen`:"Gratis før sesongstart"}</small></article>
+   <article><span>Status</span><strong>{valid?"✓ Klar":"Ikke klar"}</strong></article>
+  </section>
+
+  <section className="team-builder-grid">
+   <div className="team-panel team-lineup-panel">
+    <div className="team-panel-top"><div><p className="eyebrow">OPPSTILLING</p><h2>{teamName}</h2></div><input className="team-name-input" value={teamName} onChange={e=>setTeamName(e.target.value)}/></div>
+    {seasonStarted&&transferStatus&&<div className="team-round-strip"><strong>Runde {transferStatus.effective_round_no}</strong><span>{transferStatus.transfers_remaining} av {transferStatus.max_transfers_per_round} bytter igjen</span><span>Frist {new Date(transferStatus.deadline_at).toLocaleString("nb-NO")}</span></div>}
+    {([1,2] as const).map(n=><div key={n} className="team-line-card"><div className="team-line-head"><h3>{n}. rekke</h3><span>3F · 2D · 1G</span></div>{linePlayers(n).map(p=>renderPlayer(p,n))}</div>)}
+    {clubOverflow&&<p className="team-error">For mange spillere fra {clubOverflow[0]}: {clubOverflow[1]}/{rules.max_players_per_club}</p>}
+    {!lineupValid&&selected.length===12&&<p className="team-error">Hver rekke må være 3F · 2D · 1G.</p>}
+    <button className="team-save" onClick={save} disabled={!valid||busy}>{busy?"Lagrer …":seasonStarted?"Lagre bytter og oppstilling":"Lagre lag"}</button>
+    <p className="team-save-note">Rekkeendringer og kaptein/visekaptein bruker ikke bytter.</p>
+    <p className="team-message">{msg}</p>
+   </div>
+
+   <aside className="team-panel team-pool-panel"><p className="eyebrow">SPILLERPOOL</p><h2>Velg spillere</h2><p className="team-muted">Prisene er låst for hele 2026/27-sesongen.</p>
+    <input className="team-search" placeholder="Søk etter spiller eller lag …" value={q} onChange={e=>setQ(e.target.value)}/>
+    <div className="team-filter-row">{(["ALL","F","D","G"] as const).map(x=><button key={x} className={filter===x?"active":""} onClick={()=>setFilter(x)}>{x}</button>)}</div>
+    <div className="team-pool-list">{visible.map(p=>{const on=selected.includes(p.id),clubFull=(clubCounts.get(p.team)||0)>=rules.max_players_per_club;return <button key={p.id} className="team-pool-player" onClick={()=>toggle(p)} disabled={on||clubFull}><div><strong>{p.name}</strong><small>{p.team} · {p.position} · {p.price.toFixed(1)}m{clubFull&&!on?` · klubbgrense ${rules.max_players_per_club}/${rules.max_players_per_club}`:""}</small></div><span>{on?"✓":"+"}</span></button>})}</div>
+    <div className="team-price-lock">🔒 Faste spillerpriser hele sesongen</div>
+   </aside>
+  </section>
+
+  <section className="team-info-grid">
+   <article className="team-info-card"><h3>↪ Slik fungerer det</h3><p>Maks 2 bytter per fantasy-runde.</p><p>Bytter må gjøres før rundens deadline.</p><p>Flytting mellom 1. og 2. rekke er gratis.</p><p>Kaptein og visekaptein kan endres gratis.</p></article>
+   <article className="team-info-card"><h3>✓ Oppstilling</h3><p>Hver rekke skal inneholde 3 forwards, 2 backer og 1 keeper.</p><p>Spillerprisene endres ikke i løpet av sesongen.</p></article>
+   <article className="team-info-card"><h3>🛡 Lagre laget ditt</h3><p>Husk å lagre når du er ferdig med bytter eller oppstillingsendringer.</p><p>Laget fryses automatisk ved rundens deadline.</p></article>
+  </section>
+ </main>
 }
