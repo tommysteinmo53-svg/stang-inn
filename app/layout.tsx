@@ -14,7 +14,6 @@ import TopStatusBar from "../components/TopStatusBar";
 import PremiumNextMatch from "../components/PremiumNextMatch";
 import HomeLiveTable from "../components/HomeLiveTable";
 import GameModeSwitch from "../components/GameModeSwitch";
-import HockeytipsLeagueShortcut from "../components/HockeytipsLeagueShortcut";
 
 export const metadata = {
   title: "Stang Inn",
@@ -29,7 +28,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <TopStatusBar />
         <AuthGate>
           <GameModeSwitch />
-          <HockeytipsLeagueShortcut />
           <PremiumNextMatch />
           <HomeLiveTable />
           {children}
