@@ -4,6 +4,7 @@ import {useEffect,useMemo,useState} from "react";
 import {getSupabaseBrowserClient} from "../../../../lib/supabase";
 import "../../fantasy.css";
 import "../xfp-admin.css";
+import "./optimizer.css";
 
 type Row={player_id:string;player_name:string;team:string;player_position:string;price:number;projected_points:number;total_cost:number;total_projected_points:number};
 type Economy={season:string;budget:number;economy_lock_at:string|null;first_game_at:string|null;economy_locked:boolean};
