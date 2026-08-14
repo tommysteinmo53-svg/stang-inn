@@ -8,12 +8,13 @@ const items=[
  {href:"/fantasy/team",label:"Mitt lag",icon:"👥"},
  {href:"/fantasy/my-rounds",label:"Poeng",icon:"📊"},
  {href:"/fantasy/leaderboard",label:"Leaderboard",icon:"🏆"},
+ {href:"/fantasy/leagues",label:"Ligaer",icon:"🤝"},
  {href:"/fantasy/achievements",label:"Achievements",icon:"🔥"},
  {href:"/fantasy/rounds",label:"Runder",icon:"📅"},
  {href:"/fantasy/rules",label:"Regler",icon:"📖"},
 ];
 
-const productionPrefixes=["/fantasy","/fantasy/team","/fantasy/my-rounds","/fantasy/leaderboard","/fantasy/achievements","/fantasy/rounds","/fantasy/rules"];
+const productionPrefixes=["/fantasy","/fantasy/team","/fantasy/my-rounds","/fantasy/leaderboard","/fantasy/leagues","/fantasy/achievements","/fantasy/rounds","/fantasy/rules"];
 const hiddenPrefixes=["/fantasy/admin-tools","/fantasy/admin-analysis","/fantasy/diagnose","/fantasy/scoring","/fantasy/special-teams-diagnostic"];
 
 export default function FantasyNav(){
