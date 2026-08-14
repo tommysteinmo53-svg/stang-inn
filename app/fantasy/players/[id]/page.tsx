@@ -22,6 +22,21 @@ type Profile={
 const n=(v:unknown)=>Number(v||0);
 const posLabel=(p:string)=>p==="G"?"Keeper":p==="D"?"Back":"Forward";
 const date=(v:string)=>new Date(v).toLocaleString("nb-NO",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+const shortTeam=(name:string)=>{
+ const v=(name||"").toLowerCase();
+ if(v.includes("frisk asker"))return "Frisk Asker";
+ if(v.includes("lillehammer"))return "Lillehammer";
+ if(v.includes("lørenskog"))return "Lørenskog";
+ if(v.includes("narvik"))return "Narvik";
+ if(v.includes("nidaros"))return "Nidaros";
+ if(v.includes("ringerike"))return "Ringerike";
+ if(v.includes("sparta"))return "Sparta";
+ if(v.includes("stavanger"))return "Stavanger Oilers";
+ if(v.includes("stjernen"))return "Stjernen";
+ if(v.includes("storhamar"))return "Storhamar";
+ if(v.includes("vålerenga"))return "Vålerenga";
+ return name.replace(/\s*-\s*MEN\s*1/gi,"").trim();
+};
 
 export default function FantasyPlayerProfilePage(){
  const params=useParams<{id:string}>();
@@ -65,12 +80,12 @@ export default function FantasyPlayerProfilePage(){
    </div>
 
    <aside className="team-panel"><p className="eyebrow">KOMMENDE</p><h2>Neste kamper</h2>
-    <div className="team-pool-list">{upcoming.map(g=><div className="team-player-row" key={g.gameId} style={{gridTemplateColumns:"1fr auto"}}><div className="team-player-main"><strong>{g.homeTeam} – {g.awayTeam}</strong><small>{date(g.startsAt)}{g.roundNo?` · Runde ${g.roundNo}`:""} · {g.home?"Hjemme":"Borte"} mot {g.opponent}</small></div></div>)}{!upcoming.length&&<p className="team-muted">Ingen kommende kamper registrert.</p>}</div>
+    <div className="team-pool-list">{upcoming.map(g=><div className="team-player-row" key={g.gameId} style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",gap:12,alignItems:"center"}}><div className="team-player-main" style={{minWidth:0}}><strong style={{whiteSpace:"normal",overflow:"visible",textOverflow:"clip"}}>{shortTeam(g.opponent)}</strong><small style={{whiteSpace:"normal",lineHeight:1.45}}>{date(g.startsAt)}{g.roundNo?` · Runde ${g.roundNo}`:""}</small></div><span className="team-price" style={{minWidth:42,textAlign:"center"}}>{g.home?"H":"B"}</span></div>)}{!upcoming.length&&<p className="team-muted">Ingen kommende kamper registrert.</p>}</div>
    </aside>
   </section>
 
   <section className="team-panel" style={{marginTop:24}}><p className="eyebrow">FANTASY-HISTORIKK</p><h2>Siste kamper</h2>
-   <div className="team-pool-list">{history.map(h=><div key={h.gameId} className="team-player-row" style={{gridTemplateColumns:"1fr auto"}}><div className="team-player-main"><strong>{h.homeTeam} – {h.awayTeam}</strong><small>{date(h.startsAt)}{h.roundNo?` · Runde ${h.roundNo}`:""}</small></div><span className="team-price">{h.fantasyPoints.toFixed(1)} p</span></div>)}{!history.length&&<p className="team-muted">Ingen Fantasy-poeng registrert ennå.</p>}</div>
+   <div className="team-pool-list">{history.map(h=><div key={h.gameId} className="team-player-row" style={{gridTemplateColumns:"1fr auto"}}><div className="team-player-main"><strong>{shortTeam(h.homeTeam)} – {shortTeam(h.awayTeam)}</strong><small>{date(h.startsAt)}{h.roundNo?` · Runde ${h.roundNo}`:""}</small></div><span className="team-price">{h.fantasyPoints.toFixed(1)} p</span></div>)}{!history.length&&<p className="team-muted">Ingen Fantasy-poeng registrert ennå.</p>}</div>
   </section>
  </main>;
 }
