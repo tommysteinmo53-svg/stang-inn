@@ -242,7 +242,16 @@ export async function POST(request: NextRequest) {
     const passed = checks.filter((check) => check.passed).length;
     return NextResponse.json({ ok: passed === checks.length, passed, total: checks.length, checks });
   } catch (error: any) {
-    return NextResponse.json({ ok: false, error: error?.message || "E2E-test feilet", checks }, { status: 500 });
+    // Diagnostic mode: return 200 so the original workflow prints the response body.
+    // The workflow still fails because ok=false, but we retain the underlying error details.
+    return NextResponse.json({
+      ok: false,
+      error: error?.message || "E2E-test feilet",
+      code: error?.code ?? null,
+      details: error?.details ?? null,
+      hint: error?.hint ?? null,
+      checks,
+    });
   } finally {
     try {
       await cleanup(db);
