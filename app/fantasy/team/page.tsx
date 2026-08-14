@@ -29,7 +29,7 @@ function validLine1(ids:string[],chosen:Player[]){
 
 export default function FantasyTeamPage(){
  const[players,setPlayers]=useState<Player[]>([]),[selected,setSelected]=useState<string[]>([]),[initialRoster,setInitialRoster]=useState<string[]>([]),[line1,setLine1]=useState<string[]>([]);
- const[teamName,setTeamName]=useState("Mitt lag"),[msg,setMsg]=useState("Laster spillerpool …"),[busy,setBusy]=useState(false),[filter,setFilter]=useState<"ALL"|"F"|Pos>("ALL"),[q,setQ]=useState("");
+ const[teamName,setTeamName]=useState("Mitt lag"),[msg,setMsg]=useState("Laster spillerpool …"),[busy,setBusy]=useState(false),[filter,setFilter]=useState<"ALL"|"F"|Pos>("ALL"),[clubFilter,setClubFilter]=useState("ALL"),[q,setQ]=useState("");
  const[rules,setRules]=useState<Rules>({max_players_per_club:3,captain_multiplier:2,vice_captain_enabled:true});
  const[captain,setCaptain]=useState<string|null>(null),[viceCaptain,setViceCaptain]=useState<string|null>(null),[teamId,setTeamId]=useState<string|null>(null);
  const[seasonStarted,setSeasonStarted]=useState(false),[transferStatus,setTransferStatus]=useState<TransferStatus|null>(null);
@@ -60,11 +60,12 @@ export default function FantasyTeamPage(){
  const total=chosen.reduce((s,p)=>s+p.price,0),left=BUDGET-total;
  const counts=useMemo(()=>({F:chosen.filter(p=>group(p)==="F").length,C:chosen.filter(p=>p.position==="C").length,W:chosen.filter(p=>p.position==="W").length,D:chosen.filter(p=>p.position==="D").length,G:chosen.filter(p=>p.position==="G").length}),[chosen]);
  const clubCounts=useMemo(()=>{const m=new Map<string,number>();for(const p of chosen)m.set(p.team,(m.get(p.team)||0)+1);return m},[chosen]);
+ const clubs=useMemo(()=>Array.from(new Set(players.map(p=>p.team))).sort((a,b)=>a.localeCompare(b,"nb")),[players]);
  const clubOverflow=[...clubCounts.entries()].find(([,n])=>n>rules.max_players_per_club);
  const lineupValid=validLine1(line1,chosen),valid=selected.length===12&&left>=0&&counts.F===6&&counts.D===4&&counts.G===2&&!clubOverflow&&!!captain&&!!viceCaptain&&captain!==viceCaptain&&lineupValid;
  const pendingTransfers=seasonStarted&&teamId?selected.filter(id=>!initialRoster.includes(id)).length:0;
  const transferLimit=transferStatus?.max_transfers_per_round??2,used=transferStatus?.transfers_used??0;
- const visible=players.filter(p=>(filter==="ALL"||(filter==="F"?group(p)==="F":p.position===filter))&&(!q||`${p.name} ${p.team}`.toLowerCase().includes(q.toLowerCase())));
+ const visible=players.filter(p=>(filter==="ALL"||(filter==="F"?group(p)==="F":p.position===filter))&&(clubFilter==="ALL"||p.team===clubFilter)&&(!q||`${p.name} ${p.team}`.toLowerCase().includes(q.toLowerCase())));
 
  function toggle(p:Player){
   if(selected.includes(p.id)){const next=selected.filter(x=>x!==p.id);setSelected(next);setLine1(buildLine1(next,players,line1));if(captain===p.id)setCaptain(null);if(viceCaptain===p.id)setViceCaptain(null);return}
@@ -123,7 +124,8 @@ export default function FantasyTeamPage(){
    <aside className="team-panel team-pool-panel"><p className="eyebrow">SPILLERPOOL</p><h2>Velg spillere</h2><p className="team-muted">Prisene er låst for hele 2026/27-sesongen.</p>
     <input className="team-search" placeholder="Søk etter spiller eller lag …" value={q} onChange={e=>setQ(e.target.value)}/>
     <div className="team-filter-row">{(["ALL","F","D","G"] as const).map(x=><button key={x} className={filter===x?"active":""} onClick={()=>setFilter(x)}>{x}</button>)}</div>
-    <div className="team-pool-list">{visible.map(p=>{const on=selected.includes(p.id),clubFull=(clubCounts.get(p.team)||0)>=rules.max_players_per_club;return <button key={p.id} className="team-pool-player" onClick={()=>toggle(p)} disabled={on||clubFull}><div><strong>{p.name}</strong><small>{p.team} · {p.position} · {p.price.toFixed(1)}m{clubFull&&!on?` · klubbgrense ${rules.max_players_per_club}/${rules.max_players_per_club}`:""}</small></div><span>{on?"✓":"+"}</span></button>})}</div>
+    <select className="team-line-select" aria-label="Filtrer på klubb" value={clubFilter} onChange={e=>setClubFilter(e.target.value)}><option value="ALL">Alle klubber</option>{clubs.map(club=><option key={club} value={club}>{club}</option>)}</select>
+    <div className="team-pool-list" style={{marginTop:12}}>{visible.map(p=>{const on=selected.includes(p.id),clubFull=(clubCounts.get(p.team)||0)>=rules.max_players_per_club;return <button key={p.id} className="team-pool-player" onClick={()=>toggle(p)} disabled={on||clubFull}><div><strong>{p.name}</strong><small>{p.team} · {p.position} · {p.price.toFixed(1)}m{clubFull&&!on?` · klubbgrense ${rules.max_players_per_club}/${rules.max_players_per_club}`:""}</small></div><span>{on?"✓":"+"}</span></button>})}</div>
     <div className="team-price-lock">🔒 Faste spillerpriser hele sesongen</div>
    </aside>
   </section>
