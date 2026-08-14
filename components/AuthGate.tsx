@@ -29,7 +29,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       const { data } = await supabase.auth.getSession();
       const session = data.session;
       if (!session) {
-        window.location.replace("/login");
+        const requested=`${window.location.pathname}${window.location.search}`;
+        window.location.replace(`/login?next=${encodeURIComponent(requested)}`);
         return;
       }
 
@@ -84,7 +85,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
             <strong style={{ display: "block" }}>{profile?.display_name || email || "Spiller"}{profile?.admin ? " · Admin" : ""}</strong>
             <span style={{ color: "#96a9c5" }}>Innlogget</span>
           </div>
-          {profile?.admin && <a href="/fantasy" style={{ borderRadius: 9, padding: "7px 9px", background: "#214b3d", color: "#e4fff4", textDecoration: "none", fontWeight: 800 }}>Fantasy</a>}
+          <a href="/fantasy" style={{ borderRadius: 9, padding: "7px 9px", background: "#214b3d", color: "#e4fff4", textDecoration: "none", fontWeight: 800 }}>Fantasy</a>
           {profile?.admin && <a href="/admin" style={{ borderRadius: 9, padding: "7px 9px", background: "#1d3658", color: "#d9e8fb", textDecoration: "none", fontWeight: 800 }}>Admin</a>}
           <button onClick={signOut} style={{ border: 0, borderRadius: 9, padding: "7px 9px", background: "#142640", color: "#d9e8fb", cursor: "pointer", fontWeight: 800 }}>Logg ut</button>
         </aside>
