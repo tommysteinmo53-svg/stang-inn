@@ -19,6 +19,13 @@ export async function GET(request:NextRequest){
   const sb=clientFor(request);
   if(!sb)return NextResponse.json({ok:false,error:"Supabase-konfigurasjon mangler."},{status:503});
 
+  const playerId=request.nextUrl.searchParams.get("playerId");
+  if(playerId){
+    const{data,error}=await sb.rpc("get_fantasy_xfp_player_fixtures_admin_v1",{p_player_id:playerId,p_season:"2026/27"});
+    if(error)return NextResponse.json({ok:false,error:error.message},{status:500});
+    return NextResponse.json({ok:true,fixtures:data||[]});
+  }
+
   const[{data:settings,error:settingsError},{data:rows,error:rowsError}]=await Promise.all([
     sb.rpc("get_fantasy_xfp_settings_admin_v1",{p_season:"2026/27"}),
     sb.rpc("get_fantasy_xfp_admin_v1",{p_season:"2026/27"}),
