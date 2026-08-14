@@ -1,0 +1,64 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { getSupabaseBrowserClient } from "../../../lib/supabase";
+
+type RoundRow={id:string;season:string;round_no:number;name:string|null;starts_at:string|null;deadline_at:string;ends_at:string|null;status:string};
+type GameRow={id:string;round_no:number|null;fantasy_round_id:string|null;starts_at:string;home_team:string;away_team:string};
+
+export default function FantasyRoundsPage(){
+  const season="2026/27";
+  const[allowed,setAllowed]=useState<boolean|null>(null);
+  const[busy,setBusy]=useState(false);
+  const[message,setMessage]=useState("");
+  const[rounds,setRounds]=useState<RoundRow[]>([]);
+  const[games,setGames]=useState<GameRow[]>([]);
+
+  useEffect(()=>{(async()=>{const sb=getSupabaseBrowserClient();if(!sb){setAllowed(false);return}const{data:s}=await sb.auth.getSession();const user=s.session?.user;if(!user){setAllowed(false);return}const{data:p}=await sb.from("players").select("admin").eq("id",user.id).maybeSingle();setAllowed(Boolean(p?.admin))})()},[]);
+
+  async function load(){
+    const sb=getSupabaseBrowserClient();if(!sb)return;
+    const[{data:r,error:re},{data:g,error:ge}]=await Promise.all([
+      sb.from("fantasy_rounds").select("id,season,round_no,name,starts_at,deadline_at,ends_at,status").eq("season",season).order("round_no"),
+      sb.from("fantasy_games").select("id,round_no,fantasy_round_id,starts_at,home_team,away_team").eq("season",season).order("starts_at")
+    ]);
+    if(re||ge){setMessage(`Kunne ikke hente runder: ${re?.message||ge?.message}`);return}
+    setRounds((r||[]) as RoundRow[]);setGames((g||[]) as GameRow[]);
+  }
+  useEffect(()=>{if(allowed)load()},[allowed]);
+
+  async function sync(){
+    setBusy(true);setMessage("");
+    try{
+      const sb=getSupabaseBrowserClient();if(!sb)throw new Error("Supabase er ikke tilgjengelig");
+      const{data,error}=await sb.rpc("sync_fantasy_rounds_from_games",{p_season:season});
+      if(error)throw error;
+      const row=Array.isArray(data)?data[0]:data;
+      setMessage(`Synk fullført: ${row?.rounds_upserted??0} runder behandlet · ${row?.games_linked??0} kampkoblinger oppdatert · runde ${row?.first_round??"?"}–${row?.last_round??"?"}.`);
+      await load();
+    }catch(e:any){setMessage(`Synk stoppet: ${e?.message||"ukjent feil"}`)}finally{setBusy(false)}
+  }
+
+  const counts=useMemo(()=>{const map=new Map<string,number>();for(const g of games){if(g.fantasy_round_id)map.set(g.fantasy_round_id,(map.get(g.fantasy_round_id)||0)+1)}return map},[games]);
+  const linked=games.filter(g=>g.fantasy_round_id).length;
+  const fmt=(v:string|null)=>v?new Intl.DateTimeFormat("nb-NO",{dateStyle:"medium",timeStyle:"short",timeZone:"Europe/Oslo"}).format(new Date(v)):"—";
+
+  if(allowed===null)return <main style={{maxWidth:1100,margin:"40px auto",padding:20}}>Sjekker admin-tilgang …</main>;
+  if(!allowed)return <main style={{maxWidth:1100,margin:"40px auto",padding:20}}><h1>Ingen tilgang</h1></main>;
+  return <main style={{maxWidth:1100,margin:"40px auto",padding:20,fontFamily:"system-ui"}}>
+    <p style={{fontWeight:700,letterSpacing:1,fontSize:12}}>STANG INN · ADMIN</p>
+    <h1>Fantasy-runder 2026/27</h1>
+    <p>Rundene bygges fra terminlistens <code>round_no</code>. Deadline settes automatisk til første kampstart i hver runde.</p>
+    <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",margin:"20px 0"}}>
+      <button onClick={sync} disabled={busy} style={{padding:"10px 16px"}}>{busy?"Synkroniserer …":"Synkroniser runder fra terminlisten"}</button>
+      <button onClick={load} disabled={busy} style={{padding:"10px 16px"}}>Oppdater kontroll</button>
+      <b>{rounds.length} runder · {linked}/{games.length} kamper koblet</b>
+    </div>
+    {message&&<p style={{padding:12,background:"#f8fafc",borderRadius:10}}>{message}</p>}
+    <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:14}}>
+      <thead><tr><th style={{textAlign:"left",padding:8}}>Runde</th><th style={{textAlign:"left",padding:8}}>Deadline</th><th style={{textAlign:"left",padding:8}}>Siste kamp / slutt</th><th style={{textAlign:"left",padding:8}}>Status</th><th style={{textAlign:"right",padding:8}}>Kamper</th></tr></thead>
+      <tbody>{rounds.map(r=><tr key={r.id} style={{borderTop:"1px solid #e5e7eb"}}><td style={{padding:8}}><b>{r.name||`Runde ${r.round_no}`}</b></td><td style={{padding:8}}>{fmt(r.deadline_at)}</td><td style={{padding:8}}>{fmt(r.ends_at)}</td><td style={{padding:8}}>{r.status}</td><td style={{padding:8,textAlign:"right"}}>{counts.get(r.id)||0}</td></tr>)}</tbody>
+    </table></div>
+    {rounds.length===0&&<p style={{marginTop:20}}>Ingen fantasy-runder er opprettet ennå. Kjør synk når v0.17-migrasjonen er installert.</p>}
+  </main>;
+}
