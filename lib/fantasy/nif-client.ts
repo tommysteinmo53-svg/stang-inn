@@ -11,6 +11,13 @@ export type NifMatchBundle = {
   penalties: Row[];
   teamMembers: Row[];
   tournamentPlayers: Row[];
+  availability: {
+    players: boolean;
+    goalies: boolean;
+    goals: boolean;
+    penalties: boolean;
+    teamMembers: boolean;
+  };
 };
 
 function rowsFrom(payload: unknown): Row[] {
@@ -47,23 +54,46 @@ async function publicJson(url: string): Promise<Row[]> {
   return rowsFrom(await response.json());
 }
 
+async function safePublicJson(url: string): Promise<{rows:Row[];ok:boolean}> {
+  try { return {rows:await publicJson(url),ok:true}; }
+  catch { return {rows:[],ok:false}; }
+}
+
 async function hockeyJson(path: string) {
   return publicJson(`${PUBLIC_HOCKEY_BASE}${path}`);
 }
 
 export async function fetchNifMatchBundle(matchId: number, tournamentId?: string | number): Promise<NifMatchBundle> {
   if (!Number.isInteger(matchId) || matchId <= 0) throw new Error("Ugyldig matchId");
+
   const tournamentPromise = tournamentId
-    ? hockeyJson(`/TournamentPlayers/${tournamentId}`).catch(() => [])
-    : Promise.resolve([] as Row[]);
-  const [players, rawGoalies, goals, penalties, teamMembers, tournamentPlayers] = await Promise.all([
-    hockeyJson(`/Match/Players/${matchId}`),
-    hockeyJson(`/Match/GoalieLeaders/${matchId}`),
-    hockeyJson(`/Match/Goals/${matchId}`),
-    hockeyJson(`/Match/Penalties/${matchId}`),
-    publicJson(`${PUBLIC_ROOT}/ta/MatchTeamMembers/${matchId}`),
+    ? safePublicJson(`${PUBLIC_HOCKEY_BASE}/TournamentPlayers/${tournamentId}`)
+    : Promise.resolve({rows:[] as Row[],ok:false});
+
+  const [playersRes, goaliesRes, goalsRes, penaltiesRes, teamMembersRes, tournamentRes] = await Promise.all([
+    safePublicJson(`${PUBLIC_HOCKEY_BASE}/Match/Players/${matchId}`),
+    safePublicJson(`${PUBLIC_HOCKEY_BASE}/Match/GoalieLeaders/${matchId}`),
+    safePublicJson(`${PUBLIC_HOCKEY_BASE}/Match/Goals/${matchId}`),
+    safePublicJson(`${PUBLIC_HOCKEY_BASE}/Match/Penalties/${matchId}`),
+    safePublicJson(`${PUBLIC_ROOT}/ta/MatchTeamMembers/${matchId}`),
     tournamentPromise,
   ]);
-  const goalies = rawGoalies.map(normalizeGoalie);
-  return { matchId, players, goalies, goals, penalties, teamMembers, tournamentPlayers };
+
+  const goalies = goaliesRes.rows.map(normalizeGoalie);
+  return {
+    matchId,
+    players:playersRes.rows,
+    goalies,
+    goals:goalsRes.rows,
+    penalties:penaltiesRes.rows,
+    teamMembers:teamMembersRes.rows,
+    tournamentPlayers:tournamentRes.rows,
+    availability:{
+      players:playersRes.ok,
+      goalies:goaliesRes.ok,
+      goals:goalsRes.ok,
+      penalties:penaltiesRes.ok,
+      teamMembers:teamMembersRes.ok,
+    },
+  };
 }
