@@ -14,7 +14,7 @@
       "awayScore": 5,
       "status": "finished",
       "sourceType": "official",
-      "sourceQuality": 0.98,
+      "sourceQuality": 1.0,
       "venue": "Nobelhallen",
       "spectators": 732,
       "officialGameId": "1113843",
@@ -62,12 +62,21 @@
         ]
       },
       "stats": [
-        {"playerName": "Jacob Berglund", "team": "Storhamar", "position": "F", "goals": 3, "assists": 0, "knownFields": ["goals"], "sourceQuality": 0.98},
-        {"playerName": "David Aas-Larsen", "team": "Storhamar", "position": "F", "goals": 1, "assists": 0, "knownFields": ["goals"], "sourceQuality": 0.98},
-        {"playerName": "Axel Sandnes", "team": "Storhamar", "position": "F", "goals": 1, "assists": 0, "knownFields": ["goals"], "sourceQuality": 0.98},
-        {"playerName": "Henrik Björklund", "team": "BIK Karlskoga", "position": "F", "goals": 1, "assists": 0, "knownFields": ["goals"], "sourceQuality": 0.98}
+        {"playerName": "Tyler Parks", "team": "Storhamar", "position": "G", "didPlay": true, "saves": 23, "goalsAgainst": 1, "minutesPlayed": 60, "win": true, "shutout": false, "knownFields": ["didPlay","saves","goalsAgainst","minutesPlayed","win","shutout"], "sourceQuality": 1.0},
+        {"playerName": "Jacob Berglund", "team": "Storhamar", "position": "F", "didPlay": true, "goals": 3, "assists": 0, "pim": 2, "powerplayGoals": 1, "knownFields": ["didPlay","goals","assists","pim","powerplayGoals"], "sourceQuality": 1.0},
+        {"playerName": "Austin Cangelosi", "team": "Storhamar", "position": "F", "didPlay": true, "goals": 0, "assists": 2, "knownFields": ["didPlay","goals","assists"], "sourceQuality": 1.0},
+        {"playerName": "Simon Hjalmarsson", "team": "Storhamar", "position": "F", "didPlay": true, "goals": 0, "assists": 2, "powerplayAssists": 1, "knownFields": ["didPlay","goals","assists","powerplayAssists"], "sourceQuality": 1.0},
+        {"playerName": "David Aas-Larsen", "team": "Storhamar", "position": "F", "didPlay": true, "goals": 1, "assists": 0, "knownFields": ["didPlay","goals","assists"], "sourceQuality": 1.0},
+        {"playerName": "Axel Sandnes", "team": "Storhamar", "position": "F", "didPlay": true, "goals": 1, "assists": 0, "pim": 2, "shorthandedGoals": 1, "knownFields": ["didPlay","goals","assists","pim","shorthandedGoals"], "sourceQuality": 1.0},
+        {"playerName": "Eirik Salsten", "team": "Storhamar", "position": "F", "didPlay": true, "pim": 2, "knownFields": ["didPlay","pim"], "sourceQuality": 1.0},
+        {"playerName": "Stian Kaltrud Nystuen", "team": "Storhamar", "position": "F", "didPlay": true, "pim": 2, "knownFields": ["didPlay","pim"], "sourceQuality": 1.0},
+        {"playerName": "Sverre Rønningen", "team": "Storhamar", "position": "D", "didPlay": true, "pim": 4, "knownFields": ["didPlay","pim"], "sourceQuality": 1.0},
+        {"playerName": "Andreas Hjelm", "team": "Storhamar", "position": "D", "didPlay": true, "pim": 2, "knownFields": ["didPlay","pim"], "sourceQuality": 1.0},
+        {"playerName": "Henrik Björklund", "team": "BIK Karlskoga", "position": "F", "didPlay": true, "goals": 1, "assists": 0, "powerplayGoals": 1, "knownFields": ["didPlay","goals","assists","powerplayGoals"], "sourceQuality": 1.0},
+        {"playerName": "Eero Teräväinen", "team": "BIK Karlskoga", "position": "F", "didPlay": true, "goals": 0, "assists": 1, "knownFields": ["didPlay","goals","assists"], "sourceQuality": 1.0},
+        {"playerName": "Carson Golder", "team": "BIK Karlskoga", "position": "F", "didPlay": true, "goals": 0, "assists": 1, "knownFields": ["didPlay","goals","assists"], "sourceQuality": 1.0}
       ],
-      "notes": "Official Swedish game report supplied by admin. Team totals and full Storhamar lineup are known. Individual assists, shots, plus/minus, TOI and goalie identity for the 23-save performance are not inferred until event/report data explicitly identifies them."
+      "notes": "Official Swedish Actions report supplied by admin. Tyler Parks played 60:00 and saved 23 of 24. Storhamar scoring and penalty events are explicit. Unknown individual shots and plus/minus are not inferred. Berglund's 1-5 goal was an empty-net goal; no separate fantasy bonus is assumed unless the scoring model explicitly adds one."
     }
   ]
 }
