@@ -16,6 +16,7 @@ Systemet skal:
 - foreslå kaptein
 - optimalisere bytter innen budsjett og maks antall bytter
 - estimere forventede poeng kommende runder
+- registrere og vise bekreftede skader/fravær fra dokumenterte kilder
 
 ## Datakilder
 
@@ -25,6 +26,7 @@ Datakildene holdes adskilt fra fantasy-logikken slik at vi kan bytte leverandør
 2. Offentlige HockeyLive/EHL-statistikksider brukes som fallback for spiller- og keeperstatistikk uten partner-token.
 3. 19Fantasy-data brukes som egen importkilde dersom offentlig eller tillatt teknisk tilgang finnes, særlig for pris og eksakt W/C-posisjon.
 4. Manuell admin-import beholdes som nødløsning for pris/posisjon hvis disse feltene ikke finnes offentlig.
+5. Skade- og fraværsinformasjon hentes fra dokumenterte offentlige kilder, med nitten.no som en sentral kilde og klubbsider/andre troverdige hockeykilder som supplement.
 
 ### Offentlig fallback – prinsipp
 
@@ -84,6 +86,37 @@ Output:
 - forventet poenggevinst
 - risiko
 - alternativt konservativt og offensivt forslag
+
+### v0.7 – Skader og tilgjengelighet
+
+Bygg en skade-/fraværsfunksjon i admin-analysen som samler dokumentert informasjon om EHL-spillere før kamp og gjør den tilgjengelig for xFP, anbefalinger og lagoptimalisering.
+
+Datakilder og arbeidsflyt:
+
+- nitten.no brukes som en sentral kilde, spesielt før-dropp-/lagnyhetssaker
+- offisielle klubbnettsider og andre troverdige hockeykilder brukes som supplement
+- hver registrering lagrer spiller, lag, status, kilde, kilde-URL, publiseringstid og tidspunkt for siste verifisering
+- automatisk matching mot gjeldende 2026/27-roster; usikre identiteter skal til admin-kontroll og ikke autoaktiveres
+- admin-side viser aktive skader/fravær, nye funn, kilde og hvor fersk informasjonen er
+- admin skal kunne bekrefte, korrigere og oppheve en skade-/fraværsmarkering
+- historikk beholdes slik at vi vet når en spiller ble meldt ute og når han ble meldt tilbake
+
+Statusnivåer bør skille mellom minst:
+
+- bekreftet ute
+- tvilsom / usikker
+- forventes tilbake / kampklar
+- tilbake i spill
+
+Sikkerhetsprinsipp: Kun dokumenterte opplysninger skal gi en spiller status «bekreftet ute». Rykter eller uklare formuleringer kan vises som usikre funn, men skal ikke automatisk påvirke modellen.
+
+Når datakvaliteten er god nok skal tilgjengelighetsstatus kunne brukes av:
+
+- xFP for kommende kamp/runde
+- kjøp / hold / selg
+- kapteinsanbefaling
+- lagoptimalisatoren, slik at bekreftet utilgjengelige spillere ikke anbefales inn
+- varsler i admin når en spiller på et analysert fantasy-lag blir meldt ute
 
 ## Prinsipp
 
