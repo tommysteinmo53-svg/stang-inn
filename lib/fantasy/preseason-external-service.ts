@@ -16,9 +16,26 @@ function canonicalTeam(v:unknown){const s=ascii(v);if(s.includes("nidaros"))retu
 
 async function loadFantasyPlayers(sb:any){const rows:FantasyPlayer[]=[];for(let from=0;;from+=1000){const{data,error}=await sb.from("fantasy_players").select("id,name,team,position,on_current_roster").range(from,from+999);if(error)throw error;rows.push(...((data||[]) as FantasyPlayer[]));if((data||[]).length<1000)break}return rows}
 
+function safeKnownAlias(stat:RegistryStat,teamPlayers:FantasyPlayer[]):MatchResult|null{
+ const source=norm(stat.playerName);
+ if(canonicalTeam(stat.team)!=="storhamar")return null;
+ if(source==="isakskedung"){
+  const hits=teamPlayers.filter(p=>nameTokens(p.name).includes("skedung"));
+  if(hits.length===1)return{player:hits[0],confidence:"strong",reason:"Verifisert Storhamar-alias: Isak Skedung → fullregistrert Skedung-navn",candidates:hits};
+  if(hits.length>1)return{player:null,confidence:"none",reason:"Flere Skedung-kandidater på Storhamar",candidates:hits};
+ }
+ if(source==="kennethgulbransenpappalardo"){
+  const hits=teamPlayers.filter(p=>{const t=nameTokens(p.name),joined=norm(p.name);return t[0]==="kenneth"&&(joined.includes("gulbran")||joined.includes("pappalardo"))});
+  if(hits.length===1)return{player:hits[0],confidence:"strong",reason:"Verifisert Storhamar-alias: Kenneth Gulbransen–Pappalardo",candidates:hits};
+  if(hits.length>1)return{player:null,confidence:"none",reason:"Flere Kenneth/Gulbran/Pappalardo-kandidater på Storhamar",candidates:hits};
+ }
+ return null;
+}
+
 function matchPlayer(stat:RegistryStat,players:FantasyPlayer[]):MatchResult{
  const teamKey=canonicalTeam(stat.team),teamPlayers=players.filter(p=>canonicalTeam(p.team)===teamKey);if(!teamPlayers.length)return{player:null,confidence:"none",reason:"Ingen Fantasy-spillere på samme lag",candidates:[]};
  const exact=teamPlayers.filter(p=>norm(p.name)===norm(stat.playerName));if(exact.length===1)return{player:exact[0],confidence:"exact",reason:"Eksakt normalisert navn + samme lag",candidates:exact};if(exact.length>1)return{player:null,confidence:"none",reason:"Flere eksakte kandidater",candidates:exact};
+ const alias=safeKnownAlias(stat,teamPlayers);if(alias)return alias;
  const sourceTokens=nameTokens(stat.playerName),first=sourceTokens[0]||"",last=sourceTokens[sourceTokens.length-1]||"";const firstLast=teamPlayers.filter(p=>{const t=nameTokens(p.name);return t.length>=2&&t[0]===first&&t[t.length-1]===last});if(firstLast.length===1)return{player:firstLast[0],confidence:"strong",reason:"Entydig fornavn + etternavn + samme lag",candidates:firstLast};if(firstLast.length>1)return{player:null,confidence:"none",reason:"Flere kandidater med samme fornavn/etternavn",candidates:firstLast};
  const sourceSet=new Set(sourceTokens);const subset=teamPlayers.filter(p=>{const candidateTokens=nameTokens(p.name),candidateSet=new Set(candidateTokens);return [...sourceSet].every(t=>candidateSet.has(t))||candidateTokens.every(t=>sourceSet.has(t))});if(subset.length===1)return{player:subset[0],confidence:"strong",reason:"Entydig navnetoken-match + samme lag",candidates:subset};
  const lastName=teamPlayers.filter(p=>{const t=nameTokens(p.name);return t[t.length-1]===last});return{player:null,confidence:"none",reason:"Ingen sikker auto-match",candidates:lastName.slice(0,5)};
