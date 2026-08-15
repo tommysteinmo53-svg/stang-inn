@@ -1,0 +1,76 @@
+{
+  "season": "2026/27",
+  "scheduleReference": {
+    "url": "https://hockeynorge.boards.net/thread/737/treningskamper-ehl-og-divisjon-2026",
+    "label": "HockeyNorge forum – treningskamper EHL og 1. divisjon 2026",
+    "role": "schedule_crosscheck"
+  },
+  "games": [
+    {
+      "gameDate": "2026-08-12",
+      "homeTeam": "BIK Karlskoga",
+      "awayTeam": "Storhamar",
+      "homeScore": 1,
+      "awayScore": 5,
+      "status": "finished",
+      "sourceType": "web",
+      "sourceQuality": 0.75,
+      "sources": [
+        {
+          "url": "https://stats.swehockey.se/ScheduleAndResults/Schedule/21138",
+          "label": "Svenska Ishockeyförbundet – Preseason Games Herr 2026/27",
+          "role": "official_schedule"
+        },
+        {
+          "url": "https://www.sil.no/treningskamper-2026/",
+          "label": "Storhamar Hockey – Treningskamper 2026",
+          "role": "club_schedule"
+        },
+        {
+          "url": "https://hockeynorge.boards.net/thread/737/treningskamper-ehl-og-divisjon-2026",
+          "label": "HockeyNorge forum",
+          "role": "result_and_scorers_crosscheck"
+        }
+      ],
+      "stats": [
+        {
+          "playerName": "Jacob Berglund",
+          "team": "Storhamar",
+          "position": "F",
+          "goals": 3,
+          "assists": 0,
+          "knownFields": ["goals"],
+          "sourceQuality": 0.70
+        },
+        {
+          "playerName": "David Aas Larsen",
+          "team": "Storhamar",
+          "position": "F",
+          "goals": 1,
+          "assists": 0,
+          "knownFields": ["goals"],
+          "sourceQuality": 0.70
+        },
+        {
+          "playerName": "Axel Sandnes",
+          "team": "Storhamar",
+          "position": "F",
+          "goals": 1,
+          "assists": 0,
+          "knownFields": ["goals"],
+          "sourceQuality": 0.70
+        },
+        {
+          "playerName": "Henrik Björklund",
+          "team": "BIK Karlskoga",
+          "position": "F",
+          "goals": 1,
+          "assists": 0,
+          "knownFields": ["goals"],
+          "sourceQuality": 0.70
+        }
+      ],
+      "notes": "Only explicitly known scoring fields are populated. Assists, shots, +/- and TOI are unknown and must not be inferred."
+    }
+  ]
+}
