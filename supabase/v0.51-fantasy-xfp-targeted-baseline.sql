@@ -3,6 +3,9 @@
 -- Computes only next-game xFP for requested players and calculates opponent factors set-wise.
 -- Preserves the v0.45 2025/26 -> 2026/27 blend and v0.43 dynamic opponent-factor logic.
 -- Admin analysis only; does not alter production Fantasy scoring.
+-- Safe repair: drop any earlier incorrectly-created signature before recreating.
+
+drop function if exists public.get_fantasy_xfp_baseline_players_admin_v1(uuid[],text);
 
 create or replace function get_fantasy_xfp_baseline_players_admin_v1(
   p_player_ids uuid[],
@@ -44,7 +47,6 @@ begin
       and fp.on_current_roster=true
       and sp.price is not null
   ),
-
   current_latest as materialized (
     select distinct on(fpp.player_id,fpp.game_id)
       fpp.player_id,fpp.game_id,fpp.actual_points::numeric actual_points,
@@ -74,9 +76,6 @@ begin
     from target t left join current_latest cl on cl.player_id=t.id
     group by t.id
   ),
-
-  -- League-wide 2025/26 scoring is used only to retain the same position/price prior
-  -- for players without enough historical EHL data.
   historical_all as materialized (
     select
       pgs.player_id,
@@ -131,7 +130,6 @@ begin
     select hp.pos,percentile_cont(0.5) within group(order by hp.season_ppg/hp.price)::numeric ppg_per_m
     from historical_priced hp group by hp.pos
   ),
-
   historical_target as materialized (
     select ha.* from historical_all ha join target t on t.id=ha.player_id
   ),
@@ -169,29 +167,20 @@ begin
   blended as materialized (
     select t.id player_id,
       coalesce(cs.games_scored,0)::integer games_scored,
-      (
-        (1-least(1::numeric,coalesce(cs.games_scored,0)::numeric/10))*pp.prior_season_ppg
-        + least(1::numeric,coalesce(cs.games_scored,0)::numeric/10)*coalesce(cs.ppg,pp.prior_season_ppg)
-      )::numeric season_ppg,
-      (
-        (1-least(1::numeric,coalesce(cs.games_scored,0)::numeric/10))*pp.prior_form_ppg
-        + least(1::numeric,coalesce(cs.games_scored,0)::numeric/10)*coalesce(cf.ppg,cs.ppg,pp.prior_form_ppg)
-      )::numeric form_ppg,
-      (
-        (1-least(1::numeric,coalesce(cs.games_scored,0)::numeric/10))*pp.prior_home_ppg
-        + least(1::numeric,coalesce(cs.games_scored,0)::numeric/10)*coalesce(cv.home_ppg,cs.ppg,pp.prior_home_ppg)
-      )::numeric home_ppg,
-      (
-        (1-least(1::numeric,coalesce(cs.games_scored,0)::numeric/10))*pp.prior_away_ppg
-        + least(1::numeric,coalesce(cs.games_scored,0)::numeric/10)*coalesce(cv.away_ppg,cs.ppg,pp.prior_away_ppg)
-      )::numeric away_ppg
+      ((1-least(1::numeric,coalesce(cs.games_scored,0)::numeric/10))*pp.prior_season_ppg
+        + least(1::numeric,coalesce(cs.games_scored,0)::numeric/10)*coalesce(cs.ppg,pp.prior_season_ppg))::numeric season_ppg,
+      ((1-least(1::numeric,coalesce(cs.games_scored,0)::numeric/10))*pp.prior_form_ppg
+        + least(1::numeric,coalesce(cs.games_scored,0)::numeric/10)*coalesce(cf.ppg,cs.ppg,pp.prior_form_ppg))::numeric form_ppg,
+      ((1-least(1::numeric,coalesce(cs.games_scored,0)::numeric/10))*pp.prior_home_ppg
+        + least(1::numeric,coalesce(cs.games_scored,0)::numeric/10)*coalesce(cv.home_ppg,cs.ppg,pp.prior_home_ppg))::numeric home_ppg,
+      ((1-least(1::numeric,coalesce(cs.games_scored,0)::numeric/10))*pp.prior_away_ppg
+        + least(1::numeric,coalesce(cs.games_scored,0)::numeric/10)*coalesce(cv.away_ppg,cs.ppg,pp.prior_away_ppg))::numeric away_ppg
     from target t
     join player_prior pp on pp.player_id=t.id
     left join current_season cs on cs.player_id=t.id
     left join current_form cf on cf.player_id=t.id
     left join current_venue cv on cv.player_id=t.id
   ),
-
   next_fixture as materialized (
     select distinct on(t.id)
       t.id player_id,t.position player_position,g.starts_at,
@@ -206,16 +195,11 @@ begin
       and coalesce(g.status,'scheduled') not in('finished','cancelled')
     order by t.id,g.starts_at,g.id
   ),
-
-  -- Current-season team aggregates are calculated once for the whole league,
-  -- then reused for every targeted player.
   league_goal_rows as materialized (
-    select g.home_score::numeric goals
-    from fantasy_games g
+    select g.home_score::numeric goals from fantasy_games g
     where g.season=p_season and g.home_score is not null and g.away_score is not null
     union all
-    select g.away_score::numeric
-    from fantasy_games g
+    select g.away_score::numeric from fantasy_games g
     where g.season=p_season and g.home_score is not null and g.away_score is not null
   ),
   league_avg as materialized (
@@ -248,19 +232,16 @@ begin
               then fantasy_xfp_preseason_factor(uo.opponent)
             when uo.player_position='G' then
               greatest(0.70::numeric,least(1.35::numeric,
-                case when coalesce(tl.gf,0)>0 then power(la.league_goals/tl.gf,1.15) else 1.35::numeric end
-              ))
+                case when coalesce(tl.gf,0)>0 then power(la.league_goals/tl.gf,1.15) else 1.35::numeric end))
             else
               greatest(0.70::numeric,least(1.35::numeric,
-                case when tl.ga is not null then power(tl.ga/la.league_goals,1.15) else 1::numeric end
-              ))
+                case when tl.ga is not null then power(tl.ga/la.league_goals,1.15) else 1::numeric end))
           end
       )),3) factor
     from unique_opponents uo
     left join team_live tl on tl.team_key=uo.opponent_key
     cross join league_avg la
   )
-
   select
     nf.player_id,
     round(
@@ -283,3 +264,5 @@ grant execute on function get_fantasy_xfp_baseline_players_admin_v1(uuid[],text)
 
 comment on function get_fantasy_xfp_baseline_players_admin_v1(uuid[],text) is
   'Admin-only targeted next-game xFP baseline. Preserves v0.45 blend and v0.43 opponent factors while avoiding full-pool/three-fixture recomputation.';
+
+notify pgrst, 'reload schema';
