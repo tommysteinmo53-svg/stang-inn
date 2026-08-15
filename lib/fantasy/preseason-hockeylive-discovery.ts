@@ -1,9 +1,6 @@
 import {createClient} from "@supabase/supabase-js";
 
 const SEASON_ID=201071;
-// Known 2026/27 HockeyLive tournaments that have contained preseason/EHL-related games.
-// Discovery also checks the global date scoreboard, so a game may be found even when
-// HockeyLive places it in another tournament.
 const PRESEASON_TOURNAMENT_IDS=[448939,448981,448684];
 
 type DbGame={id:number;game_date:string;starts_at:string|null;home_team:string;away_team:string;hockeylive_match_id:number|null;source_type:string|null;notes:string|null};
@@ -31,7 +28,7 @@ function candidatesFromHtml(html:string,sourceUrl:string):Candidate[]{
  const rx=/matchId(?:=|%3D)(\d{6,9})/gi;let m:RegExpExecArray|null;
  while((m=rx.exec(html))){
   const id=Number(m[1]);if(!Number.isInteger(id)||id<=0)continue;
-  const from=Math.max(0,m.index-1800),to=Math.min(html.length,m.index+1800);
+  const from=Math.max(0,m.index-2200),to=Math.min(html.length,m.index+2200);
   const raw=html.slice(from,to),snippet=decodeHtml(raw);
   const tournamentId=tournamentIdFromText(raw)||tournamentIdFromText(sourceUrl);
   const current=out.get(id);if(!current||snippet.length>current.text.length)out.set(id,{matchId:id,text:snippet,url:sourceUrl,tournamentId});
@@ -40,10 +37,15 @@ function candidatesFromHtml(html:string,sourceUrl:string):Candidate[]{
 }
 
 function dateTokens(date:string){
- const [y,m,d]=date.split("-");
- if(!y||!m||!d)return[];
+ const [y,m,d]=date.split("-");if(!y||!m||!d)return[];
  const dd=String(Number(d)),mm=String(Number(m));
  return [date,`${d}.${m}.${y}`,`${dd}.${mm}.${y}`,`${d}/${m}/${y}`,`${dd}/${mm}/${y}`,`${d}.${m}.`,`${dd}.${mm}.`].map(ascii);
+}
+function sourceIsDateScoped(game:DbGame,url:string){
+ try{
+  const decoded=decodeURIComponent(url);
+  return decoded.includes(`matchDate=${game.game_date}`)||decoded.includes(game.game_date+"T00:00:00");
+ }catch{return url.includes(game.game_date)}
 }
 function candidateMatches(game:DbGame,c:Candidate){
  const t=ascii(c.text),compact=norm(c.text),home=teamKey(game.home_team),away=teamKey(game.away_team);
@@ -51,29 +53,28 @@ function candidateMatches(game:DbGame,c:Candidate){
  const hasHome=t.includes(home)||compact.includes(home);
  const hasAway=t.includes(away)||compact.includes(away);
  if(!hasHome||!hasAway)return false;
+ // A scoreboard URL explicitly scoped to this date is itself sufficient date evidence.
+ if(sourceIsDateScoped(game,c.url))return true;
  const dates=dateTokens(game.game_date);
  return dates.length===0||dates.some(x=>t.includes(x));
 }
 
 async function discoverOne(game:DbGame){
  const dateParam=encodeURIComponent(game.game_date+"T00:00:00");
- const pages:string[]=[
-  // Most important fallback: HockeyLive's global scoreboard for the date also exposes
-  // matches from tournaments other than the selected one.
-  `https://live.hockey.no/?seasonId=${SEASON_ID}&matchDate=${dateParam}`,
- ];
+ const pages:string[]=[`https://live.hockey.no/?seasonId=${SEASON_ID}&matchDate=${dateParam}`];
  for(const tournamentId of PRESEASON_TOURNAMENT_IDS){
   pages.push(`https://live.hockey.no/?seasonId=${SEASON_ID}&tournamentId=${tournamentId}&matchDate=${dateParam}`);
   pages.push(`https://live.hockey.no/schedule?seasonId=${SEASON_ID}&tournamentId=${tournamentId}`);
  }
- const all=new Map<number,Candidate>();
+ const all=new Map<number,Candidate>(),fetchErrors:string[]=[];
  for(const url of pages){
-  try{for(const c of candidatesFromHtml(await fetchHtml(url),url)){const old=all.get(c.matchId);if(!old||c.text.length>old.text.length)all.set(c.matchId,c)}}catch{/* discovery must never block normal import */}
+  try{for(const c of candidatesFromHtml(await fetchHtml(url),url)){const old=all.get(c.matchId);if(!old||c.text.length>old.text.length)all.set(c.matchId,c)}}
+  catch(error:any){fetchErrors.push(`${url}: ${error?.message||String(error)}`)}
  }
  const matches=[...all.values()].filter(c=>candidateMatches(game,c));
- if(matches.length!==1)return{status:matches.length===0?"not_found":"ambiguous" as const,matches:matches.map(x=>({matchId:x.matchId,tournamentId:x.tournamentId}))};
+ if(matches.length!==1)return{status:matches.length===0?"not_found":"ambiguous" as const,matches:matches.map(x=>({matchId:x.matchId,tournamentId:x.tournamentId})),candidateCount:all.size,fetchErrors};
  const hit=matches[0];
- return{status:"matched" as const,matchId:hit.matchId,tournamentId:hit.tournamentId,sourceUrl:hit.url,matches:[{matchId:hit.matchId,tournamentId:hit.tournamentId}]};
+ return{status:"matched" as const,matchId:hit.matchId,tournamentId:hit.tournamentId,sourceUrl:hit.url,matches:[{matchId:hit.matchId,tournamentId:hit.tournamentId}],candidateCount:all.size,fetchErrors};
 }
 
 export async function discoverMissingPreseasonHockeyLiveIds(){
@@ -84,14 +85,14 @@ export async function discoverMissingPreseasonHockeyLiveIds(){
  for(const game of rows){
   const found=await discoverOne(game);
   if(found.status!=="matched"){
-   results.push({gameId:game.id,game:`${game.home_team} – ${game.away_team}`,status:found.status,candidates:found.matches});
+   results.push({gameId:game.id,game:`${game.home_team} – ${game.away_team}`,gameDate:game.game_date,status:found.status,candidates:found.matches,candidateCount:found.candidateCount,fetchErrors:found.fetchErrors});
    continue;
   }
   const tournamentId=found.tournamentId||PRESEASON_TOURNAMENT_IDS[0];
   const note=`HOCKEYLIVE_AUTO_DISCOVERY matchId=${found.matchId} tournamentId=${tournamentId} at=${new Date().toISOString()}`;
   const{error:updateError}=await sb.from("fantasy_preseason_games").update({hockeylive_match_id:found.matchId,source_type:"hockeylive",source_quality:0.95,source_url:`https://live.hockey.no/match?seasonId=${SEASON_ID}&tournamentId=${tournamentId}&matchId=${found.matchId}&matchDate=${game.game_date}T00:00:00`,notes:[game.notes,note].filter(Boolean).join("\n"),updated_at:new Date().toISOString()}).eq("id",game.id);
-  if(updateError){results.push({gameId:game.id,game:`${game.home_team} – ${game.away_team}`,status:"error",error:updateError.message});continue}
-  results.push({gameId:game.id,game:`${game.home_team} – ${game.away_team}`,status:"matched",matchId:found.matchId,tournamentId});
+  if(updateError){results.push({gameId:game.id,game:`${game.home_team} – ${game.away_team}`,gameDate:game.game_date,status:"error",error:updateError.message});continue}
+  results.push({gameId:game.id,game:`${game.home_team} – ${game.away_team}`,gameDate:game.game_date,status:"matched",matchId:found.matchId,tournamentId,candidateCount:found.candidateCount});
  }
  return{checked:rows.length,discovered:results.filter(r=>r.status==="matched").length,ambiguous:results.filter(r=>r.status==="ambiguous").length,notFound:results.filter(r=>r.status==="not_found").length,results};
 }
