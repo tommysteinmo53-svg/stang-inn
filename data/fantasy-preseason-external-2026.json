@@ -13,64 +13,61 @@
       "homeScore": 1,
       "awayScore": 5,
       "status": "finished",
-      "sourceType": "web",
-      "sourceQuality": 0.75,
+      "sourceType": "official",
+      "sourceQuality": 0.98,
+      "venue": "Nobelhallen",
+      "spectators": 732,
+      "officialGameId": "1113843",
+      "teamStats": {
+        "home": {"shots": 24, "saves": 20, "pim": 4, "powerplayPct": 16.67},
+        "away": {"shots": 25, "saves": 23, "pim": 14, "powerplayPct": 100.0}
+      },
+      "periods": [
+        {"period": 1, "homeGoals": 0, "awayGoals": 2, "homeShots": 7, "awayShots": 13},
+        {"period": 2, "homeGoals": 1, "awayGoals": 1, "homeShots": 10, "awayShots": 4},
+        {"period": 3, "homeGoals": 0, "awayGoals": 2, "homeShots": 7, "awayShots": 8}
+      ],
       "sources": [
-        {
-          "url": "https://stats.swehockey.se/ScheduleAndResults/Schedule/21138",
-          "label": "Svenska Ishockeyförbundet – Preseason Games Herr 2026/27",
-          "role": "official_schedule"
-        },
-        {
-          "url": "https://www.sil.no/treningskamper-2026/",
-          "label": "Storhamar Hockey – Treningskamper 2026",
-          "role": "club_schedule"
-        },
-        {
-          "url": "https://hockeynorge.boards.net/thread/737/treningskamper-ehl-og-divisjon-2026",
-          "label": "HockeyNorge forum",
-          "role": "result_and_scorers_crosscheck"
-        }
+        {"url": "https://stats.swehockey.se/Game/LineUps/1113843", "label": "Svenska Ishockeyförbundet – Line Up", "role": "official_lineup"},
+        {"url": "https://stats.swehockey.se/Game/Events/1113843", "label": "Svenska Ishockeyförbundet – Actions", "role": "official_events"},
+        {"url": "https://stats.swehockey.se/Game/Reports/1113843", "label": "Svenska Ishockeyförbundet – Reports", "role": "official_report"},
+        {"url": "https://www.sil.no/treningskamper-2026/", "label": "Storhamar Hockey – Treningskamper 2026", "role": "club_schedule"},
+        {"url": "https://hockeynorge.boards.net/thread/737/treningskamper-ehl-og-divisjon-2026", "label": "HockeyNorge forum", "role": "schedule_crosscheck"}
       ],
+      "lineup": {
+        "Storhamar": [
+          {"number": 30, "playerName": "Tyler Parks", "position": "G"},
+          {"number": 70, "playerName": "Theo Rooseboom De Vries", "position": "G"},
+          {"number": 14, "playerName": "Liam Saetre", "position": "F", "line": 1},
+          {"number": 17, "playerName": "Eirik Salsten", "position": "F", "line": 1},
+          {"number": 27, "playerName": "Andreas Martinsen", "position": "F", "line": 1},
+          {"number": 54, "playerName": "Sander Dilling Hurrød", "position": "D", "line": 1},
+          {"number": 77, "playerName": "Sverre Rønningen", "position": "D", "line": 1},
+          {"number": 12, "playerName": "Jacob Berglund", "position": "F", "line": 2},
+          {"number": 86, "playerName": "Austin Cangelosi", "position": "F", "line": 2},
+          {"number": 34, "playerName": "Simon Hjalmarsson", "position": "F", "line": 2},
+          {"number": 5, "playerName": "Joseph Gatenby", "position": "D", "line": 2},
+          {"number": 28, "playerName": "Christian Bull", "position": "D", "line": 2},
+          {"number": 22, "playerName": "Martin Rönnild", "position": "F", "line": 3},
+          {"number": 83, "playerName": "Kenneth Gulbransen - Pappalardo", "position": "F", "line": 3},
+          {"number": 45, "playerName": "Axel Sandnes", "position": "F", "line": 3},
+          {"number": 33, "playerName": "Jesper Martinsen Lilleberg", "position": "D", "line": 3},
+          {"number": 19, "playerName": "Amil Fikret Krupic", "position": "D", "line": 3},
+          {"number": 29, "playerName": "David Aas-Larsen", "position": "F", "line": 4},
+          {"number": 40, "playerName": "Isak Skedung", "position": "F", "line": 4},
+          {"number": 74, "playerName": "Stian Kaltrud Nystuen", "position": "F", "line": 4},
+          {"number": 88, "playerName": "Andreas Hjelm", "position": "D", "line": 4},
+          {"number": 26, "playerName": "Mathias Papuga", "position": "D", "line": 4},
+          {"number": 92, "playerName": "Oliver Kaatorp Nilsgård", "position": "F", "extra": true}
+        ]
+      },
       "stats": [
-        {
-          "playerName": "Jacob Berglund",
-          "team": "Storhamar",
-          "position": "F",
-          "goals": 3,
-          "assists": 0,
-          "knownFields": ["goals"],
-          "sourceQuality": 0.70
-        },
-        {
-          "playerName": "David Aas Larsen",
-          "team": "Storhamar",
-          "position": "F",
-          "goals": 1,
-          "assists": 0,
-          "knownFields": ["goals"],
-          "sourceQuality": 0.70
-        },
-        {
-          "playerName": "Axel Sandnes",
-          "team": "Storhamar",
-          "position": "F",
-          "goals": 1,
-          "assists": 0,
-          "knownFields": ["goals"],
-          "sourceQuality": 0.70
-        },
-        {
-          "playerName": "Henrik Björklund",
-          "team": "BIK Karlskoga",
-          "position": "F",
-          "goals": 1,
-          "assists": 0,
-          "knownFields": ["goals"],
-          "sourceQuality": 0.70
-        }
+        {"playerName": "Jacob Berglund", "team": "Storhamar", "position": "F", "goals": 3, "assists": 0, "knownFields": ["goals"], "sourceQuality": 0.98},
+        {"playerName": "David Aas-Larsen", "team": "Storhamar", "position": "F", "goals": 1, "assists": 0, "knownFields": ["goals"], "sourceQuality": 0.98},
+        {"playerName": "Axel Sandnes", "team": "Storhamar", "position": "F", "goals": 1, "assists": 0, "knownFields": ["goals"], "sourceQuality": 0.98},
+        {"playerName": "Henrik Björklund", "team": "BIK Karlskoga", "position": "F", "goals": 1, "assists": 0, "knownFields": ["goals"], "sourceQuality": 0.98}
       ],
-      "notes": "Only explicitly known scoring fields are populated. Assists, shots, +/- and TOI are unknown and must not be inferred."
+      "notes": "Official Swedish game report supplied by admin. Team totals and full Storhamar lineup are known. Individual assists, shots, plus/minus, TOI and goalie identity for the 23-save performance are not inferred until event/report data explicitly identifies them."
     }
   ]
 }
