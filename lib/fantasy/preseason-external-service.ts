@@ -5,6 +5,7 @@ type RegistryStat={
   playerName:string;
   team:string;
   position?:string|null;
+  didPlay?:boolean|null;
   goals?:number;
   assists?:number;
   shots?:number;
@@ -95,7 +96,7 @@ export async function importExternalPreseasonRegistry(){
       continue;
     }
 
-    const primarySource=game.sources.find(s=>s.role==="official_schedule")||game.sources[0]||null;
+    const primarySource=game.sources.find(s=>s.role==="official_report")||game.sources.find(s=>s.role==="official_events")||game.sources.find(s=>s.role==="official_schedule")||game.sources[0]||null;
     const patch:any={
       home_score:game.homeScore??dbGame.home_score,
       away_score:game.awayScore??dbGame.away_score,
@@ -118,7 +119,7 @@ export async function importExternalPreseasonRegistry(){
         raw_player_name:stat.playerName,
         team:stat.team,
         position:player?.position||stat.position||null,
-        did_play:null,
+        did_play:stat.didPlay??null,
         goals:Number(stat.goals||0),
         assists:Number(stat.assists||0),
         shots:Number(stat.shots||0),
