@@ -19,16 +19,23 @@ export async function GET(request:NextRequest){
   const sb=clientFor(request);
   if(!sb)return NextResponse.json({ok:false,error:"Supabase-konfigurasjon mangler."},{status:503});
 
-  const [baseRes,preRes]=await Promise.all([
-    sb.rpc("get_fantasy_xfp_admin_v1",{p_season:"2026/27"}),
-    sb.rpc("get_fantasy_preseason_signal_admin_v1",{p_season:"2026/27"}),
-  ]);
-
-  if(baseRes.error)return NextResponse.json({ok:false,error:baseRes.error.message,source:"baseline"},{status:500});
+  // Fetch the guarded preseason signal first. We then calculate baseline xFP only
+  // for these players instead of recomputing the full 244-player / next-3 model.
+  const preRes=await sb.rpc("get_fantasy_preseason_signal_admin_v1",{p_season:"2026/27"});
   if(preRes.error)return NextResponse.json({ok:false,error:preRes.error.message,source:"preseason"},{status:500});
 
+  const preseasonRows=(preRes.data||[]) as any[];
+  if(!preseasonRows.length)return NextResponse.json({ok:true,rows:[]});
+
+  const playerIds=preseasonRows.map((r:any)=>r.player_id).filter(Boolean);
+  const baseRes=await sb.rpc("get_fantasy_xfp_baseline_players_admin_v1",{
+    p_player_ids:playerIds,
+    p_season:"2026/27",
+  });
+  if(baseRes.error)return NextResponse.json({ok:false,error:baseRes.error.message,source:"targeted-baseline"},{status:500});
+
   const baseMap=new Map((baseRes.data||[]).map((r:any)=>[r.player_id,r]));
-  const rows=(preRes.data||[]).map((p:any)=>{
+  const rows=preseasonRows.map((p:any)=>{
     const b:any=baseMap.get(p.player_id)||{};
     const baseline=Number(b.xfp_next_game||0);
     const preseason=Number(p.preseason_ppg||0);
