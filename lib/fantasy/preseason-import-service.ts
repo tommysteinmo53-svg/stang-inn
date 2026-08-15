@@ -9,7 +9,7 @@ function text(v:any){return v==null?"":String(v).trim()}
 function ascii(v:any){return text(v).toLocaleLowerCase("nb-NO").replace(/æ/g,"ae").replace(/ø/g,"o").replace(/å/g,"aa").normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
 function norm(v:any){return ascii(v).replace(/[^a-z0-9]+/g,"").trim()}
 function nameTokens(v:any){return ascii(v).replace(/[^a-z0-9]+/g," ").trim().split(/\s+/).filter(Boolean)}
-function canonicalTeam(value:any){const s=ascii(value);if(s.includes("nidaros"))return"nidaros";if(s.includes("lorenskog"))return"lorenskog";if(s.includes("storhamar"))return"storhamar";if(s.includes("stavanger")||s.includes("oilers"))return"oilers";if(s.includes("valerenga"))return"valerenga";if(s.includes("frisk"))return"frisk";if(s.includes("sparta"))return"sparta";if(s.includes("narvik"))return"narvik";if(s.includes("stjernen"))return"stjernen";if(s.includes("lillehammer"))return"lillehammer";if(s.includes("ringerike"))return"ringerike";return norm(value)}
+function canonicalTeam(value:any){const s=ascii(value);if(s.includes("nidaros"))return"nidaros";if(s.includes("lorenskog"))return"lorenskog";if(s.includes("storhamar"))return"storhamar";if(s.includes("stavanger")||s.includes("oilers"))return"oilers";if(s.includes("valerenga")||s.includes("vaalerenga"))return"valerenga";if(s.includes("frisk"))return"frisk";if(s.includes("sparta"))return"sparta";if(s.includes("narvik"))return"narvik";if(s.includes("stjernen"))return"stjernen";if(s.includes("lillehammer"))return"lillehammer";if(s.includes("ringerike"))return"ringerike";return norm(value)}
 function fullName(raw:Row){const direct=text(first(raw.playerName,raw.PlayerName,raw.name,raw.Name,raw.fullName,raw.FullName,raw.personName,raw.PersonName,raw.memberName,raw.MemberName));if(direct)return direct;return [text(first(raw.firstName,raw.FirstName,raw.givenName)),text(first(raw.lastName,raw.LastName,raw.familyName))].filter(Boolean).join(" ").trim()}
 function team(raw:Row){return text(first(raw.teamName,raw.TeamName,raw.team,raw.Team,raw.clubName,raw.ClubName,raw.orgName,raw.OrgName,raw.organizationName,raw.OrganizationName,raw.teamShortName,raw.TeamShortName))}
 function externalPerson(raw:Row){return text(first(raw.personId,raw.PersonId,raw.playerId,raw.PlayerId,raw.person_id,raw.id,raw.Id))}
@@ -46,7 +46,6 @@ export async function importPreseasonHockeyLiveMatch(preseasonGameId:number){
   if(goalieIds.has(externalPerson(raw))||pos(raw,false)==="G")continue;
   const name=fullName(raw);if(!name)continue;
   const player=findPlayer(raw,players);const rawTeam=team(raw);const tm=rawTeam||player?.team||"Ukjent";const inferredPos=player?.position||pos(raw,false);
-  // MatchTeamMembers can contain coaches/staff. Without a fantasy-player match or player-like position, do not create a stat row.
   if(!player&&!inferredPos){skippedStaff++;continue}
   const stat=skaterStat(raw);
   const row={preseason_game_id:game.id,player_id:player?.id||null,raw_player_name:name,team:tm,position:inferredPos,did_play:true,...stat,source_type:"hockeylive",source_quality:bundle.players.some(p=>personKey(p)===personKey(raw))?0.95:0.90,raw:{source:raw.__source||"hockeylive-lineup",matchId,availability:bundle.availability,...raw},updated_at:new Date().toISOString()};
