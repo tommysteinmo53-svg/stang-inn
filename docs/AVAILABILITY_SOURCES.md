@@ -13,9 +13,9 @@ External information is never authoritative by itself. Automatic collection may 
 3. **HockeyLive / official match squad data** – separate structured source for `not_in_lineup`; absence from a lineup must not be interpreted as injury without another source.
 4. Other sources may be entered manually, but are not part of the automatic scanner unless explicitly reviewed and added to the allowlist.
 
-## Automatic scanner safety gates
+## Web scanner safety gates
 
-The scanner is deterministic and admin-triggered. It may create a candidate only when all of the following are true:
+The web scanner is deterministic and admin-triggered. It may create a candidate only when all of the following are true:
 
 - the URL belongs to an allowlisted source;
 - the page exposes a parseable publication timestamp;
@@ -26,9 +26,15 @@ The scanner is deterministic and admin-triggered. It may create a candidate only
 
 The scanner does not infer a player from surname fragments, position, jersey number or similarity alone.
 
+## HockeyLive match-squad gate
+
+HockeyLive is handled separately from prose sources. The scanner checks only linked 2026/27 preseason matches from the latest three days and requires the public `MatchTeamMembers` dataset to be available. Both teams must have at least 10 identified team members before absence detection is allowed; otherwise the match is skipped as incomplete.
+
+A current-roster player who cannot be found in that team's MatchTeamMembers by NIF person ID or exact normalized full name may create a `not_in_lineup` finding. The finding records match ID, game and date. It never infers injury, illness or suspension. The same explicit admin approval requirement applies before current availability can change.
+
 ## Status interpretation
 
-- `not_in_lineup`: source explicitly says the player is outside/not in the match squad. This does **not** imply injury.
+- `not_in_lineup`: source explicitly says the player is outside/not in the match squad, or a complete-enough HockeyLive MatchTeamMembers dataset omits a current-roster player. This does **not** imply injury.
 - `out`: explicit injury, illness, suspension/ban, stands over, or not match-ready.
 - `long_term`: explicit long-term absence, rest-of-season absence, or multi-week/month wording.
 - `questionable`: explicit uncertain/day-to-day wording.
@@ -52,7 +58,7 @@ If any operation fails, the transaction is rolled back.
 
 Automatic findings are deduplicated by source URL + player name + proposed status. Source publication time is stored with the finding and later copied into authoritative availability on approval.
 
-Pages without a parseable publication time are skipped by the automatic scanner and may still be handled manually if needed. This intentionally favors missed candidates over stale or misleading automatic findings.
+Pages without a parseable publication time are skipped by the web scanner and may still be handled manually if needed. This intentionally favors missed candidates over stale or misleading automatic findings.
 
 ## Scope
 
