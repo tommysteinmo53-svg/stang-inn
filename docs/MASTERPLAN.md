@@ -109,6 +109,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 - MP-07.3 ✅ Rundering/rank, bevegelse og egen-lag-markering implementert.
 - MP-07.4 🟡 Rundevisning og visuell presentasjon viderepoleres.
 - MP-07.5 ⬜ Endelig konkurranse-/premie-/tie-break-regelverk dokumenteres dersom nødvendig.
+- MP-07.6 ⬜ **Bonus Weeks / fantasy-boostere:** utred og innfør utvalgte gameweeks der brukerne kan hente ekstra poeng gjennom strategiske bonusmekanikker. Hent dokumentert inspirasjon fra etablerte fantasyspill og vurder blant annet modeller som ekstra kapteinsmultiplikator, midlertidige lag-/byttefordeler eller andre begrensede boostere. Definer hvilke bonusmekanikker Stang Inn skal bruke, hvor ofte de kan brukes/aktiveres, om de er brukerinitierte eller knyttet til bestemte gameweeks, hvordan de samspiller med runder/deadlines/snapshots/scoring, og hvordan de presenteres tydelig i UI. Reglene skal være forståelige, balanserte og testbare før implementering.
 
 # MP-08 – Analyse, xFP og anbefalinger
 
