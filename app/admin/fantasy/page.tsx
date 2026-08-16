@@ -23,6 +23,7 @@ export default function FantasyAdminPage(){
   if(!allowed)return <main className="appShell"><article className="panel"><h2>Ingen tilgang</h2><p className="muted">{message}</p><a href="/admin" className="textButton">← Adminoversikt</a></article></main>;
 
   const cards=[
+    {href:"/admin/fantasy/roster-audit",icon:"🧾",title:"EliteProspects roster-audit",text:"Full read-only kontroll av aktiv 2026/27-spillerpool mot EliteProspects-fasiten for alle EHL-lag.",badge:"MP-02"},
     {href:"/admin/fantasy/player-queue",icon:"🆕",title:"Nye EHL-spillere",text:"Prisforslag V4.6, manuell kontroll og godkjenning av fast 2026/27-pris.",badge:pending==null?"Kø":`${pending} venter`},
     {href:"/admin/fantasy/tools",icon:"🔧",title:"Fantasy driftsverktøy",text:"Eksisterende adminverktøy for Fantasy/HockeyLive, roster og teknisk drift.",badge:"Admin"},
     {href:"/admin/fantasy/rounds",icon:"📅",title:"Fantasy-runder",text:"Administrasjon og kontroll av de kalenderbaserte fantasy-rundene.",badge:"45 runder"},
