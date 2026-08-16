@@ -28,9 +28,11 @@ The scanner does not infer a player from surname fragments, position, jersey num
 
 ## HockeyLive match-squad gate
 
-HockeyLive is handled separately from prose sources. The scanner checks only linked 2026/27 preseason matches from the latest three days and requires the public `MatchTeamMembers` dataset to be available. Both teams must have at least 10 identified team members before absence detection is allowed; otherwise the match is skipped as incomplete.
+HockeyLive is handled separately from prose sources. The scanner checks linked 2026/27 preseason matches from the latest three days and ordinary `fantasy_games` from the latest three days through the next 24 hours. Regular-season HockeyLive match IDs are derived from the same `external_id` already used by the production match importer.
 
-A current-roster player who cannot be found in that team's MatchTeamMembers by NIF person ID or exact normalized full name may create a `not_in_lineup` finding. The finding records match ID, game and date. It never infers injury, illness or suspension. The same explicit admin approval requirement applies before current availability can change.
+The public `MatchTeamMembers` dataset must be available. Both teams must have at least 10 identified team members before absence detection is allowed; otherwise the match is skipped as incomplete. This allows upcoming game-day squads to be checked when HockeyLive has published them, while safely ignoring an unpopulated or partial lineup.
+
+A current-roster player who cannot be found in that team's MatchTeamMembers by NIF person ID or exact normalized full name may create a `not_in_lineup` finding. The finding records match ID, game, date and whether the game is preseason or regular season. It never infers injury, illness or suspension. The same explicit admin approval requirement applies before current availability can change.
 
 ## Status interpretation
 
