@@ -49,6 +49,8 @@ Neste naturlige tekniske kobling er:
 
 `dokumentert availability -> roster matching -> xFP/analyse -> anbefalinger -> lagoptimalisator`
 
+Arbeid på branch `mp09-availability-intake` / PR #14 legger til ikke-autoritativ kildefunn-kø, konservativ roster-matching og admin-review. Dette er ikke ferdig på `main` og skal ikke markeres som implementert før PR-en er verifisert og merged.
+
 ## Testing
 
 - GitHub Actions kjører `npm run build` på push/PR mot `main`.
