@@ -128,14 +128,14 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-09 – Skader, fravær og tilgjengelighet
 
-**Status: 🟡 aktiv utvikling**
+**Status: 🟡 – kilde/matching ferdig, analyseintegrasjon gjenstår**
 
 - MP-09.1 ✅ Datamodell for spiller-tilgjengelighet etablert.
 - MP-09.2 ✅ Admin-API og admin-side for tilgjengelighet etablert.
 - MP-09.3 ✅ Status for «ikke i kamptropp» støttes.
-- MP-09.4 ⬜ Dokumentert kildeinnhenting fra nitten.no, klubber og andre troverdige kilder.
-- MP-09.5 ⬜ Sikker automatisk matching mot gjeldende roster med manuell kontroll av usikre funn.
-- MP-09.6 ⬜ Koble bekreftet tilgjengelighet inn i xFP, anbefalinger og optimalisator.
+- MP-09.4 ✅ Dokumentert kildeinnhenting etablert: allowlistede EHL-klubbsider og nitten.no med freshness-gate/deduplisering, samt HockeyLive MatchTeamMembers-kontroll for preseason og ordinære 2026/27-kamper. Eksterne funn legges kun i review-kø og publiseres aldri automatisk.
+- MP-09.5 ✅ Sikker roster-matching og adminverifisering etablert. Usikre/tvetydige funn krever manuell kontroll; godkjenning verifiserer aktiv roster-spiller og oppdaterer availability + historikk + funnstatus atomisk.
+- MP-09.6 ⬜ Koble kun admin-godkjent tilgjengelighet inn i xFP, anbefalinger og optimalisator. Ikke-godkjente kildefunn skal aldri påvirke modellen.
 - MP-09.7 ⬜ Varsler for relevante spillere på analyserte fantasy-lag.
 
 # MP-10 – Lagoptimalisator
@@ -199,19 +199,18 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når et steg er ferdig, blokkert eller når ny informasjon endrer avhengighetene. Arbeidschatten som fullfører et steg skal lese siste versjon av denne køen på `main` før den sender brukeren videre.
 
-1. **Chat 09 – MP-09.4 + MP-09.5: ferdigstill availability-pipelinen.** Dokumenterte kilder, sikker roster-matching, manuell kontroll av usikre funn og verifisert godkjenningsflyt. Dette er aktivt spor nå.
-2. **Chat 08 – MP-08.2 + MP-08.3 + MP-08.4 + MP-08.5: preseason/form og analysegrunnlag.** Fortsett treningskampdata, preseason-form, formfeatures og fixture-/motstanderrating på et stabilt datagrunnlag.
-3. **Chat 09 → Chat 08 – MP-09.6: availability inn i xFP/anbefalinger.** Bekreftet fravær skal påvirke forventede poeng og analyser uten at usikre kildefunn gjør det.
-4. **Chat 03 – MP-03.6: endelig preseason-kalibrering av priser.** Gjennomfør siste kvalitetssikring mot faktisk 2026/27-pool når preseason-grunnlaget er modent nok.
-5. **Chat 04 – MP-04.7: motstandere i aktuell gameweek på «Mitt lag».** Gjør kommende kamper tydelige for hver spiller, inkludert 0/1/flere kamper.
-6. **Chat 07 – MP-07.6: Bonus Weeks / fantasy-boostere.** Undersøk andre fantasyspill, velg Stang Inn-modell og lås prinsippene før transfersystem og endelig regelverk ferdigstilles dersom bonusmekanikkene påvirker bytter, scoring eller deadlines.
-7. **Chat 04 – MP-04.5 + MP-04.6: full transfersyklus og endelige låseregler.** Byttebank, frie bytter, kostnader/historikk og samspill med eventuelle boostere.
-8. **Chat 08 – MP-08.6 + MP-08.7 + MP-08.8: beslutningsstøtte.** Kjøp/hold/selg, kapteinscore og forventede poeng for neste kamp/runde/tre runder.
-9. **Chat 10 – MP-10: lagoptimalisator.** Bygg først når pris, fixture, xFP og availability er stabile input.
-10. **Chat 07 + Chat 11 – MP-07.4/07.5 og MP-11.3–11.5: konkurransepresentasjon og samlet UX-pass.** Rundevisning, regler, mobil/desktop, readability og states.
-11. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Scoring, transfers, deadlines, RLS, admin og sentrale brukerflyter.
-12. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** Regelverk, 45 runder/deadlines, produksjon, cron/secrets, smoke tests, backup og rollback.
-13. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske launch-gates er PASS.
+1. **Chat 08 – MP-08.2 + MP-08.3 + MP-08.4 + MP-08.5: preseason/form og analysegrunnlag.** Fortsett treningskampdata, preseason-form, formfeatures og fixture-/motstanderrating på et stabilt datagrunnlag. Dette er nå neste aktive spor etter ferdigstilt MP-09.4/09.5.
+2. **Chat 09 → Chat 08 – MP-09.6: availability inn i xFP/anbefalinger.** Når analysegrunnlaget er stabilt, skal kun admin-godkjent fravær påvirke forventede poeng og analyser; usikre kildefunn skal ikke gjøre det.
+3. **Chat 03 – MP-03.6: endelig preseason-kalibrering av priser.** Gjennomfør siste kvalitetssikring mot faktisk 2026/27-pool når preseason-grunnlaget er modent nok.
+4. **Chat 04 – MP-04.7: motstandere i aktuell gameweek på «Mitt lag».** Gjør kommende kamper tydelige for hver spiller, inkludert 0/1/flere kamper.
+5. **Chat 07 – MP-07.6: Bonus Weeks / fantasy-boostere.** Undersøk andre fantasyspill, velg Stang Inn-modell og lås prinsippene før transfersystem og endelig regelverk ferdigstilles dersom bonusmekanikkene påvirker bytter, scoring eller deadlines.
+6. **Chat 04 – MP-04.5 + MP-04.6: full transfersyklus og endelige låseregler.** Byttebank, frie bytter, kostnader/historikk og samspill med eventuelle boostere.
+7. **Chat 08 – MP-08.6 + MP-08.7 + MP-08.8: beslutningsstøtte.** Kjøp/hold/selg, kapteinscore og forventede poeng for neste kamp/runde/tre runder.
+8. **Chat 10 – MP-10: lagoptimalisator.** Bygg først når pris, fixture, xFP og availability er stabile input.
+9. **Chat 07 + Chat 11 – MP-07.4/07.5 og MP-11.3–11.5: konkurransepresentasjon og samlet UX-pass.** Rundevisning, regler, mobil/desktop, readability og states.
+10. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Scoring, transfers, deadlines, RLS, admin og sentrale brukerflyter.
+11. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** Regelverk, 45 runder/deadlines, produksjon, cron/secrets, smoke tests, backup og rollback.
+12. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske launch-gates er PASS.
 
 **Sesongavhengig:** MP-06.6 full produksjonsvalidering mot faktiske 2026/27-kamper gjennomføres i **Chat 06** så snart representative seriekamper finnes. MP-02.6 og øvrig synk/datadrift fortsetter løpende. **Chat 13 / MP-13** er et separat tipping-spor som kan utvikles parallelt så lenge det ikke blokkerer Fantasy XI-kritisk arbeid.
 
