@@ -13,6 +13,8 @@ Sist etablert: 2026-08-16
 - Auth/RLS/sikkerhet skal ikke svekkes for å få tester til å fungere.
 - Hvis Supabase-SQL må kjøres manuelt: gi én komplett SQL-blokk, vent på resultat, verifiser, fortsett deretter.
 - Arbeidschatter kan diskutere detaljer; masterplan-chatten skal holdes kort og oppdatert.
+- Ved ferdigstillelse av et avgrenset steg skal arbeidschatten kontrollere siste `main` og gjeldende prioriteringskø i denne filen før den anbefaler neste steg. Neste chat skal ikke gjettes ut fra gammel samtalekontekst.
+- Hver ferdigstilt arbeidsøkt skal avsluttes med en tydelig handoff: hva som er ferdig/verifisert, hvilken chat som er neste, hvilket MP-punkt som skal tas der, og hvorfor dette er neste effektive steg.
 
 ## Statuskoder
 
@@ -193,13 +195,38 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 ---
 
-## Nåværende prioritering
+## Prioritert arbeidskø
 
-1. **MP-09 – Skader, fravær og tilgjengelighet**: siste commits på `main` viser aktiv utvikling av availability-admin og «ikke i kamptropp».
-2. **MP-08 – Analyse/xFP**: ferdigstill koblingen mellom preseason/season-data, availability og anbefalingsgrunnlag.
-3. **MP-03.6 – Endelig pris/preseason-kvalitetssikring**.
-4. **MP-04.5 – Transfersystem**.
-5. **MP-12 + MP-14 – regresjon og lanseringsgate**.
+Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når et steg er ferdig, blokkert eller når ny informasjon endrer avhengighetene. Arbeidschatten som fullfører et steg skal lese siste versjon av denne køen på `main` før den sender brukeren videre.
+
+1. **Chat 09 – MP-09.4 + MP-09.5: ferdigstill availability-pipelinen.** Dokumenterte kilder, sikker roster-matching, manuell kontroll av usikre funn og verifisert godkjenningsflyt. Dette er aktivt spor nå.
+2. **Chat 08 – MP-08.2 + MP-08.3 + MP-08.4 + MP-08.5: preseason/form og analysegrunnlag.** Fortsett treningskampdata, preseason-form, formfeatures og fixture-/motstanderrating på et stabilt datagrunnlag.
+3. **Chat 09 → Chat 08 – MP-09.6: availability inn i xFP/anbefalinger.** Bekreftet fravær skal påvirke forventede poeng og analyser uten at usikre kildefunn gjør det.
+4. **Chat 03 – MP-03.6: endelig preseason-kalibrering av priser.** Gjennomfør siste kvalitetssikring mot faktisk 2026/27-pool når preseason-grunnlaget er modent nok.
+5. **Chat 04 – MP-04.7: motstandere i aktuell gameweek på «Mitt lag».** Gjør kommende kamper tydelige for hver spiller, inkludert 0/1/flere kamper.
+6. **Chat 07 – MP-07.6: Bonus Weeks / fantasy-boostere.** Undersøk andre fantasyspill, velg Stang Inn-modell og lås prinsippene før transfersystem og endelig regelverk ferdigstilles dersom bonusmekanikkene påvirker bytter, scoring eller deadlines.
+7. **Chat 04 – MP-04.5 + MP-04.6: full transfersyklus og endelige låseregler.** Byttebank, frie bytter, kostnader/historikk og samspill med eventuelle boostere.
+8. **Chat 08 – MP-08.6 + MP-08.7 + MP-08.8: beslutningsstøtte.** Kjøp/hold/selg, kapteinscore og forventede poeng for neste kamp/runde/tre runder.
+9. **Chat 10 – MP-10: lagoptimalisator.** Bygg først når pris, fixture, xFP og availability er stabile input.
+10. **Chat 07 + Chat 11 – MP-07.4/07.5 og MP-11.3–11.5: konkurransepresentasjon og samlet UX-pass.** Rundevisning, regler, mobil/desktop, readability og states.
+11. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Scoring, transfers, deadlines, RLS, admin og sentrale brukerflyter.
+12. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** Regelverk, 45 runder/deadlines, produksjon, cron/secrets, smoke tests, backup og rollback.
+13. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske launch-gates er PASS.
+
+**Sesongavhengig:** MP-06.6 full produksjonsvalidering mot faktiske 2026/27-kamper gjennomføres i **Chat 06** så snart representative seriekamper finnes. MP-02.6 og øvrig synk/datadrift fortsetter løpende. **Chat 13 / MP-13** er et separat tipping-spor som kan utvikles parallelt så lenge det ikke blokkerer Fantasy XI-kritisk arbeid.
+
+## Fast handoff mellom arbeidschatter
+
+Når et steg faktisk er ferdig skal arbeidschatten avslutte omtrent slik:
+
+- **✅ Ferdig:** `MP-XX.YY – kort navn`.
+- **Verifisert:** finnes på `main` + relevante tester/kontroller bestått.
+- **➡️ Neste prioritet:** `Chat NN – navn`, `MP-XX.YY – konkret neste oppgave`.
+- **Hvorfor nå:** én kort forklaring på avhengigheten/prioriteringen.
+
+Hvis arbeidet **ikke** er på `main`, relevante tester ikke er bestått, eller nødvendig manuell SQL/verifisering gjenstår, skal chatten ikke skrive «ferdig» og ikke sende videre som om punktet er ✅.
+
+Hvis et steg blir blokkert, skal arbeidschatten identifisere hvilken chat/MP som må løse blokkeringen først, og masterplanens prioriteringskø skal oppdateres dersom dette endrer den mest effektive rekkefølgen.
 
 ## Foreslått ChatGPT-prosjektstruktur
 
@@ -227,4 +254,6 @@ Ved avslutning av et hovedsteg:
 2. Verifiser relevante tester/kontroller.
 3. Oppdater status i denne masterplanen.
 4. Oppdater `docs/PROJECT_STATUS.md` med kort teknisk status dersom arkitektur, drift eller produksjonsstatus er endret.
-5. Gå først deretter videre til neste MP-punkt.
+5. Les den oppdaterte **Prioritert arbeidskø** på `main`.
+6. Gi brukeren eksplisitt handoff til neste chat og MP-punkt.
+7. Gå først deretter videre til neste MP-punkt.
