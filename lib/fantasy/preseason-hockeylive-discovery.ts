@@ -65,6 +65,7 @@ function knownMatch(game:DbGame){
  const home=teamKey(game.home_team),away=teamKey(game.away_team);
  return KNOWN_PRESEASON_MATCHES.find(x=>x.gameDate===game.game_date&&x.home===home&&x.away===away)||null;
 }
+function hasValidMatchId(value:unknown){const id=Number(value);return Number.isInteger(id)&&id>0}
 
 async function discoverOne(game:DbGame){
  const known=knownMatch(game);
@@ -88,9 +89,11 @@ async function discoverOne(game:DbGame){
 
 export async function discoverMissingPreseasonHockeyLiveIds(){
  const sb=serverClient();
- const{data,error}=await sb.from("fantasy_preseason_games").select("id,game_date,starts_at,home_team,away_team,hockeylive_match_id,source_type,notes").eq("season","2026/27").is("hockeylive_match_id",null).order("game_date");
+ const{data,error}=await sb.from("fantasy_preseason_games").select("id,game_date,starts_at,home_team,away_team,hockeylive_match_id,source_type,notes").eq("season","2026/27").order("game_date");
  if(error)throw error;
- const rows=(data||[]) as DbGame[],results:any[]=[];
+ const allRows=(data||[]) as DbGame[];
+ const rows=allRows.filter(game=>!hasValidMatchId(game.hockeylive_match_id));
+ const results:any[]=[];
  for(const game of rows){
   const found=await discoverOne(game);
   if(found.status!=="matched"){
@@ -103,5 +106,5 @@ export async function discoverMissingPreseasonHockeyLiveIds(){
   if(updateError){results.push({gameId:game.id,game:`${game.home_team} – ${game.away_team}`,gameDate:game.game_date,status:"error",error:updateError.message});continue}
   results.push({gameId:game.id,game:`${game.home_team} – ${game.away_team}`,gameDate:game.game_date,status:"matched",matchId:found.matchId,tournamentId,candidateCount:found.candidateCount,matchMethod:found.matchMethod||"discovery"});
  }
- return{checked:rows.length,discovered:results.filter(r=>r.status==="matched").length,ambiguous:results.filter(r=>r.status==="ambiguous").length,notFound:results.filter(r=>r.status==="not_found").length,results};
+ return{checked:rows.length,alreadyLinked:allRows.length-rows.length,discovered:results.filter(r=>r.status==="matched").length,ambiguous:results.filter(r=>r.status==="ambiguous").length,notFound:results.filter(r=>r.status==="not_found").length,results};
 }
