@@ -40,21 +40,30 @@ Sist kontrollert mot GitHub `main`: 2026-08-16
 - Admin/analysegrunnlag og preseason xFP-preview.
 - Sikker ekstern preseason parser med preview/approval.
 - Availability-datamodell, admin-API og admin-UI, inkludert «ikke i kamptropp».
+- Ikke-autoritativ availability-funnkø med kilde, matchforslag, confidence, reviewstatus og audit.
+- Konservativ roster-matching: usikre/tvetydige funn krever manuell admin-kontroll.
+- Atomisk admin-godkjenning: gjeldende availability, historikk og funnstatus oppdateres i én PostgreSQL-transaksjon.
+- Deterministisk kildeinnhenting fra allowlistede EHL-klubbsider og nitten.no med 45-dagers freshness-gate og deduplisering.
+- HockeyLive MatchTeamMembers-kontroll for preseason og ordinære `fantasy_games`; ufullstendige kamptropper hoppes over, og fravær kan kun foreslå `not_in_lineup`.
 
-## Aktivt område
+## Aktivt område / neste kobling
 
-Siste commits på `main` 2026-08-16 gjelder spiller-tilgjengelighet/fravær. Dette er derfor aktivt utviklingsspor ved dette kontrollpunktet.
+MP-09.4 og MP-09.5 er implementert på `main` gjennom følgende verifiserte hovedcommits:
 
-Neste naturlige tekniske kobling er:
+- `00862b9` – sikker availability-funnkø, matching, review og atomisk godkjenning.
+- `c61ed04` – dokumentert/deterministisk kildeinnhenting fra nitten.no og klubbkilder.
+- `1d62a6f` – HockeyLive kamptroppsfunn for preseason.
+- `0b70779` – HockeyLive-kontroll utvidet til ordinær EHL 2026/27-sesong.
 
-`dokumentert availability -> roster matching -> xFP/analyse -> anbefalinger -> lagoptimalisator`
+GitHub Actions Build og Vercel var grønne på de respektive PR-headene før merge. Availability-funn blir fortsatt aldri autoritative automatisk.
 
-Branch `mp09-availability-intake` / PR #14 inneholder arbeid under verifisering for MP-09.4/09.5: ikke-autoritativ funnkø, konservativ roster-matching, admin-review, manuell kildeinnregistrering og atomisk godkjenningsflyt. v0.55 er kjørt manuelt i Supabase. v0.56 legger til en service-role-only PostgreSQL-funksjon som atomisk oppdaterer faktisk availability, skriver historikk og markerer funnet godkjent; denne må være kjørt og verifisert før funksjonen kan anses ferdig eller merges til `main`.
+Neste effektive avhengighet er å ferdigstille analysegrunnlaget i MP-08 (preseason/form/fixture). Deretter kobles kun **admin-godkjent** `fantasy_player_availability` inn i xFP/anbefalinger under MP-09.6. Usikre eller ikke-godkjente kildefunn skal ikke påvirke modellen.
 
 ## Testing
 
 - GitHub Actions kjører `npm run build` på push/PR mot `main`.
 - Isolerte E2E-/testkontroller er implementert for sentrale fantasyflyter, blant annet snapshots og leaderboard.
+- Availability-endringene er build-/deploy-verifisert, men produksjonsbruk skal fortsatt følge admin-review-gaten.
 - Produksjonsregelen står fast: isolerte tester skal ikke endre ekte 2026/27-data og skal rydde opp egne testdata.
 
 ## Kjente dokumentasjonsforhold
