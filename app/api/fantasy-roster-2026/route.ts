@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { canonicalFantasyTeam } from "../../../lib/fantasy/team-normalization";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -102,7 +103,7 @@ function normalizePlayers(source:{row:AnyRow;inheritedTeam:string}[]){
     return {
       personId:first(x,"personId","PersonId","playerId","memberId","id") ?? first(x?.person||{},"personId","id"),
       name:normName(x),
-      team:ownTeam(x)||inheritedTeam,
+      team:canonicalFantasyTeam(ownTeam(x)||inheritedTeam),
       position,
       shirtNo:first(x,"shirtNo","jerseyNo","number","shirtNumber"),
       memberRole:memberRole(x),
@@ -112,21 +113,28 @@ function normalizePlayers(source:{row:AnyRow;inheritedTeam:string}[]){
   }).filter((x:any)=>x.name&&x.team);
   return [...new Map(rows.map((x:any)=>[String(x.personId||`${x.team}|${x.name}`),x])).values()];
 }
-async function fetchAttempt(url:string,attempts:any[]){
-  try{
-    const r=await fetch(url,{cache:"no-store",headers:{Accept:"application/json,text/plain,*/*","User-Agent":"StangInn/1.0 roster-import"}});
-    const text=await r.text();
-    let payload:any=null; try{payload=JSON.parse(text)}catch{}
-    attempts.push({url,status:r.status,ok:r.ok,payloadType:Array.isArray(payload)?"array":typeof payload,topLevelKeys:payload&&typeof payload==="object"&&!Array.isArray(payload)?Object.keys(payload).slice(0,30):[],arrayLength:Array.isArray(payload)?payload.length:null,bodyPreview:text.slice(0,700)});
-    return {r,text,payload};
-  }catch(e:any){attempts.push({url,error:e?.message||String(e)});return null}
-}
 function rosterResponse(unique:any[],extra:any){
   const staff=unique.filter(x=>x.rosterClass==="staff");
   const rows=unique.filter(x=>x.rosterClass!=="staff");
-  const confirmed=rows.filter(x=>x.rosterClass==="player");
+  const classified=rows.filter(x=>x.rosterClass==="player");
   const unresolved=rows.filter(x=>x.rosterClass==="unresolved");
-  return NextResponse.json({ok:true,tournamentId:TOURNAMENT_ID,players:rows.length,confirmedPlayers:confirmed.length,unresolvedPlayers:unresolved.length,staffFiltered:staff.length,rows,unresolved:unresolved.map(x=>({personId:x.personId,name:x.name,team:x.team,memberRole:x.memberRole,position:x.position})),staff:staff.map(x=>({personId:x.personId,name:x.name,team:x.team,memberRole:x.memberRole})),...extra});
+  return NextResponse.json({
+    ok:true,
+    tournamentId:TOURNAMENT_ID,
+    players:rows.length,
+    classifiedPlayers:classified.length,
+    confirmedPlayers:0,
+    candidatePlayers:classified.length,
+    unresolvedPlayers:unresolved.length,
+    staffFiltered:staff.length,
+    safeForProductionSync:false,
+    preseasonRosterAuthority:"eliteprospects-2026-27-verified",
+    warning:"HockeyLive/NIF er en sekundær preseason-kilde for person-ID og kampdata. Roster-medlemskap må verifiseres mot EliteProspects 2026/27 før produksjonssynk.",
+    rows,
+    unresolved:unresolved.map(x=>({personId:x.personId,name:x.name,team:x.team,memberRole:x.memberRole,position:x.position})),
+    staff:staff.map(x=>({personId:x.personId,name:x.name,team:x.team,memberRole:x.memberRole})),
+    ...extra,
+  });
 }
 
 const directCandidates = [
@@ -146,7 +154,7 @@ export async function GET(){
       const source=a.payload==null?[]:extractPlayers(a.payload);
       const unique=normalizePlayers(source);
       const last=attempts[attempts.length-1]; last.sourceRows=source.length; last.players=unique.length;
-      if(a.r.ok && unique.length) return rosterResponse(unique,{source:"tournament-players",sourceUrl:url,sourceRows:source.length,attempts});
+      if(a.r.ok && unique.length) return rosterResponse(unique,{source:"tournament-players",sourceAuthority:"hockeylive-corroboration-only",sourceUrl:url,sourceRows:source.length,attempts});
     }
 
     const teamUrls=[
@@ -166,7 +174,7 @@ export async function GET(){
     for(const t of teamRows){
       const teamName=textValue(first(t,"teamName","tournamentTeamName","teamOverriddenName","orgName","name","clubName","team"));
       const orgId=first(t,"orgId","organizationId","clubId","teamOrgId","teamId") ?? first(t?.team||{},"orgId","id") ?? first(t?.organization||{},"id","orgId");
-      if(!orgId){teamDiagnostics.push({team:teamName||"?",error:"Mangler orgId/teamId",keys:Object.keys(t).slice(0,30)});continue}
+      if(!orgId){teamDiagnostics.push({team:canonicalFantasyTeam(teamName)||"?",error:"Mangler orgId/teamId",keys:Object.keys(t).slice(0,30)});continue}
       const memberUrls=[
         `${ROOT}/ta/TeamMembers/${encodeURIComponent(String(orgId))}`,
         `${ROOT}/ta/TeamMembers/?orgId=${encodeURIComponent(String(orgId))}`,
@@ -181,11 +189,21 @@ export async function GET(){
         for(const row of raw) if(normName(row)) combined.push({row,inheritedTeam:teamName});
         if(raw.length){got=raw.length;break}
       }
-      teamDiagnostics.push({team:teamName||"?",orgId:String(orgId),members:got});
+      teamDiagnostics.push({team:canonicalFantasyTeam(teamName)||"?",orgId:String(orgId),members:got});
     }
     const unique=normalizePlayers(combined);
-    if(unique.length) return rosterResponse(unique,{source:"tournament-teams+team-members",sourceRows:combined.length,teamDiagnostics,attempts});
+    if(unique.length) return rosterResponse(unique,{source:"tournament-teams+team-members",sourceAuthority:"club-membership-candidate",sourceRows:combined.length,teamDiagnostics,attempts});
 
-    return NextResponse.json({ok:true,tournamentId:TOURNAMENT_ID,sourceRows:0,players:0,rows:[],diagnostic:{message:"Ingen offentlig rosterkilde ga spillere. NIF TournamentPlayers krever partnerautentisering; offentlig fallback TournamentTeams → TeamMembers ga heller ingen spillere.",teamRows:teamRows.length,teamDiagnostics,attempts}});
+    return NextResponse.json({ok:true,tournamentId:TOURNAMENT_ID,sourceRows:0,players:0,confirmedPlayers:0,candidatePlayers:0,safeForProductionSync:false,preseasonRosterAuthority:"eliteprospects-2026-27-verified",rows:[],diagnostic:{message:"Ingen offentlig HockeyLive/NIF-kilde ga spillerkandidater. EliteProspects 2026/27 er preseason-fasit for roster-medlemskap.",teamRows:teamRows.length,teamDiagnostics,attempts}});
   }catch(e:any){return NextResponse.json({ok:false,error:e?.message||"Ukjent feil"},{status:500})}
+}
+
+async function fetchAttempt(url:string,attempts:any[]){
+  try{
+    const r=await fetch(url,{cache:"no-store",headers:{Accept:"application/json,text/plain,*/*","User-Agent":"StangInn/1.0 roster-import"}});
+    const text=await r.text();
+    let payload:any=null; try{payload=JSON.parse(text)}catch{}
+    attempts.push({url,status:r.status,ok:r.ok,payloadType:Array.isArray(payload)?"array":typeof payload,topLevelKeys:payload&&typeof payload==="object"&&!Array.isArray(payload)?Object.keys(payload).slice(0,30):[],arrayLength:Array.isArray(payload)?payload.length:null,bodyPreview:text.slice(0,700)});
+    return {r,text,payload};
+  }catch(e:any){attempts.push({url,error:e?.message||String(e)});return null}
 }
