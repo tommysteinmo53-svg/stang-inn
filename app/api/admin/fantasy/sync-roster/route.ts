@@ -1,10 +1,12 @@
 import {NextRequest,NextResponse} from "next/server";
 import {createClient} from "@supabase/supabase-js";
+import {canonicalFantasyTeam,isCurrentEhlTeam2026} from "../../../../../lib/fantasy/team-normalization";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 
 const CONFIRM="SYNK 2026/27 ROSTER";
+const REQUIRED_AUTHORITY="eliteprospects-2026-27-verified";
 const KEEP="e9647e74-9745-450d-a27a-3cc5852026ed";
 const DROP="99c086a2-3742-4478-9a6c-ad7425c50605";
 const VALID=new Set(["C","W","D","G"]);
@@ -27,6 +29,7 @@ export async function POST(request:NextRequest){
     const admin=await requireAdmin(request);if(!admin)return NextResponse.json({ok:false,error:"Kun admin kan synkronisere roster."},{status:403});
     const body=await request.json();
     if(body?.confirmation!==CONFIRM)return NextResponse.json({ok:false,error:`Skriv nøyaktig «${CONFIRM}».`},{status:400});
+    if(body?.rosterAuthority!==REQUIRED_AUTHORITY)return NextResponse.json({ok:false,error:"Produksjonssynk er blokkert til rosteren er verifisert mot EliteProspects 2026/27 for alle EHL-lag.",requiredRosterAuthority:REQUIRED_AUTHORITY},{status:409});
     const rows=Array.isArray(body?.rows)?body.rows:[];
     if(rows.length<MIN_ROSTER||rows.length>MAX_ROSTER)return NextResponse.json({ok:false,error:`Uventet rosterstørrelse: ${rows.length}. Forventet ${MIN_ROSTER}–${MAX_ROSTER}.`},{status:400});
 
@@ -52,7 +55,7 @@ export async function POST(request:NextRequest){
     let reusedDatabasePositions=0,reusedByExternalId=0,reusedByName=0;
     const resolved=rows.map((r:any)=>{
       const name=String(r?.name||"").trim();
-      const team=String(r?.team||"").trim();
+      const team=canonicalFantasyTeam(r?.team);
       const external=r?.personId==null?"":`nif:${String(r.personId).trim()}`;
       let position=String(r?.position||"").trim().toUpperCase();
       let positionSource=String(r?.positionSource||"");
@@ -67,6 +70,9 @@ export async function POST(request:NextRequest){
       return {...r,name,team,position,positionSource};
     });
 
+    const nonEhl=resolved.filter((r:any)=>r.team&&!isCurrentEhlTeam2026(r.team)).map((r:any)=>({name:r.name,team:r.team,personId:r.personId??null}));
+    if(nonEhl.length)return NextResponse.json({ok:false,error:`Roster-payload inneholder ${nonEhl.length} spiller(e) på lag som ikke er i EHL 2026/27.`,nonEhlRows:nonEhl},{status:400});
+
     const invalid=resolved.filter((r:any)=>!r.name||!r.team||!VALID.has(r.position)).map((r:any)=>({name:r.name,team:r.team,position:r.position||"",personId:r.personId??null}));
     if(invalid.length){
       const detail=invalid.map((r:any)=>`${r.name||"(uten navn)"} [${r.position||"mangler posisjon"}]`).join(", ");
@@ -76,6 +82,6 @@ export async function POST(request:NextRequest){
     const payload=resolved.map((r:any)=>({name:r.name,team:r.team,position:r.position,positionSource:r.positionSource||null,personId:r.personId==null?null:String(r.personId)}));
     const{data,error}=await sb.rpc("sync_fantasy_roster_2026",{p_rows:payload,p_admin:admin,p_duplicate_keep:KEEP,p_duplicate_drop:DROP});
     if(error){const missing=String(error.message||"").includes("sync_fantasy_roster_2026");return NextResponse.json({ok:false,error:missing?"Supabase v0.32 roster-livssyklusmigrasjonen må kjøres først.":error.message},{status:missing?503:500})}
-    return NextResponse.json({ok:true,result:data,reusedDatabasePositions,reusedByExternalId,reusedByName});
+    return NextResponse.json({ok:true,result:data,reusedDatabasePositions,reusedByExternalId,reusedByName,rosterAuthority:REQUIRED_AUTHORITY});
   }catch(e:any){return NextResponse.json({ok:false,error:e?.message||"Roster-sync feilet"},{status:500})}
 }
