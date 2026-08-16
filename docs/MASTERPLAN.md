@@ -75,6 +75,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 - MP-04.4 🟡 Lagbygger/UI finnes og viderepoleres for mobil og desktop.
 - MP-04.5 ⬜ Full transfersyklus: byttebank, frie bytter, eventuelle kostnader og historikk.
 - MP-04.6 ⬜ Endelig regelverk for låsing/endring mellom deadlines dokumenteres samlet.
+- MP-04.7 ⬜ Vis alle motstandere i aktuell fantasy-gameweek direkte på hver spiller i «Mitt lag»/lagbyggeren. Motstanderne skal vises tydelig under spillerens klubb/posisjon, støtte gameweeks med 0, 1 eller flere kamper per lag og følge den gameweeken laget bygges eller redigeres for.
 
 # MP-05 – Fantasy-runder, deadlines og snapshots
 
