@@ -6,7 +6,7 @@ export const runtime="nodejs";
 export const dynamic="force-dynamic";
 
 function sb(){const u=process.env.NEXT_PUBLIC_SUPABASE_URL,k=process.env.SUPABASE_SECRET_KEY;if(!u||!k)throw new Error("Supabase server-variabler mangler");return createClient(u,k,{auth:{persistSession:false,autoRefreshToken:false}})}
-const statuses=new Set(["available","questionable","out","long_term","returning"]);
+const statuses=new Set(["available","questionable","out","long_term","returning","not_in_lineup"]);
 
 export async function GET(request:NextRequest){
  const admin=await requireFantasyAdmin(request);if(!admin.ok)return admin.response;
