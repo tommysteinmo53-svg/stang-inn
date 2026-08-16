@@ -16,6 +16,7 @@ export async function GET(request:NextRequest){
       {key:"expected-points",label:"Forventede fantasy-poeng",adminOnly:true},
       {key:"preseason",label:"Preseason-form",adminOnly:true},
       {key:"availability",label:"Skader & tilgjengelighet",adminOnly:true},
+      {key:"availability-findings",label:"Availability kildefunn",adminOnly:true},
       {key:"optimizer",label:"Optimal lag-generator",adminOnly:true},
       {key:"transfer-assistant",label:"Bytteassistent",adminOnly:true},
     ],
