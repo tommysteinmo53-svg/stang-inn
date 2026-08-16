@@ -49,6 +49,8 @@ Neste naturlige tekniske kobling er:
 
 `dokumentert availability -> roster matching -> xFP/analyse -> anbefalinger -> lagoptimalisator`
 
+Branch `mp09-availability-intake` / PR #14 inneholder arbeid under verifisering for MP-09.4/09.5: ikke-autoritativ funnkø, konservativ roster-matching, admin-review, manuell kildeinnregistrering og atomisk godkjenningsflyt. v0.55 er kjørt manuelt i Supabase. v0.56 legger til en service-role-only PostgreSQL-funksjon som atomisk oppdaterer faktisk availability, skriver historikk og markerer funnet godkjent; denne må være kjørt og verifisert før funksjonen kan anses ferdig eller merges til `main`.
+
 ## Testing
 
 - GitHub Actions kjører `npm run build` på push/PR mot `main`.
