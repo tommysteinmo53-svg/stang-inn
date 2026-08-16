@@ -8,7 +8,7 @@ export const dynamic="force-dynamic";
 
 const sourceKinds=new Set(["club","nitten","hockeylive","other"]);
 const statuses=new Set(["available","questionable","out","long_term","returning","not_in_lineup"]);
-const reviewStates=new Set(["pending","needs_review","rejected"]);
+const reviewStates=new Set(["pending","needs_review","rejected","approved"]);
 
 function sb(){
   const u=process.env.NEXT_PUBLIC_SUPABASE_URL,k=process.env.SUPABASE_SECRET_KEY;
@@ -66,16 +66,29 @@ export async function PATCH(request:NextRequest){
   try{
     const body=await request.json();const id=Number(body.id);const reviewStatus=String(body.reviewStatus||"");
     if(!Number.isInteger(id)||id<=0||!reviewStates.has(reviewStatus))return NextResponse.json({ok:false,error:"Ugyldig review-endring"},{status:400});
+    const c=sb();
+
+    if(reviewStatus==="approved"){
+      const{data,error}=await c.rpc("fantasy_approve_availability_finding",{
+        p_finding_id:id,
+        p_reviewer_id:admin.userId,
+        p_review_note:String(body.reviewNote||"").trim()||null,
+      });
+      if(error)throw error;
+      const approved=Array.isArray(data)?data[0]:data;
+      return NextResponse.json({ok:true,approved});
+    }
+
     const update:any={review_status:reviewStatus,reviewed_at:new Date().toISOString(),reviewed_by:admin.userId,review_note:String(body.reviewNote||"").trim()||null};
     if(body.proposedPlayerId!==undefined){
       const playerId=String(body.proposedPlayerId||"").trim()||null;
       if(playerId){
-        const c=sb();const{data:p,error:pErr}=await c.from("fantasy_players").select("id,name,team,active,on_current_roster").eq("id",playerId).eq("active",true).eq("on_current_roster",true).maybeSingle();
+        const{data:p,error:pErr}=await c.from("fantasy_players").select("id,name,team,active,on_current_roster").eq("id",playerId).eq("active",true).eq("on_current_roster",true).maybeSingle();
         if(pErr)throw pErr;if(!p)return NextResponse.json({ok:false,error:"Valgt spiller finnes ikke i aktiv roster"},{status:400});
       }
       update.proposed_player_id=playerId;update.match_method=playerId?"manual":null;update.match_confidence=playerId?1:null;update.match_reason=playerId?"Manuelt verifisert spillerforslag.":"Spillerforslag fjernet manuelt.";
     }
-    const c=sb();const{error}=await c.from("fantasy_availability_findings").update(update).eq("id",id);if(error)throw error;
+    const{error}=await c.from("fantasy_availability_findings").update(update).eq("id",id);if(error)throw error;
     return NextResponse.json({ok:true});
   }catch(e:any){return NextResponse.json({ok:false,error:e?.message||"Kunne ikke oppdatere review"},{status:500})}
 }
