@@ -45,6 +45,13 @@ function deterministicNameVariant(epName:any,dbName:any){
   if(ep[0]!==db[0]||ep[ep.length-1]!==db[db.length-1])return false;
   return orderedSubset(ep,db)||orderedSubset(db,ep);
 }
+function anchoredNameVariant(epName:any,dbName:any){
+  const ep=tokens(epName),db=tokens(dbName);
+  if(ep.length<2||db.length<2)return false;
+  const firstIndex=db.indexOf(ep[0]);
+  if(firstIndex<0)return false;
+  return db.slice(firstIndex+1).includes(ep[ep.length-1]);
+}
 
 export async function GET(request:NextRequest){
   const admin=await requireFantasyAdmin(request);
@@ -70,6 +77,10 @@ export async function GET(request:NextRequest){
         candidates=current.filter((p:any)=>roleCompatible(ep.role,p.position)&&deterministicNameVariant(ep.name,p.name));
         matchMethod="deterministic_name_variant";
       }
+      if(candidates.length===0){
+        candidates=current.filter((p:any)=>roleCompatible(ep.role,p.position)&&anchoredNameVariant(ep.name,p.name));
+        matchMethod="anchored_name_variant";
+      }
 
       if(candidates.length===1){
         const p=candidates[0];
@@ -81,7 +92,7 @@ export async function GET(request:NextRequest){
           if(matchMethod==="exact_normalized_name")matched.push(row);else variantMatched.push(row);
         }else teamMismatch.push(row);
       }else if(candidates.length>1){
-        ambiguous.push({epName:ep.name,epTeam:ep.team,epRole:ep.role,reason:matchMethod==="exact_normalized_name"?"duplicate_normalized_name":"multiple_deterministic_name_variants",candidates:candidates.map((p:any)=>({id:p.id,name:p.name,team:p.team,canonicalTeam:canonicalFantasyTeam(p.team),position:p.position,externalId:p.external_id}))});
+        ambiguous.push({epName:ep.name,epTeam:ep.team,epRole:ep.role,reason:matchMethod==="exact_normalized_name"?"duplicate_normalized_name":"multiple_deterministic_name_variants",matchMethod,candidates:candidates.map((p:any)=>({id:p.id,name:p.name,team:p.team,canonicalTeam:canonicalFantasyTeam(p.team),position:p.position,externalId:p.external_id}))});
       }else{
         const manualCandidates=current.filter((p:any)=>canonicalFantasyTeam(p.team)===ep.team&&lastNameKey(p.name)===lastNameKey(ep.name)).map((p:any)=>({id:p.id,name:p.name,team:p.team,position:p.position,externalId:p.external_id}));
         missing.push({epName:ep.name,epTeam:ep.team,epRole:ep.role,manualCandidates});
@@ -115,7 +126,16 @@ export async function GET(request:NextRequest){
       season:"2026/27",
       authority:"EliteProspects",
       verifiedAt:ELITEPROSPECTS_ROSTER_2026_VERIFIED_AT,
-      safety:{autoFuzzyMatch:false,deterministicVariantRule:"same first + last token, ordered full token subset, unique league-wide candidate, role compatible",manualCandidatesAreNonAuthoritative:true},
+      safety:{
+        autoFuzzyMatch:false,
+        deterministicVariantRules:[
+          "same first + last token, ordered full-token subset",
+          "EP first + last token both present in DB legal name in the same order"
+        ],
+        uniqueLeagueWideCandidateRequired:true,
+        roleCompatibilityRequired:true,
+        manualCandidatesAreNonAuthoritative:true,
+      },
       summary:{expected:ELITEPROSPECTS_ROSTER_2026.length,current:current.length,exactMatched:matched.length,variantMatched:variantMatched.length,matched:matched.length+variantMatched.length,teamMismatch:teamMismatch.length,missing:missing.length,ambiguous:ambiguous.length,extras:extras.length,positionMismatch:positionMismatch.length},
       perTeam,
       rawTeamVariants,
