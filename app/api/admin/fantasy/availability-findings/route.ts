@@ -6,7 +6,7 @@ import {matchAvailabilityFinding} from "../../../../../lib/fantasy/availability-
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 
-const sourceKinds=new Set(["club","nitten","hockeylive","other"]);
+const sourceKinds=new Set(["club","nitten","hockeylive","local_media","facebook","instagram","other"]);
 const statuses=new Set(["available","questionable","out","long_term","returning","not_in_lineup"]);
 const reviewStates=new Set(["pending","needs_review","rejected","approved"]);
 
