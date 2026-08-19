@@ -1,0 +1,31 @@
+import type {NittenBacktestStatus} from "./availability-nitten-backtest";
+
+export const NITTEN_GOLDEN_2026_01_03:Record<string,NittenBacktestStatus>={
+ "Lukas Ondrcka":"out",
+ "Adrian Ellingsen":"out",
+ "Alexander Kiönig":"out",
+ "Ludvig Hoff":"out",
+ "Lars Christian Rødne":"out",
+ "Håkon Løken Pedersen":"out",
+ "Brendan Ellis":"out",
+ "Oliver Calik":"out",
+ "Didrik Baanerud":"out",
+ "Håkon Imset Stormli":"out",
+ "Ken André Olimb":"long_term",
+ "Magnus Brekke Henriksen":"out",
+ "Nick Caamano":"out",
+ "Teemu Siironen":"returning",
+ "Filip Nordin":"out",
+ "Fredrik Mikkelsen":"out",
+ "Dennis Rystad":"out",
+ "Theodor Steen":"out",
+ "Lars Petter Eckholm":"out",
+ "Love Bergvall":"out",
+ "Fredrik Pedersen":"out",
+ "Eirik S. Lavik":"out",
+ "Andreas Dahl":"out",
+ "Stefan Espeland":"out",
+ "Kenneth Pappalardo Gulbrandsen":"out",
+ "Patrick Ulriksen":"out",
+ "Magnus Geheb":"out"
+};
