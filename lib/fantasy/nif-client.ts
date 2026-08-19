@@ -1,5 +1,6 @@
 const PUBLIC_ROOT = "https://sf34-terminlister-prod-app.azurewebsites.net";
 const PUBLIC_HOCKEY_BASE = `${PUBLIC_ROOT}/icehockey`;
+const PUBLIC_REQUEST_TIMEOUT_MS = 10000;
 
 type Row = Record<string, unknown>;
 
@@ -46,6 +47,7 @@ async function publicJson(url: string): Promise<Row[]> {
   const response = await fetch(url, {
     headers: { Accept: "application/json,text/plain,*/*", "User-Agent": "StangInn/1.0 fantasy-match-import" },
     cache: "no-store",
+    signal: AbortSignal.timeout(PUBLIC_REQUEST_TIMEOUT_MS),
   });
   if (!response.ok) {
     const body = await response.text();
