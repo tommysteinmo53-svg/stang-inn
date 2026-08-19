@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "backtest:availability:nitten": "node scripts/backtest-nitten-availability.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
