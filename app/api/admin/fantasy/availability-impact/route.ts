@@ -6,19 +6,18 @@ import {availabilityAdjustmentLabel,availabilityXfpFactor,normalizeFantasyAvaila
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 
-function clientFor(request:NextRequest){
+function serverClient(){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  const header=request.headers.get("authorization");
-  if(!url||!key||!header?.startsWith("Bearer "))return null;
-  return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:header}}});
+  const key=process.env.SUPABASE_SECRET_KEY;
+  if(!url||!key)return null;
+  return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
 }
 
 export async function GET(request:NextRequest){
   const admin=await requireFantasyAdmin(request);
   if(!admin.ok)return admin.response;
-  const sb=clientFor(request);
-  if(!sb)return NextResponse.json({ok:false,error:"Supabase-konfigurasjon mangler."},{status:503});
+  const sb=serverClient();
+  if(!sb)return NextResponse.json({ok:false,error:"Supabase server-konfigurasjon mangler."},{status:503});
 
   const{data:availability,error:availabilityError}=await sb
     .from("fantasy_player_availability")
