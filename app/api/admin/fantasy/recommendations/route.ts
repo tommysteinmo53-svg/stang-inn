@@ -34,7 +34,7 @@ export async function GET(request:NextRequest){
   // current-season game count separately for diagnostics while exposing an eligibility count
   // compatible with the existing UI. Low-confidence priors remain excluded.
   // Availability is an explicit, approved overlay: base model values are preserved for audit,
-  // while adjusted values are what the recommendation ranking consumes.
+  // adjusted values drive rankings, and hard-blocked statuses are kept out of radar eligibility.
   const rows=(data||[]).map((row:any)=>{
     const a:any=availabilityMap.get(row.player_id)||null;
     const status=normalizeFantasyAvailabilityStatus(a?.status);
@@ -42,10 +42,12 @@ export async function GET(request:NextRequest){
     const baseNext=Number(row.xfp_next_game||0);
     const baseNext3=Number(row.xfp_next3||0);
     const baseValue=Number(row.value_next3||0);
+    const actualGames=Number(row.games_scored||0);
+    const baselineEligible=row.data_confidence!=="low"?Math.max(5,actualGames):actualGames;
     return {
       ...row,
-      actual_games_scored:Number(row.games_scored||0),
-      games_scored:row.data_confidence!=="low"?Math.max(5,Number(row.games_scored||0)):Number(row.games_scored||0),
+      actual_games_scored:actualGames,
+      games_scored:factor===0?0:baselineEligible,
       base_xfp_next_game:baseNext,
       base_xfp_next3:baseNext3,
       base_value_next3:baseValue,
