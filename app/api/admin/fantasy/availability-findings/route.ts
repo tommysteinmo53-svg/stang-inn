@@ -9,11 +9,58 @@ export const dynamic="force-dynamic";
 const sourceKinds=new Set(["club","nitten","hockeylive","local_media","facebook","instagram","other"]);
 const statuses=new Set(["available","questionable","out","long_term","returning","not_in_lineup"]);
 const reviewStates=new Set(["pending","needs_review","rejected","approved"]);
+const notifiableStatuses=new Set(["questionable","out","long_term","returning","not_in_lineup"]);
 
 function sb(){
   const u=process.env.NEXT_PUBLIC_SUPABASE_URL,k=process.env.SUPABASE_SECRET_KEY;
   if(!u||!k)throw new Error("Supabase server-variabler mangler");
   return createClient(u,k,{auth:{persistSession:false,autoRefreshToken:false}});
+}
+
+function statusLabel(status:string){
+  return ({questionable:"usikker",out:"ute",long_term:"langtid ute",returning:"tilbake",not_in_lineup:"ikke i kamptropp"} as Record<string,string>)[status]||status;
+}
+
+async function notifyFantasyOwners(c:ReturnType<typeof sb>,playerId:string,status:string,reviewerId:string){
+  if(!notifiableStatuses.has(status))return {eligible:false,recipients:0,delivered:0,already_delivered:0,failed:0};
+
+  const[{data:availability,error:aErr},{data:player,error:pErr},{data:teamPlayerRows,error:tpErr}]=await Promise.all([
+    c.from("fantasy_player_availability").select("player_id,status,note,updated_at").eq("player_id",playerId).maybeSingle(),
+    c.from("fantasy_players").select("id,name").eq("id",playerId).maybeSingle(),
+    c.from("fantasy_user_team_players").select("team_id").eq("player_id",playerId),
+  ]);
+  if(aErr)throw aErr;if(pErr)throw pErr;if(tpErr)throw tpErr;
+  if(!availability||availability.status!==status||!availability.updated_at)return {eligible:false,recipients:0,delivered:0,already_delivered:0,failed:0};
+
+  const teamIds=[...new Set((teamPlayerRows||[]).map((r:any)=>r.team_id).filter(Boolean))];
+  if(!teamIds.length)return {eligible:true,recipients:0,delivered:0,already_delivered:0,failed:0};
+
+  const{data:teams,error:tErr}=await c.from("fantasy_user_teams").select("id,user_id").eq("season","2026/27").in("id",teamIds);
+  if(tErr)throw tErr;
+  const userIds=[...new Set((teams||[]).map((t:any)=>t.user_id).filter(Boolean))] as string[];
+  const playerName=player?.name||"Spiller";
+  const note=String(availability.note||"").trim();
+  const message=`${playerName} er markert som ${statusLabel(status)}.${note?` ${note}`:""}`;
+
+  let delivered=0,alreadyDelivered=0,failed=0;
+  for(const userId of userIds){
+    const{data,error}=await c.rpc("deliver_fantasy_availability_notification_v1",{
+      p_user_id:userId,
+      p_player_id:playerId,
+      p_status:status,
+      p_availability_updated_at:availability.updated_at,
+      p_title:"Spillerstatus oppdatert",
+      p_message:message,
+      p_link:"/fantasy/team",
+      p_created_by:reviewerId,
+    });
+    if(error){failed+=1;continue;}
+    const result=Array.isArray(data)?data[0]:data;
+    if(result?.delivered)delivered+=1;
+    else if(result?.reason==="already_delivered")alreadyDelivered+=1;
+    else failed+=1;
+  }
+  return {eligible:true,recipients:userIds.length,delivered,already_delivered:alreadyDelivered,failed};
 }
 
 export async function GET(request:NextRequest){
@@ -76,7 +123,11 @@ export async function PATCH(request:NextRequest){
       });
       if(error)throw error;
       const approved=Array.isArray(data)?data[0]:data;
-      return NextResponse.json({ok:true,approved});
+      let notifications={eligible:false,recipients:0,delivered:0,already_delivered:0,failed:0};
+      if(approved?.player_id&&approved?.status){
+        try{notifications=await notifyFantasyOwners(c,String(approved.player_id),String(approved.status),admin.userId)}catch{notifications={eligible:true,recipients:0,delivered:0,already_delivered:0,failed:1}}
+      }
+      return NextResponse.json({ok:true,approved,notifications});
     }
 
     const update:any={review_status:reviewStatus,reviewed_at:new Date().toISOString(),reviewed_by:admin.userId,review_note:String(body.reviewNote||"").trim()||null};
