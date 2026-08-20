@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {createClient} from "@supabase/supabase-js";
 import {requireFantasyAdmin} from "../../../../../lib/fantasy/admin-auth";
+import {availabilityEligibilityReason,isOptimizerEligibleAvailability} from "../../../../../lib/fantasy/availability-policy";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -30,6 +31,7 @@ type Player={
   pos:"G"|"D"|"F";
   price:number;
   score:number;
+  availability_status:string;
 };
 
 type State={
@@ -126,31 +128,37 @@ export async function GET(request:NextRequest){
   const requestedBudget=budgetRaw===null||budgetRaw===""?null:Number(budgetRaw);
   if(requestedBudget!==null&&(!Number.isFinite(requestedBudget)||requestedBudget<=0||requestedBudget>500))return NextResponse.json({ok:false,error:"Ugyldig budsjett."},{status:400});
 
-  const[{data:economy,error:economyError},{data:xfp,error:xfpError},{data:availability,error:availabilityError}]=await Promise.all([
+  const[{data:economy,error:economyError},{data:xfp,error:xfpError},{data:purchase,error:purchaseError},{data:approvedAvailability,error:approvedAvailabilityError}]=await Promise.all([
     sb.rpc("get_fantasy_economy_admin_v1",{p_season:"2026/27"}),
     sb.rpc("get_fantasy_xfp_admin_v1",{p_season:"2026/27"}),
     sb.from("fantasy_players").select("id,active,on_current_roster,available_for_purchase"),
+    sb.from("fantasy_player_availability").select("player_id,status"),
   ]);
 
   if(economyError)return NextResponse.json({ok:false,error:economyError.message},{status:500});
   if(xfpError)return NextResponse.json({ok:false,error:xfpError.message},{status:500});
-  if(availabilityError)return NextResponse.json({ok:false,error:availabilityError.message},{status:500});
+  if(purchaseError)return NextResponse.json({ok:false,error:purchaseError.message},{status:500});
+  if(approvedAvailabilityError)return NextResponse.json({ok:false,error:approvedAvailabilityError.message},{status:500});
 
   const economyRow=economy?.[0]||null;
   const budget=requestedBudget??Number(economyRow?.budget||100);
-  const allowed=new Set((availability||[]).filter((p:any)=>p.active&&p.on_current_roster&&p.available_for_purchase!==false).map((p:any)=>p.id));
+  const purchaseAllowed=new Set((purchase||[]).filter((p:any)=>p.active&&p.on_current_roster&&p.available_for_purchase!==false).map((p:any)=>p.id));
+  const availabilityMap=new Map<string,string>((approvedAvailability||[]).map((r:any)=>[r.player_id,String(r.status||"available")]));
+  const excludedByAvailability=((approvedAvailability||[]) as any[]).filter(r=>!isOptimizerEligibleAvailability(r.status)).map(r=>({player_id:r.player_id,status:r.status,reason:availabilityEligibilityReason(r.status)}));
 
   const players=((xfp||[]) as XfpRow[]).flatMap((r)=>{
-    if(!allowed.has(r.player_id))return [];
+    if(!purchaseAllowed.has(r.player_id))return [];
+    const availabilityStatus=availabilityMap.get(r.player_id)||"available";
+    if(!isOptimizerEligibleAvailability(availabilityStatus))return [];
     const pos=canonicalPosition(r.player_position);
     const price=Number(r.price);
     const score=Number(horizon==="next_game"?r.xfp_next_game:r.xfp_next3);
     if(!pos||!Number.isFinite(price)||price<=0||!Number.isFinite(score))return [];
-    return [{player_id:r.player_id,player_name:r.player_name,team:r.team,pos,price,score} satisfies Player];
+    return [{player_id:r.player_id,player_name:r.player_name,team:r.team,pos,price,score,availability_status:availabilityStatus} satisfies Player];
   });
 
   const best=optimize(players,budget);
-  if(!best)return NextResponse.json({ok:true,economy:economyRow,rows:[]});
+  if(!best)return NextResponse.json({ok:true,economy:economyRow,rows:[],availability_policy:{authoritative_source:"fantasy_player_availability",blocked_statuses:["out","long_term","not_in_lineup"],excluded:excludedByAvailability}});
 
   const totalCost=Math.round(best.cost*100)/100;
   const totalProjected=Math.round(best.score*100)/100;
@@ -161,9 +169,10 @@ export async function GET(request:NextRequest){
     player_position:p.pos,
     price:p.price,
     projected_points:Math.round(p.score*100)/100,
+    availability_status:p.availability_status,
     total_cost:totalCost,
     total_projected_points:totalProjected,
   }));
 
-  return NextResponse.json({ok:true,economy:economyRow,rows});
+  return NextResponse.json({ok:true,economy:economyRow,rows,availability_policy:{authoritative_source:"fantasy_player_availability",blocked_statuses:["out","long_term","not_in_lineup"],excluded:excludedByAvailability}});
 }
