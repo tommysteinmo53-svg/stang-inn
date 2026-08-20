@@ -1,6 +1,15 @@
 export type NittenAvailabilityStatus="questionable"|"out"|"long_term"|"returning";
 export type NittenAvailabilityFinding={playerName:string;status:NittenAvailabilityStatus;evidence:string};
 
+const decode=(s:string)=>s.replace(/&nbsp;|&#160;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&aring;/gi,"å").replace(/&oslash;/gi,"ø").replace(/&aelig;/gi,"æ").replace(/&Aring;/g,"Å").replace(/&Oslash;/g,"Ø").replace(/&AElig;/g,"Æ");
+export const nittenTextFromHtml=(html:string)=>decode(html
+ .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi," ")
+ .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi," ")
+ .replace(/<br\s*\/?>/gi,". ")
+ .replace(/<\/p>|<\/h[1-6]>|<\/li>|<\/div>/gi,". ")
+ .replace(/<[^>]+>/g," ")
+ .replace(/\s+/g," ").trim());
+
 const clean=(s:string)=>s.replace(/\s+/g," ").trim();
 const sentenceFor=(text:string,index:number)=>{const protectedText=text.replace(/\b([A-ZÆØÅ])\.(?=\s+[A-ZÆØÅ])/g,"$1§");const start=Math.max(0,Math.max(protectedText.lastIndexOf(".",index-1),protectedText.lastIndexOf("!",index-1),protectedText.lastIndexOf("?",index-1))+1);const ends=[protectedText.indexOf(".",index),protectedText.indexOf("!",index),protectedText.indexOf("?",index)].filter(v=>v>=0);const end=ends.length?Math.min(...ends)+1:Math.min(text.length,index+260);return clean(text.slice(start,end))};
 const clauseFor=(sentence:string,name:string)=>{const s=sentence.toLocaleLowerCase("nb-NO"),n=name.toLocaleLowerCase("nb-NO"),at=s.indexOf(n);if(at<0)return sentence;const left=Math.max(s.lastIndexOf(" mens ",at),s.lastIndexOf(" men ",at),s.lastIndexOf(";",at),s.lastIndexOf(":",at));const rightCandidates=[s.indexOf(" mens ",at+n.length),s.indexOf(" men ",at+n.length),s.indexOf(";",at+n.length)].filter(v=>v>=0);const right=rightCandidates.length?Math.min(...rightCandidates):s.length;return clean(sentence.slice(left>=0?left+1:0,right))};
