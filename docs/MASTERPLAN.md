@@ -2,7 +2,7 @@
 
 > Prosjektets operative kontrollsenter. GitHub `main` er teknisk source of truth. Denne filen gir oversikt, prioritering og sporbarhet.
 
-Sist oppdatert: 2026-08-20
+Sist oppdatert: 2026-08-21
 
 ## Arbeidsregler
 
@@ -140,13 +140,13 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-10 – Lagoptimalisator
 
-**Status: 🟡 – grunnversjon finnes, videreutvikles etter stabile analyseinput**
+**Status: 🟡 – kjerne fungerer og MP-10.3/10.4 er produksjonsverifisert; resterende input/regelstøtte ferdigstilles senere**
 
-- MP-10.1 🟡 Input: nåværende lag, budsjett, maks bytter og låste spillere.
-- MP-10.2 🟡 Output: anbefalte UT/IN og ny lagverdi.
-- MP-10.3 ⬜ Forventet poenggevinst og risiko.
-- MP-10.4 ⬜ Konservativt og offensivt alternativ.
-- MP-10.5 🟡 Tilgjengelighet er koblet inn og blokkering av utilgjengelige spillere er produksjonsverifisert; fixture/xFP må ferdigstilles videre i MP-08.
+- MP-10.1 🟡 Input: nåværende lag, budsjett og maks bytter fungerer; full støtte for låste spillere gjenstår.
+- MP-10.2 🟡 Output: anbefalte UT/IN og ny lagverdi fungerer; videre ferdigstilling følger stabile analyseinput.
+- MP-10.3 ✅ Forventet poenggevinst, risikoscore, risiko per foreslått INN-spiller, datatillit, availability-justert xFP og effektiv Fantasy-xFP etter rekke/C/VC er implementert og produksjonsverifisert.
+- MP-10.4 ✅ Balansert, konservativ og offensiv strategi er modellberegnet med ulike risiko-/oppsideobjektiver. Forventet gevinst, risiko, modellert oppside og avvikende UT → INN-bytter vises. Produksjonsverifisert 2026-08-21.
+- MP-10.5 🟡 Tilgjengelighet er koblet inn og blokkering av utilgjengelige spillere er produksjonsverifisert; videre fixture/xFP-forbedringer følger MP-08.
 
 # MP-11 – UI/UX og mobilopplevelse
 
@@ -205,7 +205,7 @@ Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når e
 4. **Chat 07 – MP-07.6: Bonus Weeks / fantasy-boostere.** Undersøk andre fantasyspill, velg Stang Inn-modell og lås prinsippene før transfersystem og endelig regelverk ferdigstilles dersom bonusmekanikkene påvirker bytter, scoring eller deadlines.
 5. **Chat 04 – MP-04.5 + MP-04.6: full transfersyklus og endelige låseregler.** Byttebank, frie bytter, kostnader/historikk og samspill med eventuelle boostere.
 6. **Chat 08 – MP-08.6 + MP-08.7 + MP-08.8: beslutningsstøtte.** Kjøp/hold/selg, kapteinscore og forventede poeng for neste kamp/runde/tre runder.
-7. **Chat 10 – MP-10: lagoptimalisator.** Fullfør videre når pris, fixture og xFP er stabile input; availability-gating er allerede produksjonsverifisert.
+7. **Chat 10 – MP-10: lagoptimalisator.** MP-10.3 og MP-10.4 er ferdige; gjenoppta resterende MP-10.1/10.2/10.5 når pris, fixture og xFP er stabile input.
 8. **Chat 07 + Chat 11 – MP-07.4/07.5 og MP-11.3–11.5: konkurransepresentasjon og samlet UX-pass.** Rundevisning, regler, mobil/desktop, readability og states.
 9. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Scoring, transfers, deadlines, RLS, admin og sentrale brukerflyter.
 10. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** Regelverk, 45 runder/deadlines, produksjon, cron/secrets, smoke tests, backup og rollback.
