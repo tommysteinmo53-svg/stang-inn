@@ -31,6 +31,11 @@ export default function AdminHubPage(){
           <p className="muted">Nye EHL-spillere, prisgodkjenning, roster/synk, runder, diagnose og private analyseverktøy.</p>
           <div style={{marginTop:18,fontWeight:900}}>Åpne Fantasy-admin →</div>
         </a>
+        <a href="/fantasy/admin-analysis/fixture-rating" className="panel" style={{display:"block",textDecoration:"none",color:"inherit",minHeight:220}}>
+          <p className="eyebrow">🎯 MP-08.5 · ANALYSE</p><h2>Dynamisk motstanderrating</h2>
+          <p className="muted">Kontroller preseason-, live- og blended motstanderfaktor per lag og posisjon, live-vekt og ratingen som brukes i xFP.</p>
+          <div style={{marginTop:18,fontWeight:900}}>Åpne motstanderrating →</div>
+        </a>
         <a href="/admin/hockeytips" className="panel" style={{display:"block",textDecoration:"none",color:"inherit",minHeight:220}}>
           <p className="eyebrow">🎯 HOCKEYTIPSET</p><h2>Hockeytips-admin</h2>
           <p className="muted">Terminliste/resultater, HockeyLive-synk, manuell kampkorrigering, brukere og synkhistorikk.</p>
