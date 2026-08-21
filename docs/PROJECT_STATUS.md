@@ -1,6 +1,6 @@
 # Stang Inn – PROJECT STATUS
 
-Sist kontrollert mot GitHub `main`: 2026-08-17
+Sist kontrollert mot GitHub `main`: 2026-08-21
 
 ## Source of truth
 
@@ -50,25 +50,24 @@ Sist kontrollert mot GitHub `main`: 2026-08-17
 - Atomisk admin-godkjenning: gjeldende availability, historikk og funnstatus oppdateres i én PostgreSQL-transaksjon.
 - Deterministisk kildeinnhenting fra allowlistede EHL-klubbsider og nitten.no med 45-dagers freshness-gate og deduplisering.
 - HockeyLive MatchTeamMembers-kontroll for preseason og ordinære `fantasy_games`; ufullstendige kamptropper hoppes over, og fravær kan kun foreslå `not_in_lineup`.
+- Lagoptimalisator med «beste komplette oppstilling» og «optimaliser med ledige bytter» på den raske `get_fantasy_xfp_round_horizons_admin_v2`-dataveien.
+- Availability-policy i optimizer: `available` 100 %, `returning` 85 %, `questionable` 60 %, og `out`/`long_term`/`not_in_lineup` ekskluderes.
+- MP-10.3 produksjonsverifisert: forventet poenggevinst, risikoscore, spiller-risiko, datatillit, availability-justert xFP og effektiv Fantasy-xFP med rekke/C/VC.
+- MP-10.4 produksjonsverifisert 2026-08-21: Balansert, Konservativ og Offensiv bruker separate modellobjektiver og viser forventet gevinst, risiko, modellert oppside og UT → INN-forskjeller.
 
 ## Aktivt område / neste kobling
 
-MP-02 preseason-rosterkontroll er nå produksjonsverifisert mot EliteProspects: 239/239 spillere, 0 mangler, 0 tvetydige, 0 lagavvik, 0 ekstra og 0 posisjonsavvik. Robust identitetsgate og løpende MP-02.6-drift beholdes.
+MP-02 preseason-rosterkontroll er produksjonsverifisert mot EliteProspects: 239/239 spillere, 0 mangler, 0 tvetydige, 0 lagavvik, 0 ekstra og 0 posisjonsavvik. Robust identitetsgate og løpende MP-02.6-drift beholdes.
 
-MP-09.4 og MP-09.5 er implementert på `main` gjennom følgende verifiserte hovedcommits:
+MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirker analyse/optimizer, og blokkerte statuser kan ikke foreslås. Varslingskjeden er teknisk produksjonsverifisert og første naturlige E2E via et reelt nytt review-funn tas når et slikt funn oppstår.
 
-- `00862b9` – sikker availability-funnkø, matching, review og atomisk godkjenning.
-- `c61ed04` – dokumentert/deterministisk kildeinnhenting fra nitten.no og klubbkilder.
-- `1d62a6f` – HockeyLive kamptroppsfunn for preseason.
-- `0b70779` – HockeyLive-kontroll utvidet til ordinær EHL 2026/27-sesong.
-
-Availability-funn blir fortsatt aldri autoritative automatisk. Nå som aktiv/current-roster og klubbverdier er korrigert og verifisert, er det trygt å gjenoppta produksjonstesten av MP-09 availability-matching i Chat 09. Analyseintegrasjon MP-09.6 skal fortsatt vente til analysegrunnlaget i MP-08 er stabilt.
+MP-10.3 og MP-10.4 er ferdige og produksjonsverifiserte på `main`. Resterende MP-10.1/10.2/10.5 ferdigstilles senere når pris-, fixture- og xFP-input er stabile nok. Gjeldende operative prioritering styres av `docs/MASTERPLAN.md`; neste standardspor er Chat 08 for preseason/form og analysegrunnlag.
 
 ## Testing
 
 - GitHub Actions kjører `npm run build` på push/PR mot `main`.
 - Isolerte E2E-/testkontroller er implementert for sentrale fantasyflyter, blant annet snapshots og leaderboard.
-- Availability-endringene er build-/deploy-verifisert, men produksjonsbruk skal fortsatt følge admin-review-gaten.
+- Availability-endringene og optimizerstrategiene er build-/deploy-verifisert; produksjonsbruk følger fortsatt admin-review-gaten for availability.
 - Produksjonsregelen står fast: isolerte tester skal ikke endre ekte 2026/27-data og skal rydde opp egne testdata.
 
 ## Kjente dokumentasjonsforhold
