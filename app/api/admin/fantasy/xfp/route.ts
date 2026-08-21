@@ -6,6 +6,8 @@ import {availabilityAdjustmentLabel,availabilityXfpFactor,normalizeFantasyAvaila
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 
+const VALUE_DEFINITION={version:"v1",unit:"xFP per million",nextGame:"availability-adjusted xFP next game / price",next3:"availability-adjusted xFP next 3 fixtures / price"};
+
 function clientFor(request:NextRequest){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -15,23 +17,32 @@ function clientFor(request:NextRequest){
 }
 
 function round2(value:number){return Math.round(value*100)/100}
+function round3(value:number){return Math.round(value*1000)/1000}
+function valuePerMillion(xfp:number,price:number){return price>0?round3(xfp/price):0}
 function adjustRows(rows:any[],availability:any[]){
   const map=new Map((availability||[]).map((r:any)=>[r.player_id,r]));
   return (rows||[]).map((row:any)=>{
     const a:any=map.get(row.player_id)||null;
     const status=normalizeFantasyAvailabilityStatus(a?.status);
     const factor=availabilityXfpFactor(status);
+    const price=Number(row.price||0);
     const baseNext=Number(row.xfp_next_game||0);
     const baseNext3=Number(row.xfp_next3||0);
-    const baseValue=Number(row.value_next3||0);
+    const adjustedNext=round2(baseNext*factor);
+    const adjustedNext3=round2(baseNext3*factor);
     return {
       ...row,
+      price,
       base_xfp_next_game:baseNext,
       base_xfp_next3:baseNext3,
-      base_value_next3:baseValue,
-      xfp_next_game:round2(baseNext*factor),
-      xfp_next3:round2(baseNext3*factor),
-      value_next3:Math.round(baseValue*factor*1000)/1000,
+      base_value_next_game:valuePerMillion(baseNext,price),
+      base_value_next3:valuePerMillion(baseNext3,price),
+      xfp_next_game:adjustedNext,
+      xfp_next3:adjustedNext3,
+      value_next_game:valuePerMillion(adjustedNext,price),
+      value_next3:valuePerMillion(adjustedNext3,price),
+      value_metric_version:VALUE_DEFINITION.version,
+      value_unit:VALUE_DEFINITION.unit,
       availability_status:status,
       availability_factor:factor,
       availability_note:a?.note||null,
@@ -76,7 +87,7 @@ export async function GET(request:NextRequest){
   if(settingsError)return NextResponse.json({ok:false,error:settingsError.message},{status:500});
   if(rowsError)return NextResponse.json({ok:false,error:rowsError.message},{status:500});
   if(availabilityError)return NextResponse.json({ok:false,error:availabilityError.message},{status:500});
-  return NextResponse.json({ok:true,settings:settings?.[0]||null,rows:adjustRows(rows||[],availability||[])});
+  return NextResponse.json({ok:true,settings:settings?.[0]||null,valueDefinition:VALUE_DEFINITION,rows:adjustRows(rows||[],availability||[])});
 }
 
 export async function POST(request:NextRequest){
@@ -109,5 +120,5 @@ export async function POST(request:NextRequest){
   if(settingsError)return NextResponse.json({ok:false,error:settingsError.message},{status:500});
   if(rowsError)return NextResponse.json({ok:false,error:rowsError.message},{status:500});
   if(availabilityError)return NextResponse.json({ok:false,error:availabilityError.message},{status:500});
-  return NextResponse.json({ok:true,settings:settings?.[0]||null,rows:adjustRows(rows||[],availability||[])});
+  return NextResponse.json({ok:true,settings:settings?.[0]||null,valueDefinition:VALUE_DEFINITION,rows:adjustRows(rows||[],availability||[])});
 }
