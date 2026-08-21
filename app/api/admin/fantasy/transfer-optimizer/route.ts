@@ -1,14 +1,15 @@
 import {NextRequest,NextResponse} from "next/server";
 import {createClient} from "@supabase/supabase-js";
 import {requireFantasyAdmin} from "../../../../../lib/fantasy/admin-auth";
-import {isOptimizerEligibleAvailability} from "../../../../../lib/fantasy/availability-policy";
+import {availabilityXfpFactor,isOptimizerEligibleAvailability,normalizeFantasyAvailabilityStatus} from "../../../../../lib/fantasy/availability-policy";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 
 type Pos="G"|"D"|"F";
-type XfpRow={player_id:string;player_name:string;team:string;player_position:string;price:number|string;base_xfp_next_game:number|string;base_xfp_next3_rounds:number|string};
-type Player={id:string;name:string;team:string;pos:Pos;price:number;base_score:number;score:number;available:boolean;availability_status:string;line_no:number|null;is_captain:boolean;is_vice_captain:boolean};
+type Confidence="high"|"medium"|"low";
+type XfpRow={player_id:string;player_name:string;team:string;player_position:string;price:number|string;data_confidence:string;base_xfp_next_game:number|string;base_xfp_next3_rounds:number|string};
+type Player={id:string;name:string;team:string;pos:Pos;price:number;raw_base_score:number;base_score:number;score:number;available:boolean;availability_status:string;data_confidence:Confidence;risk_score:number;risk_label:"Lav"|"Middels"|"Høy";line_no:number|null;is_captain:boolean;is_vice_captain:boolean};
 type Change={out:Player;in:Player};
 type TeamPlayerRow={player_id:string;purchase_price:number|string|null;line_no:number|null;is_captain:boolean|null;is_vice_captain:boolean|null};
 type CatalogRow={id:string;name:string;team:string;position:string;price:number|string|null;active:boolean;on_current_roster:boolean;available_for_purchase:boolean|null};
@@ -27,11 +28,20 @@ function adminClient(){
   return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
 }
 function pos(v:string):Pos|null{if(v==="G")return"G";if(v==="D")return"D";if(v==="C"||v==="W"||v==="F")return"F";return null}
+function confidence(v:string|null|undefined):Confidence{return v==="high"?"high":v==="low"?"low":"medium"}
 function round(v:number,d=2){const p=10**d;return Math.round(v*p)/p}
 function lineMultiplier(lineNo:number|null){return lineNo===2?0.5:1}
 function roleMultiplier(p:Player){return p.is_captain?2:p.is_vice_captain?1.5:1}
 function effectiveScore(p:Player){return p.base_score*lineMultiplier(p.line_no)*roleMultiplier(p)}
 function withEffectiveScore(p:Player):Player{return{...p,score:effectiveScore(p)}}
+function playerRisk(status:string,dataConfidence:Confidence){
+  const normalized=normalizeFantasyAvailabilityStatus(status);
+  const availabilityRisk=normalized==="questionable"?45:normalized==="returning"?20:normalized==="available"?0:100;
+  const confidenceRisk=dataConfidence==="low"?30:dataConfidence==="medium"?15:0;
+  const score=Math.min(100,availabilityRisk+confidenceRisk);
+  const label:Player["risk_label"]=score>35?"Høy":score>15?"Middels":"Lav";
+  return{score,label};
+}
 function validRoster(players:Player[],budget:number){
   if(players.length!==12)return false;
   if(players.filter(p=>p.pos==="G").length!==2||players.filter(p=>p.pos==="D").length!==4||players.filter(p=>p.pos==="F").length!==6)return false;
@@ -72,6 +82,15 @@ function pairPlayers(outs:Player[],ins:Player[]){
   }
   return pairs;
 }
+function proposalRisk(changes:Change[]){
+  if(!changes.length)return{score:0,label:"Lav" as const};
+  const incoming=changes.map(c=>c.in.risk_score);
+  const average=incoming.reduce((s,v)=>s+v,0)/incoming.length;
+  const max=Math.max(...incoming);
+  const score=Math.round(average*.65+max*.35);
+  const label=score>35?"Høy":score>15?"Middels":"Lav";
+  return{score,label};
+}
 
 export async function GET(request:NextRequest){
   const admin=await requireFantasyAdmin(request);if(!admin.ok)return admin.response;
@@ -111,9 +130,12 @@ export async function GET(request:NextRequest){
     const fallbackPrice=Number(c.price||0),xfpPrice=Number(xr?.price||0),purchasePrice=Number(teamMeta?.purchase_price||0);
     const price=teamMeta&&Number.isFinite(purchasePrice)&&purchasePrice>0?purchasePrice:(Number.isFinite(xfpPrice)&&xfpPrice>0?xfpPrice:fallbackPrice);
     if(!Number.isFinite(price)||price<=0)return null;
-    const baseScore=Number(horizon==="next_game"?xr?.base_xfp_next_game??0:xr?.base_xfp_next3_rounds??0);
+    const rawScore=Number(horizon==="next_game"?xr?.base_xfp_next_game??0:xr?.base_xfp_next3_rounds??0);
     const availabilityStatus=availabilityMap.get(c.id)||"available";
-    const player:Player={id:c.id,name:c.name,team:c.team,pos:position,price,base_score:Number.isFinite(baseScore)?baseScore:0,score:0,available:Boolean(c.active&&c.on_current_roster&&c.available_for_purchase!==false&&isOptimizerEligibleAvailability(availabilityStatus)),availability_status:availabilityStatus,line_no:teamMeta?.line_no??null,is_captain:Boolean(teamMeta?.is_captain),is_vice_captain:Boolean(teamMeta?.is_vice_captain)};
+    const dataConfidence=confidence(xr?.data_confidence);
+    const risk=playerRisk(availabilityStatus,dataConfidence);
+    const adjustedScore=(Number.isFinite(rawScore)?rawScore:0)*availabilityXfpFactor(availabilityStatus);
+    const player:Player={id:c.id,name:c.name,team:c.team,pos:position,price,raw_base_score:Number.isFinite(rawScore)?rawScore:0,base_score:adjustedScore,score:0,available:Boolean(c.active&&c.on_current_roster&&c.available_for_purchase!==false&&isOptimizerEligibleAvailability(availabilityStatus)),availability_status:availabilityStatus,data_confidence:dataConfidence,risk_score:risk.score,risk_label:risk.label,line_no:teamMeta?.line_no??null,is_captain:Boolean(teamMeta?.is_captain),is_vice_captain:Boolean(teamMeta?.is_vice_captain)};
     return withEffectiveScore(player);
   };
 
@@ -159,13 +181,17 @@ export async function GET(request:NextRequest){
     }
   }
 
-  const serialize=(p:Player)=>({...p,base_score:round(p.base_score),score:round(p.score),price:round(p.price,1),line_multiplier:lineMultiplier(p.line_no),role_multiplier:roleMultiplier(p)});
+  const risk=proposalRisk(best.changes);
+  const serialize=(p:Player)=>({...p,raw_base_score:round(p.raw_base_score),base_score:round(p.base_score),score:round(p.score),price:round(p.price,1),line_multiplier:lineMultiplier(p.line_no),role_multiplier:roleMultiplier(p)});
   return NextResponse.json({
     ok:true,team,status:statusRow,economy:economy?.[0]||null,horizon,
     current:current.map(serialize),
     optimized:best.roster.map(serialize),
-    changes:best.changes.map(c=>({out:serialize(c.out),in:serialize(c.in),line_no:c.in.line_no,price_change:round(c.in.price-c.out.price,1),xfp_gain:round(c.in.score-c.out.score)})),
+    changes:best.changes.map(c=>({out:serialize(c.out),in:serialize(c.in),line_no:c.in.line_no,price_change:round(c.in.price-c.out.price,1),xfp_gain:round(c.in.score-c.out.score),risk_score:c.in.risk_score,risk_label:c.in.risk_label})),
     current_cost:round(currentCost,1),optimized_cost:round(best.cost,1),current_score:round(currentScore),optimized_score:round(best.score),xfp_gain:round(best.score-currentScore),transfers_available:remaining,
+    proposal_risk_score:risk.score,proposal_risk_label:risk.label,
+    projection_policy:{player_xfp:"base xFP × availability factor",availability_factors:{available:1,returning:.85,questionable:.60,out:0,long_term:0,not_in_lineup:0},effective_fantasy_xfp:"availability-adjusted xFP × line multiplier × C/VC multiplier"},
+    risk_policy:{availability:{available:0,returning:20,questionable:45,blocked:100},data_confidence:{high:0,medium:15,low:30},proposal:"65 % average incoming risk + 35 % highest incoming risk"},
     lineup_policy:{line1_multiplier:1,line2_multiplier:0.5,line_shape:"1G · 2D · 3F per rekke",stored_lineup_valid:storedLineupValid,analysis_lineup:storedLineupValid?"stored":"optimized_valid_fallback"},
     availability_policy:{authoritative_source:"fantasy_player_availability",blocked_statuses:["out","long_term","not_in_lineup"]},
     message:storedLineupValid?undefined:"Lagrede rekkedata var ugyldige. Analysen bruker derfor en gyldig 1G · 2D · 3F-fordeling per rekke og viser hvilke rekker som bør lagres.",
