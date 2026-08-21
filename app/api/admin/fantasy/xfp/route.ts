@@ -15,6 +15,12 @@ function clientFor(request:NextRequest){
   if(!url||!key||!header?.startsWith("Bearer "))return null;
   return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:header}}});
 }
+function serviceClient(){
+  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key=process.env.SUPABASE_SECRET_KEY;
+  if(!url||!key)return null;
+  return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
+}
 
 function round2(value:number){return Math.round(value*100)/100}
 function round3(value:number){return Math.round(value*1000)/1000}
@@ -56,13 +62,15 @@ export async function GET(request:NextRequest){
   const admin=await requireFantasyAdmin(request);
   if(!admin.ok)return admin.response;
   const sb=clientFor(request);
+  const service=serviceClient();
   if(!sb)return NextResponse.json({ok:false,error:"Supabase-konfigurasjon mangler."},{status:503});
+  if(!service)return NextResponse.json({ok:false,error:"Supabase server-konfigurasjon mangler."},{status:503});
 
   const playerId=request.nextUrl.searchParams.get("playerId");
   if(playerId){
     const[{data,error},{data:availability,error:availabilityError}]=await Promise.all([
       sb.rpc("get_fantasy_xfp_player_fixtures_admin_v1",{p_player_id:playerId,p_season:"2026/27"}),
-      sb.from("fantasy_player_availability").select("player_id,status,note,expected_return").eq("player_id",playerId).maybeSingle(),
+      service.from("fantasy_player_availability").select("player_id,status,note,expected_return").eq("player_id",playerId).maybeSingle(),
     ]);
     if(error)return NextResponse.json({ok:false,error:error.message},{status:500});
     if(availabilityError)return NextResponse.json({ok:false,error:availabilityError.message},{status:500});
@@ -82,7 +90,7 @@ export async function GET(request:NextRequest){
   const[{data:settings,error:settingsError},{data:rows,error:rowsError},{data:availability,error:availabilityError}]=await Promise.all([
     sb.rpc("get_fantasy_xfp_settings_admin_v1",{p_season:"2026/27"}),
     sb.rpc("get_fantasy_xfp_admin_v1",{p_season:"2026/27"}),
-    sb.from("fantasy_player_availability").select("player_id,status,note,expected_return"),
+    service.from("fantasy_player_availability").select("player_id,status,note,expected_return"),
   ]);
   if(settingsError)return NextResponse.json({ok:false,error:settingsError.message},{status:500});
   if(rowsError)return NextResponse.json({ok:false,error:rowsError.message},{status:500});
@@ -94,7 +102,9 @@ export async function POST(request:NextRequest){
   const admin=await requireFantasyAdmin(request);
   if(!admin.ok)return admin.response;
   const sb=clientFor(request);
+  const service=serviceClient();
   if(!sb)return NextResponse.json({ok:false,error:"Supabase-konfigurasjon mangler."},{status:503});
+  if(!service)return NextResponse.json({ok:false,error:"Supabase server-konfigurasjon mangler."},{status:503});
 
   let body:any;
   try{body=await request.json()}catch{return NextResponse.json({ok:false,error:"Ugyldig request."},{status:400})}
@@ -115,7 +125,7 @@ export async function POST(request:NextRequest){
   const[{data:settings,error:settingsError},{data:rows,error:rowsError},{data:availability,error:availabilityError}]=await Promise.all([
     sb.rpc("get_fantasy_xfp_settings_admin_v1",{p_season:"2026/27"}),
     sb.rpc("get_fantasy_xfp_admin_v1",{p_season:"2026/27"}),
-    sb.from("fantasy_player_availability").select("player_id,status,note,expected_return"),
+    service.from("fantasy_player_availability").select("player_id,status,note,expected_return"),
   ]);
   if(settingsError)return NextResponse.json({ok:false,error:settingsError.message},{status:500});
   if(rowsError)return NextResponse.json({ok:false,error:rowsError.message},{status:500});
