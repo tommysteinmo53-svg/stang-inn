@@ -6,12 +6,19 @@ import {availabilityEligibilityReason,isOptimizerEligibleAvailability} from "../
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 
-function clientFor(request:NextRequest){
+function userClientFor(request:NextRequest){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const header=request.headers.get("authorization");
   if(!url||!key||!header?.startsWith("Bearer "))return null;
   return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:header}}});
+}
+
+function serviceClient(){
+  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key=process.env.SUPABASE_SECRET_KEY;
+  if(!url||!key)return null;
+  return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
 }
 
 type XfpRow={
@@ -118,8 +125,9 @@ function optimize(players:Player[],budget:number){
 export async function GET(request:NextRequest){
   const admin=await requireFantasyAdmin(request);
   if(!admin.ok)return admin.response;
-  const sb=clientFor(request);
-  if(!sb)return NextResponse.json({ok:false,error:"Supabase-konfigurasjon mangler."},{status:503});
+  const userSb=userClientFor(request);
+  const serviceSb=serviceClient();
+  if(!userSb||!serviceSb)return NextResponse.json({ok:false,error:"Supabase-konfigurasjon mangler."},{status:503});
 
   const horizon=request.nextUrl.searchParams.get("horizon")||"next3";
   if(!["next_game","next3"].includes(horizon))return NextResponse.json({ok:false,error:"Ugyldig horisont."},{status:400});
@@ -129,10 +137,10 @@ export async function GET(request:NextRequest){
   if(requestedBudget!==null&&(!Number.isFinite(requestedBudget)||requestedBudget<=0||requestedBudget>500))return NextResponse.json({ok:false,error:"Ugyldig budsjett."},{status:400});
 
   const[{data:economy,error:economyError},{data:xfp,error:xfpError},{data:purchase,error:purchaseError},{data:approvedAvailability,error:approvedAvailabilityError}]=await Promise.all([
-    sb.rpc("get_fantasy_economy_admin_v1",{p_season:"2026/27"}),
-    sb.rpc("get_fantasy_xfp_admin_v1",{p_season:"2026/27"}),
-    sb.from("fantasy_players").select("id,active,on_current_roster,available_for_purchase"),
-    sb.from("fantasy_player_availability").select("player_id,status"),
+    userSb.rpc("get_fantasy_economy_admin_v1",{p_season:"2026/27"}),
+    userSb.rpc("get_fantasy_xfp_admin_v1",{p_season:"2026/27"}),
+    serviceSb.from("fantasy_players").select("id,active,on_current_roster,available_for_purchase"),
+    serviceSb.from("fantasy_player_availability").select("player_id,status"),
   ]);
 
   if(economyError)return NextResponse.json({ok:false,error:economyError.message},{status:500});
