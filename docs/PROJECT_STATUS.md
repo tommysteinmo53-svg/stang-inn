@@ -44,6 +44,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-21
 - Sesong-leaderboard, rundering/rank og movement UI.
 - Admin/analysegrunnlag og preseason xFP-preview.
 - Sikker ekstern preseason parser med preview/approval.
+- MP-08.4 kanonisk analyse-featurelag `get_fantasy_analysis_features_admin_v1`: sesong-FP/kamp, form 3/5/10, hjemme/borte, sample counts, pris og observert FP/kamp per million samles før modellberegning. Den raske xFP-horisonten bruker featurelaget direkte; anbefalingene arver samme datagrunnlag. Form 5 er fortsatt modellens form-input, og verken scoringregler eller xFP-vekter ble endret.
 - Availability-datamodell, admin-API og admin-UI, inkludert «ikke i kamptropp».
 - Ikke-autoritativ availability-funnkø med kilde, matchforslag, confidence, reviewstatus og audit.
 - Konservativ roster-matching: usikre/tvetydige funn krever manuell admin-kontroll.
@@ -59,14 +60,17 @@ Sist kontrollert mot GitHub `main`: 2026-08-21
 
 MP-02 preseason-rosterkontroll er produksjonsverifisert mot EliteProspects: 239/239 spillere, 0 mangler, 0 tvetydige, 0 lagavvik, 0 ekstra og 0 posisjonsavvik. Robust identitetsgate og løpende MP-02.6-drift beholdes.
 
+MP-08.4 er produksjonsverifisert. Det kanoniske featurelaget returnerer 234 prisede/current spillere i produksjon, og både den raske xFP-horisonten og anbefalingsdatasettet returnerer samme 234 spillerunivers etter omkoblingen. Neste analysepunkt er MP-08.5: eksplisitt produksjons-/kalibreringskontroll av den dynamiske fixture-/motstanderratingen.
+
 MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirker analyse/optimizer, og blokkerte statuser kan ikke foreslås. Varslingskjeden er teknisk produksjonsverifisert og første naturlige E2E via et reelt nytt review-funn tas når et slikt funn oppstår.
 
-MP-10.3 og MP-10.4 er ferdige og produksjonsverifiserte på `main`. Resterende MP-10.1/10.2/10.5 ferdigstilles senere når pris-, fixture- og xFP-input er stabile nok. Gjeldende operative prioritering styres av `docs/MASTERPLAN.md`; neste standardspor er Chat 08 for preseason/form og analysegrunnlag.
+MP-10.3 og MP-10.4 er ferdige og produksjonsverifiserte på `main`. Resterende MP-10.1/10.2/10.5 ferdigstilles senere når pris-, fixture- og xFP-input er stabile nok. Gjeldende operative prioritering styres av `docs/MASTERPLAN.md`.
 
 ## Testing
 
 - GitHub Actions kjører `npm run build` på push/PR mot `main`.
 - Isolerte E2E-/testkontroller er implementert for sentrale fantasyflyter, blant annet snapshots og leaderboard.
+- MP-08.4-produksjonssmoke: featurelag 234 rader, xFP-horisont 234 rader og anbefalingsdatasett 234 rader; API-endringen er Vercel-build/deploy-verifisert.
 - Availability-endringene og optimizerstrategiene er build-/deploy-verifisert; produksjonsbruk følger fortsatt admin-review-gaten for availability.
 - Produksjonsregelen står fast: isolerte tester skal ikke endre ekte 2026/27-data og skal rydde opp egne testdata.
 
