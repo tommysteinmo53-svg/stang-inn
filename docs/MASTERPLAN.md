@@ -115,12 +115,12 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-08 – Analyse, xFP og anbefalinger
 
-**Status: 🟡 – analysegrunnlaget er langt kommet; MP-08.4 og endelig produksjonskontroll av MP-08.5 gjenstår før inputlaget regnes som stabilt**
+**Status: 🟡 – analysegrunnlaget er langt kommet; kun endelig produksjons-/kalibreringskontroll av MP-08.5 gjenstår før inputlaget regnes som stabilt**
 
 - MP-08.1 ✅ Samlet admin-kommandosenter for analyse er implementert og produksjonsbrukt.
 - MP-08.2 ✅ Preseason xFP-baseline, guarded preseason-signal og read-only preview er implementert, ytelsesoptimalisert og brukt mot reelle preseason-data. Preseason påvirker ikke autoritativ Fantasy-scoring.
 - MP-08.3 ✅ Ekstern preseason-data har sikker adminflyt med dokumentert kilde, parser-preview, roster-matching, eksplisitt «Godkjenn og importer» og lagret evidens. Ingen parser-preview skriver automatisk til autoritative data.
-- MP-08.4 🟡 Observerte form 3/5/10 og hjemme/borte finnes i admin-formanalysen, og availability-justert verdi per million finnes i xFP-rangeringen. Gjenstår: samle disse i ett kanonisk, forklarbart featurelag og gjøre bruken konsistent i xFP/anbefalinger.
+- MP-08.4 ✅ Kanonisk analyse-featurelag `get_fantasy_analysis_features_admin_v1` samler sesong-FP/kamp, form 3/5/10, hjemme/borte, sample counts, pris og observert FP/kamp per million før modellberegning. Den raske `get_fantasy_xfp_round_horizons_admin_v2` bruker featurelaget direkte, og anbefalingene arver samme grunnlag via horisont-RPC-en. Form 5 beholdes som modellens form-input; scoringregler og xFP-vekter er uendret. Produksjonsverifisert 2026-08-21 med 234 feature-rader, 234 xFP-horisont-rader og 234 anbefalingsrader samt grønn Vercel-build.
 - MP-08.5 🟡 Dynamisk fixture-/motstanderrating er implementert med samme `fantasy_xfp_opponent_factor` som xFP, 1–5-rating, posisjonsgrupper og overgang preseason → blended → live over de første 12 seriekampene. Gjenstår: eksplisitt produksjons-/kalibreringskontroll før punktet markeres ✅.
 - MP-08.6 ✅ Kjøp / hold / selg-score med forklarbare komponenter er implementert og produksjonsbrukt.
 - MP-08.7 ✅ Kapteinscore/anbefaling er implementert og produksjonsbrukt.
@@ -199,7 +199,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når et steg er ferdig, blokkert eller når ny informasjon endrer avhengighetene. Arbeidschatten som fullfører et steg skal lese siste versjon av denne køen på `main` før den sender brukeren videre.
 
-1. **Chat 08 – MP-08.4 + MP-08.5: kanonisk featurelag og fixture-kontroll.** Samle form 3/5/10, hjemme/borte og verdi per million i ett forklarbart analysegrunnlag som kan gjenbrukes av xFP/anbefalinger, og produksjons-/kalibreringsverifiser den allerede implementerte dynamiske fixture-ratingen.
+1. **Chat 08 – MP-08.5: produksjons-/kalibreringskontroll av fixture-rating.** Verifiser den dynamiske motstanderfaktoren og 1–5-ratingen mot produksjonsdata, preseason-kilder og overgangslogikken preseason → blended → live. Lås først punktet når faktor, skala og posisjonslogikk er konsistente med xFP.
 2. **Chat 03 – MP-03.6: endelig preseason-kalibrering av priser.** Gjennomfør siste kvalitetssikring mot faktisk 2026/27-pool når preseason-/analysegrunnlaget er modent nok.
 3. **Chat 04 – MP-04.7: motstandere i aktuell gameweek på «Mitt lag».** Gjør kommende kamper tydelige for hver spiller, inkludert 0/1/flere kamper.
 4. **Chat 07 – MP-07.6: Bonus Weeks / fantasy-boostere.** Undersøk andre fantasyspill, velg Stang Inn-modell og lås prinsippene før transfersystem og endelig regelverk ferdigstilles dersom bonusmekanikkene påvirker bytter, scoring eller deadlines.
