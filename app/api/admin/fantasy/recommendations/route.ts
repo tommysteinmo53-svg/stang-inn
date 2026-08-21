@@ -6,6 +6,8 @@ import {availabilityAdjustmentLabel,availabilityXfpFactor,normalizeFantasyAvaila
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 
+const VALUE_DEFINITION={version:"v1",unit:"xFP per million",nextGame:"availability-adjusted xFP next game / price",next3:"availability-adjusted xFP next 3 fixtures / price"};
+
 function clientFor(request:NextRequest){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -14,6 +16,8 @@ function clientFor(request:NextRequest){
   return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:header}}});
 }
 const round2=(v:number)=>Math.round(v*100)/100;
+const round3=(v:number)=>Math.round(v*1000)/1000;
+const valuePerMillion=(xfp:number,price:number)=>price>0?round3(xfp/price):0;
 
 export async function GET(request:NextRequest){
   const admin=await requireFantasyAdmin(request);
@@ -28,32 +32,36 @@ export async function GET(request:NextRequest){
   if(availabilityError)return NextResponse.json({ok:false,error:availabilityError.message},{status:500});
   const availabilityMap=new Map((availability||[]).map((r:any)=>[r.player_id,r]));
 
-  // The command-center UI originally required >=5 current-season games before a player
-  // could enter Spillerradar. xFP v2 now has a validated 2025/26 baseline, so medium/high
-  // historical confidence is sufficient during preseason and games 1-4. Keep the actual
-  // current-season game count separately for diagnostics while exposing an eligibility count
-  // compatible with the existing UI. Low-confidence priors remain excluded.
-  // Availability is an explicit, approved overlay: base model values are preserved for audit,
-  // adjusted values drive rankings, and hard-blocked statuses are kept out of radar eligibility.
+  // Historical confidence may make a player recommendation-eligible before five current-season
+  // games. actual_games_scored remains the observed fact; games_scored is only radar eligibility.
+  // Value v1 is derived here from the same availability-adjusted xFP used by the rankings so the
+  // recommendation API cannot drift from the authoritative xFP value-per-million definition.
   const rows=(data||[]).map((row:any)=>{
     const a:any=availabilityMap.get(row.player_id)||null;
     const status=normalizeFantasyAvailabilityStatus(a?.status);
     const factor=availabilityXfpFactor(status);
+    const price=Number(row.price||0);
     const baseNext=Number(row.xfp_next_game||0);
     const baseNext3=Number(row.xfp_next3||0);
-    const baseValue=Number(row.value_next3||0);
+    const adjustedNext=round2(baseNext*factor);
+    const adjustedNext3=round2(baseNext3*factor);
     const actualGames=Number(row.games_scored||0);
     const baselineEligible=row.data_confidence!=="low"?Math.max(5,actualGames):actualGames;
     return {
       ...row,
+      price,
       actual_games_scored:actualGames,
       games_scored:factor===0?0:baselineEligible,
       base_xfp_next_game:baseNext,
       base_xfp_next3:baseNext3,
-      base_value_next3:baseValue,
-      xfp_next_game:round2(baseNext*factor),
-      xfp_next3:round2(baseNext3*factor),
-      value_next3:Math.round(baseValue*factor*1000)/1000,
+      base_value_next_game:valuePerMillion(baseNext,price),
+      base_value_next3:valuePerMillion(baseNext3,price),
+      xfp_next_game:adjustedNext,
+      xfp_next3:adjustedNext3,
+      value_next_game:valuePerMillion(adjustedNext,price),
+      value_next3:valuePerMillion(adjustedNext3,price),
+      value_metric_version:VALUE_DEFINITION.version,
+      value_unit:VALUE_DEFINITION.unit,
       availability_status:status,
       availability_factor:factor,
       availability_note:a?.note||null,
@@ -62,5 +70,5 @@ export async function GET(request:NextRequest){
     };
   });
 
-  return NextResponse.json({ok:true,rows});
+  return NextResponse.json({ok:true,valueDefinition:VALUE_DEFINITION,rows});
 }
