@@ -18,16 +18,23 @@ const round2=(v:number)=>Math.round(v*100)/100;
 const round3=(v:number)=>Math.round(v*1000)/1000;
 const valuePerMillion=(xfp:number,price:number)=>price>0?round3(xfp/price):0;
 
-function legacyRows(rows:any[],availability:any[]){
+function legacyRows(rows:any[],availability:any[],features:any[]){
   const map=new Map((availability||[]).map((r:any)=>[r.player_id,r]));
+  const featureMap=new Map((features||[]).map((r:any)=>[r.player_id,r]));
   return(rows||[]).map((row:any)=>{
     const a:any=map.get(row.player_id)||null;
+    const f:any=featureMap.get(row.player_id)||null;
     const status=normalizeFantasyAvailabilityStatus(a?.status),factor=availabilityXfpFactor(status),price=Number(row.price||0);
     const baseNext=Number(row.base_xfp_next_game||0),baseNext3=Number(row.base_xfp_next3_rounds||0);
     const adjustedNext=round2(baseNext*factor),adjustedNext3=round2(baseNext3*factor);
     return{
       player_id:row.player_id,player_name:row.player_name,team:row.team,player_position:row.player_position,price,
-      games_scored:row.data_confidence==="low"?0:5,season_ppg:Number(row.season_ppg||0),form_ppg:Number(row.form_ppg||0),venue_ppg:Number(row.season_ppg||0),
+      games_scored:Number(f?.current_games||0),historical_games:Number(f?.historical_games||0),current_games:Number(f?.current_games||0),
+      season_ppg:Number(f?.season_ppg??row.season_ppg??0),form_ppg:Number(f?.form5_ppg??row.form_ppg??0),
+      form3_ppg:Number(f?.form3_ppg??0),form5_ppg:Number(f?.form5_ppg??row.form_ppg??0),form10_ppg:Number(f?.form10_ppg??0),
+      historical_home_games:Number(f?.historical_home_games||0),current_home_games:Number(f?.current_home_games||0),home_ppg:Number(f?.home_ppg??0),
+      historical_away_games:Number(f?.historical_away_games||0),current_away_games:Number(f?.current_away_games||0),away_ppg:Number(f?.away_ppg??0),
+      observed_value_per_million:Number(f?.observed_value_per_million??0),
       opponent:row.next_opponent||null,next_game_at:row.next_game_at||null,is_home:row.next_is_home??null,opponent_factor:1,
       next3_games:Number(row.next3_round_games||0),xfp_next_game:adjustedNext,xfp_next3:adjustedNext3,value_next3:valuePerMillion(adjustedNext3,price),data_confidence:row.data_confidence,
       base_xfp_next_game:baseNext,base_xfp_next3:baseNext3,base_value_next_game:valuePerMillion(baseNext,price),base_value_next3:valuePerMillion(baseNext3,price),
@@ -39,13 +46,14 @@ function legacyRows(rows:any[],availability:any[]){
 }
 
 async function loadFast(sb:any,service:any){
-  const[{data:settings,error:settingsError},{data:rows,error:rowsError},{data:availability,error:availabilityError}]=await Promise.all([
+  const[{data:settings,error:settingsError},{data:rows,error:rowsError},{data:features,error:featuresError},{data:availability,error:availabilityError}]=await Promise.all([
     sb.rpc("get_fantasy_xfp_settings_admin_v1",{p_season:"2026/27"}),
     sb.rpc("get_fantasy_xfp_round_horizons_admin_v2",{p_season:"2026/27"}),
+    sb.rpc("get_fantasy_analysis_features_admin_v1",{p_season:"2026/27"}),
     service.from("fantasy_player_availability").select("player_id,status,note,expected_return"),
   ]);
-  if(settingsError)throw settingsError;if(rowsError)throw rowsError;if(availabilityError)throw availabilityError;
-  return{settings:settings?.[0]||null,rows:legacyRows(rows||[],availability||[])};
+  if(settingsError)throw settingsError;if(rowsError)throw rowsError;if(featuresError)throw featuresError;if(availabilityError)throw availabilityError;
+  return{settings:settings?.[0]||null,rows:legacyRows(rows||[],availability||[],features||[]),featureDefinition:{version:"v1",formModelInput:"form5_ppg",regularSeasonBlendGames:10,separation:"observed features → base xFP → availability-adjusted xFP → lineup/recommendation"}};
 }
 
 export async function GET(request:NextRequest){
