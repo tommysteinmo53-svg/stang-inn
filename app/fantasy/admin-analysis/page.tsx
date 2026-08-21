@@ -18,14 +18,15 @@ type XfpSettings={season_weight:number;form_weight:number;venue_weight:number;op
 type SortKey="player_name"|"team"|"player_position"|"price"|"season_ppg"|"form_ppg"|"next_game_at"|"xfp_next_game"|"xfp_next3"|"value_next3"|"price_assessment"|"data_confidence";
 type SortDir="asc"|"desc";
 type PriceAssessment={key:"under"|"fair"|"over"|"unknown";label:string;score:number;ratio:number|null};
-type RecKey="buy"|"hold"|"sell"|"captain"|"diff"|"form"|"value";
+type RecKey="buy"|"hold"|"sell"|"captain"|"diff"|"form"|"value"|"ppg"|"costpp";
 type RecCategory={key:RecKey;icon:string;title:string;desc:string;metric:string;rows:RecRow[];allRows:RecRow[]};
 
-const details:Record<string,string>={recommendations:"🔥 Kjøp · 🛡️ Hold · ⚠️ Selg · 👑 Kaptein · 💎 Differensial · 📈 Formspiller · 💰 Beste verdi",optimizer:"Beste lag innen 100m · 6F/4D/2G · maks 3 per klubb · senere 3–5 runders optimalisering","transfer-assistant":"UT → INN-forslag · prisforskjell · forventet poenggevinst"};
+const details:Record<string,string>={recommendations:"🔥 Kjøp · 🛡️ Hold · ⚠️ Selg · 👑 Kaptein · 💎 Differensial · 📈 Formspiller · 💰 Beste verdi · 🏒 FP/kamp · 🪙 Kr/poeng",optimizer:"Beste lag innen 100m · 6F/4D/2G · maks 3 per klubb · senere 3–5 runders optimalisering","transfer-assistant":"UT → INN-forslag · prisforskjell · forventet poenggevinst"};
 const pct=(v:number)=>Math.round(Number(v||0)*100);
 const n=(v:unknown,d=2)=>Number(v||0).toFixed(d).replace(/\.00$/,".0");
 const pos=(p:string)=>p==="C"||p==="W"?"F":p;
 const confidenceRank=(v:string)=>v==="high"?3:v==="medium"?2:1;
+const costPerPoint=(r:RecRow)=>r.season_ppg>0&&r.price>0?r.price/r.season_ppg:Number.POSITIVE_INFINITY;
 const buyTierLabel=(tier:BuyRecommendation["tier"]|undefined)=>tier==="sterkt_kjop"?"Sterkt kjøp":tier==="kjop"?"Kjøp":tier==="vurder"?"Vurder":"Avvent";
 const holdTierLabel=(tier:HoldRecommendation["tier"]|undefined)=>tier==="klart_hold"?"Klart HOLD":tier==="hold"?"HOLD":tier==="vurder"?"Vurder":"Svakt HOLD";
 const sellTierLabel=(tier:SellRecommendation["tier"]|undefined)=>tier==="klart_selg"?"Klart SELG":tier==="selg"?"SELG":tier==="vurder_selg"?"Vurder salg":"Behold";
@@ -60,10 +61,12 @@ export default function AdminAnalysisPage(){
   make("captain","👑","Kaptein","Forklarbar kamp-score: xFP neste kamp, form, matchup og datatillit","Kapteinsscore",r=>Number(r.captain?.score||0),r=>!!r.next_game_at&&Number(r.captain?.score||0)>0),
   make("diff","💎","Differensial","Høy xFP med lav eierandel","eid",r=>r.xfp_next3*(1-Math.min(r.ownership_percent,100)/100),r=>r.ownership_percent<=15),
   make("form","📈","Formspiller","Størst løft siste fem kamper","form",r=>r.form_ppg-r.season_ppg),
-  make("value","💰","Beste verdi","Mest forventet poeng per million","verdi",r=>r.value_next3)
+  make("value","💰","Beste verdi","Mest forventet poeng per million","verdi",r=>r.value_next3),
+  make("ppg","🏒","Høyest FP per kamp","Høyeste observerte fantasy-poeng per kamp denne sesongen","FP/kamp",r=>r.season_ppg,r=>r.season_ppg>0),
+  make("costpp","🪙","Kr per poeng","Lavest fantasypris per observert FP/kamp – lavere er bedre","m/FP",r=>-costPerPoint(r),r=>Number.isFinite(costPerPoint(r)))
  ]},[eligible]);
  const activeCategory=activeRec?recs.find(c=>c.key===activeRec)||null:null;
- const metricValue=(c:RecCategory,r:RecRow)=>c.key==="buy"?r.buy?`${Math.round(r.buy.score)}/100`:"—":c.key==="hold"?r.hold?`${Math.round(r.hold.score)}/100`:"—":c.key==="sell"?r.sell?`${Math.round(r.sell.score)}/100`:"—":c.key==="captain"?r.captain?`${Math.round(r.captain.score)}/100`:"—":c.key==="diff"?`${n(r.ownership_percent,1)}%`:c.key==="value"?n(r.value_next3,3):c.key==="form"?n(r.form_ppg):n(r.xfp_next3);
+ const metricValue=(c:RecCategory,r:RecRow)=>c.key==="buy"?r.buy?`${Math.round(r.buy.score)}/100`:"—":c.key==="hold"?r.hold?`${Math.round(r.hold.score)}/100`:"—":c.key==="sell"?r.sell?`${Math.round(r.sell.score)}/100`:"—":c.key==="captain"?r.captain?`${Math.round(r.captain.score)}/100`:"—":c.key==="diff"?`${n(r.ownership_percent,1)}%`:c.key==="value"?n(r.value_next3,3):c.key==="ppg"?n(r.season_ppg,2):c.key==="costpp"?n(costPerPoint(r),3):c.key==="form"?n(r.form_ppg):n(r.xfp_next3);
  const shown=useMemo(()=>xfpRows.filter(r=>(teamFilter==="ALL"||r.team===teamFilter)&&(posFilter==="ALL"||pos(r.player_position)===posFilter)&&(!onlyWithGame||!!r.next_game_at)&&(!q||`${r.player_name} ${r.team}`.toLowerCase().includes(q.toLowerCase()))).sort((a,b)=>{let cmp=0;if(sort==="player_name")cmp=a.player_name.localeCompare(b.player_name,"nb");else if(sort==="team")cmp=a.team.localeCompare(b.team,"nb");else if(sort==="player_position")cmp=pos(a.player_position).localeCompare(pos(b.player_position),"nb");else if(sort==="next_game_at")cmp=(a.next_game_at?new Date(a.next_game_at).getTime():Number.MAX_SAFE_INTEGER)-(b.next_game_at?new Date(b.next_game_at).getTime():Number.MAX_SAFE_INTEGER);else if(sort==="price_assessment")cmp=assess(a).score-assess(b).score;else if(sort==="data_confidence")cmp=confidenceRank(a.data_confidence)-confidenceRank(b.data_confidence);else cmp=Number(a[sort])-Number(b[sort]);return sortDir==="asc"?cmp:-cmp}),[xfpRows,teamFilter,posFilter,q,sort,sortDir,onlyWithGame,positionMedians]);
  if(allowed===null)return <main className="fantasy-shell"><section className="fantasy-card"><h1>Fantasy analyse</h1><p>{status}</p></section></main>;
  if(!allowed)return <main className="fantasy-shell"><section className="fantasy-card"><p className="eyebrow">ADMIN ONLY</p><h1>Ingen tilgang</h1><p>{status}</p></section></main>;
