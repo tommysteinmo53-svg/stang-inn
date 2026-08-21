@@ -115,16 +115,16 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-08 – Analyse, xFP og anbefalinger
 
-**Status: 🟡**
+**Status: 🟡 – analysegrunnlaget er langt kommet; MP-08.4 og endelig produksjonskontroll av MP-08.5 gjenstår før inputlaget regnes som stabilt**
 
-- MP-08.1 🟡 Analysemodul/admin finnes.
-- MP-08.2 🟡 Preseason xFP-baseline og preview er implementert og optimalisert.
-- MP-08.3 🟡 Ekstern preseason-data kan parses sikkert med preview/approval før bruk.
-- MP-08.4 ⬜ Form 3/5/10, hjemme/borte og verdi per million ferdigstilles som konsistente analysefeatures.
-- MP-08.5 ⬜ Fixture-/motstanderrating ferdigstilles.
-- MP-08.6 ⬜ Kjøp / hold / selg-score.
-- MP-08.7 ⬜ Kapteinscore/anbefaling.
-- MP-08.8 ⬜ Forventede poeng neste kamp / runde / tre runder med forklaring.
+- MP-08.1 ✅ Samlet admin-kommandosenter for analyse er implementert og produksjonsbrukt.
+- MP-08.2 ✅ Preseason xFP-baseline, guarded preseason-signal og read-only preview er implementert, ytelsesoptimalisert og brukt mot reelle preseason-data. Preseason påvirker ikke autoritativ Fantasy-scoring.
+- MP-08.3 ✅ Ekstern preseason-data har sikker adminflyt med dokumentert kilde, parser-preview, roster-matching, eksplisitt «Godkjenn og importer» og lagret evidens. Ingen parser-preview skriver automatisk til autoritative data.
+- MP-08.4 🟡 Observerte form 3/5/10 og hjemme/borte finnes i admin-formanalysen, og availability-justert verdi per million finnes i xFP-rangeringen. Gjenstår: samle disse i ett kanonisk, forklarbart featurelag og gjøre bruken konsistent i xFP/anbefalinger.
+- MP-08.5 🟡 Dynamisk fixture-/motstanderrating er implementert med samme `fantasy_xfp_opponent_factor` som xFP, 1–5-rating, posisjonsgrupper og overgang preseason → blended → live over de første 12 seriekampene. Gjenstår: eksplisitt produksjons-/kalibreringskontroll før punktet markeres ✅.
+- MP-08.6 ✅ Kjøp / hold / selg-score med forklarbare komponenter er implementert og produksjonsbrukt.
+- MP-08.7 ✅ Kapteinscore/anbefaling er implementert og produksjonsbrukt.
+- MP-08.8 ✅ Forventede poeng for neste kamp, neste fantasy-runde og tre fantasy-runder er implementert på den raske horisontmotoren, med tydelig skille mellom base-xFP, availability-justert xFP og lineup-kontekst.
 
 # MP-09 – Skader, fravær og tilgjengelighet
 
@@ -199,17 +199,16 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når et steg er ferdig, blokkert eller når ny informasjon endrer avhengighetene. Arbeidschatten som fullfører et steg skal lese siste versjon av denne køen på `main` før den sender brukeren videre.
 
-1. **Chat 08 – MP-08.2 + MP-08.3 + MP-08.4 + MP-08.5: preseason/form og analysegrunnlag.** Fortsett treningskampdata, preseason-form, form 3/5/10, hjemme/borte, verdi per million og fixture-/motstanderrating. MP-09 availability er nå et stabilt og produksjonsverifisert inputlag.
+1. **Chat 08 – MP-08.4 + MP-08.5: kanonisk featurelag og fixture-kontroll.** Samle form 3/5/10, hjemme/borte og verdi per million i ett forklarbart analysegrunnlag som kan gjenbrukes av xFP/anbefalinger, og produksjons-/kalibreringsverifiser den allerede implementerte dynamiske fixture-ratingen.
 2. **Chat 03 – MP-03.6: endelig preseason-kalibrering av priser.** Gjennomfør siste kvalitetssikring mot faktisk 2026/27-pool når preseason-/analysegrunnlaget er modent nok.
 3. **Chat 04 – MP-04.7: motstandere i aktuell gameweek på «Mitt lag».** Gjør kommende kamper tydelige for hver spiller, inkludert 0/1/flere kamper.
 4. **Chat 07 – MP-07.6: Bonus Weeks / fantasy-boostere.** Undersøk andre fantasyspill, velg Stang Inn-modell og lås prinsippene før transfersystem og endelig regelverk ferdigstilles dersom bonusmekanikkene påvirker bytter, scoring eller deadlines.
 5. **Chat 04 – MP-04.5 + MP-04.6: full transfersyklus og endelige låseregler.** Byttebank, frie bytter, kostnader/historikk og samspill med eventuelle boostere.
-6. **Chat 08 – MP-08.6 + MP-08.7 + MP-08.8: beslutningsstøtte.** Kjøp/hold/selg, kapteinscore og forventede poeng for neste kamp/runde/tre runder.
-7. **Chat 10 – MP-10: lagoptimalisator.** MP-10.3 og MP-10.4 er ferdige; gjenoppta resterende MP-10.1/10.2/10.5 når pris, fixture og xFP er stabile input.
-8. **Chat 07 + Chat 11 – MP-07.4/07.5 og MP-11.3–11.5: konkurransepresentasjon og samlet UX-pass.** Rundevisning, regler, mobil/desktop, readability og states.
-9. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Scoring, transfers, deadlines, RLS, admin og sentrale brukerflyter.
-10. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** Regelverk, 45 runder/deadlines, produksjon, cron/secrets, smoke tests, backup og rollback.
-11. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske launch-gates er PASS.
+6. **Chat 10 – MP-10: lagoptimalisator.** MP-10.3 og MP-10.4 er ferdige; gjenoppta resterende MP-10.1/10.2/10.5 når pris, fixture og xFP er stabile input.
+7. **Chat 07 + Chat 11 – MP-07.4/07.5 og MP-11.3–11.5: konkurransepresentasjon og samlet UX-pass.** Rundevisning, regler, mobil/desktop, readability og states.
+8. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Scoring, transfers, deadlines, RLS, admin og sentrale brukerflyter.
+9. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** Regelverk, 45 runder/deadlines, produksjon, cron/secrets, smoke tests, backup og rollback.
+10. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske launch-gates er PASS.
 
 **Sesongavhengig:** MP-06.6 full produksjonsvalidering mot faktiske 2026/27-kamper gjennomføres i **Chat 06** så snart representative seriekamper finnes. MP-02.6 og øvrig synk/datadrift fortsetter løpende. MP-09 følger nye reelle availability-funn gjennom sesongen og første naturlige E2E via review-køen verifiseres ved første faktiske funn. **Chat 13 / MP-13** er et separat tipping-spor som kan utvikles parallelt så lenge det ikke blokkerer Fantasy XI-kritisk arbeid.
 
