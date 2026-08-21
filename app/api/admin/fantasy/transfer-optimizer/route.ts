@@ -7,7 +7,7 @@ export const runtime="nodejs";
 export const dynamic="force-dynamic";
 
 type Pos="G"|"D"|"F";
-type XfpRow={player_id:string;player_name:string;team:string;player_position:string;price:number|string;xfp_next_game:number|string;xfp_next3:number|string};
+type XfpRow={player_id:string;player_name:string;team:string;player_position:string;price:number|string;base_xfp_next_game:number|string;base_xfp_next3_rounds:number|string};
 type Player={id:string;name:string;team:string;pos:Pos;price:number;base_score:number;score:number;available:boolean;availability_status:string;line_no:number|null;is_captain:boolean;is_vice_captain:boolean};
 type Change={out:Player;in:Player};
 type TeamPlayerRow={player_id:string;purchase_price:number|string|null;line_no:number|null;is_captain:boolean|null;is_vice_captain:boolean|null};
@@ -83,7 +83,7 @@ export async function GET(request:NextRequest){
   const[{data:team,error:teamError},{data:status,error:statusError},{data:xfp,error:xfpError},{data:economy,error:economyError},{data:catalog,error:catalogError},{data:availability,error:availabilityError}]=await Promise.all([
     sb.from("fantasy_user_teams").select("id,name").eq("season","2026/27").maybeSingle(),
     sb.rpc("get_fantasy_transfer_status_v1",{p_season:"2026/27"}),
-    sb.rpc("get_fantasy_xfp_admin_v1",{p_season:"2026/27"}),
+    sb.rpc("get_fantasy_xfp_round_horizons_admin_v2",{p_season:"2026/27"}),
     sb.rpc("get_fantasy_economy_admin_v1",{p_season:"2026/27"}),
     server.from("fantasy_players").select("id,name,team,position,price,active,on_current_roster,available_for_purchase"),
     server.from("fantasy_player_availability").select("player_id,status"),
@@ -111,7 +111,7 @@ export async function GET(request:NextRequest){
     const fallbackPrice=Number(c.price||0),xfpPrice=Number(xr?.price||0),purchasePrice=Number(teamMeta?.purchase_price||0);
     const price=teamMeta&&Number.isFinite(purchasePrice)&&purchasePrice>0?purchasePrice:(Number.isFinite(xfpPrice)&&xfpPrice>0?xfpPrice:fallbackPrice);
     if(!Number.isFinite(price)||price<=0)return null;
-    const baseScore=Number(horizon==="next_game"?xr?.xfp_next_game??0:xr?.xfp_next3??0);
+    const baseScore=Number(horizon==="next_game"?xr?.base_xfp_next_game??0:xr?.base_xfp_next3_rounds??0);
     const availabilityStatus=availabilityMap.get(c.id)||"available";
     const player:Player={id:c.id,name:c.name,team:c.team,pos:position,price,base_score:Number.isFinite(baseScore)?baseScore:0,score:0,available:Boolean(c.active&&c.on_current_roster&&c.available_for_purchase!==false&&isOptimizerEligibleAvailability(availabilityStatus)),availability_status:availabilityStatus,line_no:teamMeta?.line_no??null,is_captain:Boolean(teamMeta?.is_captain),is_vice_captain:Boolean(teamMeta?.is_vice_captain)};
     return withEffectiveScore(player);
