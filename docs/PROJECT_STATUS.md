@@ -38,6 +38,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-22
 - Persistente brukerlag.
 - Kaptein og visekaptein.
 - Klubb-/lagvalideringer.
+- MP-04.7 gameweek-fixtures i «Mitt lag»: hver valgt spiller viser motstander(e) for den fantasy-runden laget bygges/redigeres for, med H/B-markering og eksplisitt «Ingen kamp». Visningen bruker den autoritative `get_fantasy_round_schedule_v1`-rundelogikken og felles `canonicalFantasyTeam()` for å koble HockeyLive-klubbnavn til kanoniske Fantasy-lag. Ingen ny database-/terminlistelogikk ble innført.
 - Kalenderbaserte runder.
 - Deadline-sikre snapshots og freeze/readiness-kontroller.
 - Fantasy-poengmotor med special-teams-relatert scoring.
@@ -65,7 +66,9 @@ MP-08.4 og MP-08.5 er produksjonsverifisert. Det kanoniske featurelaget og den r
 
 MP-03.6 er ferdig og produksjonsverifisert som V4.6.2. Prisuniverset er nå komplett 239/239 og konsistent mellom spillerpool, låste sesongpriser og lagrede preseason-lag.
 
-Neste operative hovedpunkt er **Chat 04 – MP-04.7**: vis alle motstandere i aktuell fantasy-gameweek direkte på spillerne i «Mitt lag»/lagbyggeren, med støtte for 0, 1 eller flere kamper.
+MP-04.7 er ferdig på `main`. «Mitt lag» gjenbruker `fantasy_rounds` + `get_fantasy_round_schedule_v1`, velger effektiv transfer-runde når den finnes og ellers neste deadline, normaliserer kampklubber med felles `canonicalFantasyTeam()`, og viser 0/1/flere kamper med H/B direkte under spillerens klubb/posisjon. Produksjonsdata bekrefter både runder med lag uten kamp og runder med dobbeltkamper.
+
+Neste operative hovedpunkt er **Chat 07 – MP-07.6**: Bonus Weeks / fantasy-boostere. Prinsippene bør avklares før MP-04.5/04.6 ferdigstilles dersom boostere skal påvirke bytter, scoring eller deadlines.
 
 MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirker analyse/optimizer, og blokkerte statuser kan ikke foreslås. Varslingskjeden er teknisk produksjonsverifisert og første naturlige E2E via et reelt nytt review-funn tas når et slikt funn oppstår.
 
@@ -75,6 +78,7 @@ MP-10.3 og MP-10.4 er ferdige og produksjonsverifiserte på `main`. Fixture/xFP-
 
 - GitHub Actions kjører `npm run build` på push/PR mot `main`.
 - Isolerte E2E-/testkontroller er implementert for sentrale fantasyflyter, blant annet snapshots og leaderboard.
+- MP-04.7 er build-/Vercel-verifisert på `main`. Produksjonsdata viser 45 autoritative fantasy-runder; runde 7/9/20/24 har bare 8 deltakende lag (0 kamper for to lag), mens runde 11/13/14/39 har lag med 2 kamper. Linus Pettersson er `Stavanger · W`, og runde 1 har Stavanger borte mot Vålerenga. Responsive CSS lar fixturelinjen brytes på mobil uten å endre eksisterende lagbygger-grid.
 - MP-08.4-produksjonssmoke: featurelag 234 rader, xFP-horisont 234 rader og anbefalingsdatasett 234 rader ved opprinnelig kontroll; API-endringen er Vercel-build/deploy-verifisert.
 - MP-08.5-produksjonskontroll: 225 ordinære 2025/26-kamper brukt til historisk baseline, 0 ferdigspilte 2026/27-kamper ved kontrolltidspunktet, posisjonslogikk verifisert og autoritativ faktor kontrollert uten preseason-/treningskampavhengighet. Vercel-build er grønn.
 - MP-03.6-produksjonskontroll: V4.6.2 har 239 publikasjonrader/current-roster-spillere, 14 faktiske prisendringer, 0 prislag-avvik, 239 kjøpbare spillere, 0 stale `purchase_price` og 0 eksisterende lag over 100m. Merge-/produksjonsdeploy er grønn.
