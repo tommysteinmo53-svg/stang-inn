@@ -2,7 +2,7 @@
 
 > Prosjektets operative kontrollsenter. GitHub `main` er teknisk source of truth. Denne filen gir oversikt, prioritering og sporbarhet.
 
-Sist oppdatert: 2026-08-21
+Sist oppdatert: 2026-08-22
 
 ## Arbeidsregler
 
@@ -64,7 +64,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 - MP-03.3 ✅ Importspillerlogikk v4.2 implementert.
 - MP-03.4 ✅ Talent-/importmodell v4.3 implementert.
 - MP-03.5 ✅ Pris-publisering og audit-migrasjoner finnes.
-- MP-03.6 🟡 Endelig preseason-kalibrering og kvalitetssikring mot faktisk 2026/27-spillerpool.
+- MP-03.6 🟡 Endelig preseason-kalibrering og kvalitetssikring mot faktisk 2026/27-spillerpool. Dette gjelder pris/spillerøkonomi og er uavhengig av den avviklede preseason-FP-modellen.
 - MP-03.7 ⬜ Definer policy for eventuelle prisendringer etter sesongstart.
 
 # MP-04 – Lagbygger, regler og brukerlag
@@ -115,13 +115,13 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-08 – Analyse, xFP og anbefalinger
 
-**Status: 🟡 – analysegrunnlaget er langt kommet; kun endelig produksjons-/kalibreringskontroll av MP-08.5 gjenstår før inputlaget regnes som stabilt**
+**Status: 🟡 – analysegrunnlaget er langt kommet; preseason-FP er avviklet og MP-08.5 må kalibreres uten treningskampstatistikk før inputlaget regnes som stabilt**
 
 - MP-08.1 ✅ Samlet admin-kommandosenter for analyse er implementert og produksjonsbrukt.
-- MP-08.2 ✅ Preseason xFP-baseline, guarded preseason-signal og read-only preview er implementert, ytelsesoptimalisert og brukt mot reelle preseason-data. Preseason påvirker ikke autoritativ Fantasy-scoring.
-- MP-08.3 ✅ Ekstern preseason-data har sikker adminflyt med dokumentert kilde, parser-preview, roster-matching, eksplisitt «Godkjenn og importer» og lagret evidens. Ingen parser-preview skriver automatisk til autoritative data.
+- MP-08.2 ✅ **Preseason-FP er avviklet.** Treningskampstatistikk skal ikke brukes til å beregne xFP, spillerform, anbefalinger eller annen Fantasy-beslutningsstøtte. Datagrunnlaget fra treningskamper er for ufullstendig og inkonsistent til å gi et pålitelig signal. Aktiv preseason-FP-kode/adminflate er fjernet fra `main`; historiske migrasjoner/data kan beholdes inert for sporbarhet.
+- MP-08.3 ✅ **Preseason-statistikkpipeline er avviklet.** Manuell registrering, ekstern kildeimport, parser-preview og debug/diagnostikk som kun eksisterte for treningskamp-FP skal ikke videreutvikles eller inngå i ordinær arbeidsflyt. Dette påvirker ikke vanlig roster-, terminliste- eller prisarbeid før sesongstart.
 - MP-08.4 ✅ Kanonisk analyse-featurelag `get_fantasy_analysis_features_admin_v1` samler sesong-FP/kamp, form 3/5/10, hjemme/borte, sample counts, pris og observert FP/kamp per million før modellberegning. Den raske `get_fantasy_xfp_round_horizons_admin_v2` bruker featurelaget direkte, og anbefalingene arver samme grunnlag via horisont-RPC-en. Form 5 beholdes som modellens form-input; scoringregler og xFP-vekter er uendret. Produksjonsverifisert 2026-08-21 med 234 feature-rader, 234 xFP-horisont-rader og 234 anbefalingsrader samt grønn Vercel-build.
-- MP-08.5 🟡 Dynamisk fixture-/motstanderrating er implementert med samme `fantasy_xfp_opponent_factor` som xFP, 1–5-rating, posisjonsgrupper og overgang preseason → blended → live over de første 12 seriekampene. Gjenstår: eksplisitt produksjons-/kalibreringskontroll før punktet markeres ✅.
+- MP-08.5 🟡 Dynamisk fixture-/motstanderrating er implementert med samme `fantasy_xfp_opponent_factor` som xFP, 1–5-rating og posisjonsgrupper. **Preseason-FP/-statistikk skal ikke inngå i motstanderfaktoren.** Gjenstår: rekalibrer og produksjonsverifiser sesongstart-/overgangslogikken uten treningskampdata, og lås en robust historisk/ordinær-serie-baseline som gradvis kan erstattes av live 2026/27-data.
 - MP-08.6 ✅ Kjøp / hold / selg-score med forklarbare komponenter er implementert og produksjonsbrukt.
 - MP-08.7 ✅ Kapteinscore/anbefaling er implementert og produksjonsbrukt.
 - MP-08.8 ✅ Forventede poeng for neste kamp, neste fantasy-runde og tre fantasy-runder er implementert på den raske horisontmotoren, med tydelig skille mellom base-xFP, availability-justert xFP og lineup-kontekst.
@@ -199,8 +199,8 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når et steg er ferdig, blokkert eller når ny informasjon endrer avhengighetene. Arbeidschatten som fullfører et steg skal lese siste versjon av denne køen på `main` før den sender brukeren videre.
 
-1. **Chat 08 – MP-08.5: produksjons-/kalibreringskontroll av fixture-rating.** Verifiser den dynamiske motstanderfaktoren og 1–5-ratingen mot produksjonsdata, preseason-kilder og overgangslogikken preseason → blended → live. Lås først punktet når faktor, skala og posisjonslogikk er konsistente med xFP.
-2. **Chat 03 – MP-03.6: endelig preseason-kalibrering av priser.** Gjennomfør siste kvalitetssikring mot faktisk 2026/27-pool når preseason-/analysegrunnlaget er modent nok.
+1. **Chat 08 – MP-08.5: rekalibrering av fixture-rating uten preseason-FP.** Verifiser den dynamiske motstanderfaktoren og 1–5-ratingen mot produksjonsdata uten treningskampstatistikk. Definer og test en robust sesongstart-baseline basert på historiske/ordinære seriedata og overgang til live 2026/27-data. Lås først punktet når faktor, skala og posisjonslogikk er konsistente med xFP.
+2. **Chat 03 – MP-03.6: endelig preseason-kalibrering av priser.** Gjennomfør siste kvalitetssikring mot faktisk 2026/27-pool. Prisarbeidet skal ikke hente signal fra preseason-FP/treningskampstatistikk.
 3. **Chat 04 – MP-04.7: motstandere i aktuell gameweek på «Mitt lag».** Gjør kommende kamper tydelige for hver spiller, inkludert 0/1/flere kamper.
 4. **Chat 07 – MP-07.6: Bonus Weeks / fantasy-boostere.** Undersøk andre fantasyspill, velg Stang Inn-modell og lås prinsippene før transfersystem og endelig regelverk ferdigstilles dersom bonusmekanikkene påvirker bytter, scoring eller deadlines.
 5. **Chat 04 – MP-04.5 + MP-04.6: full transfersyklus og endelige låseregler.** Byttebank, frie bytter, kostnader/historikk og samspill med eventuelle boostere.
