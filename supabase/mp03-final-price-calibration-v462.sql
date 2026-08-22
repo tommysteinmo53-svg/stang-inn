@@ -77,16 +77,20 @@ begin
   end if;
 
   -- Pre-publication safety gate: no already saved preseason team may become invalid
-  -- because of the calibration. Nothing has been written at this point.
+  -- because of the calibration. Removed/non-current players retain their existing
+  -- season/purchase price in this calculation; current-roster players use proposed prices.
   with proposed as (
     select (x.value->>'player_id')::uuid player_id,
            (x.value->>'price')::numeric price
     from jsonb_array_elements(p_rows) x
   ), team_costs as (
-    select t.id, coalesce(sum(pr.price),0)::numeric total_cost
+    select t.id,
+           coalesce(sum(coalesce(pr.price,sp.price,tp.purchase_price)),0)::numeric total_cost
     from fantasy_user_teams t
     join fantasy_user_team_players tp on tp.team_id=t.id
-    join proposed pr on pr.player_id=tp.player_id
+    left join proposed pr on pr.player_id=tp.player_id
+    left join fantasy_player_season_prices sp
+      on sp.player_id=tp.player_id and sp.season=p_season
     where t.season=p_season
     group by t.id
   )
