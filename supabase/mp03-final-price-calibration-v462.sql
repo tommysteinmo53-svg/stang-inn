@@ -1,7 +1,7 @@
 -- MP-03.6 – final preseason fantasy-price calibration for 2026/27.
--- Atomic full-pool publication that keeps fantasy_players.price and
--- fantasy_player_season_prices in sync and preserves the publication audit trail.
--- This does not alter fantasy scoring.
+-- Atomic full-pool publication that keeps fantasy_players.price,
+-- fantasy_player_season_prices and saved preseason purchase prices in sync,
+-- while preserving the publication audit trail. This does not alter fantasy scoring.
 
 create or replace function publish_fantasy_prices_v462(
   p_rows jsonb,
@@ -150,6 +150,18 @@ begin
       set price = excluded.price,
           locked_at = excluded.locked_at;
   end loop;
+
+  -- Preseason teams were saved before the final calibration. Keep their stored
+  -- purchase price aligned with the now-final fixed season price so UI, later
+  -- transfers and audit semantics all start from the same price baseline.
+  update fantasy_user_team_players tp
+  set purchase_price = sp.price
+  from fantasy_user_teams t,
+       fantasy_player_season_prices sp
+  where tp.team_id = t.id
+    and t.season = p_season
+    and sp.season = p_season
+    and sp.player_id = tp.player_id;
 
   return v_publication;
 end;
