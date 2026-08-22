@@ -34,6 +34,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-22
 
 - Spillerpool og pris-publisering.
 - Prismodellfamilie gjennom v4.3, inkludert v4.1 markedskalibrering og import-/talentlogikk.
+- MP-03.6 sluttkalibrering er publisert som V4.6.2. Produksjon er kontrollert med 239/239 current-roster-spillere priset, 239/239 låste sesongpriser, 239/239 kjøpbare, nøyaktig 14 godkjente prisendringer, 0 avvik mellom spillerpris og sesongpris, 0 stale lagrede `purchase_price` og 0 eksisterende lag over 100m. Ingen fantasy-scoringregler ble endret.
 - Persistente brukerlag.
 - Kaptein og visekaptein.
 - Klubb-/lagvalideringer.
@@ -60,20 +61,23 @@ Sist kontrollert mot GitHub `main`: 2026-08-22
 
 MP-02 preseason-rosterkontroll er produksjonsverifisert mot EliteProspects: 239/239 spillere, 0 mangler, 0 tvetydige, 0 lagavvik, 0 ekstra og 0 posisjonsavvik. Robust identitetsgate og løpende MP-02.6-drift beholdes.
 
-MP-08.4 og MP-08.5 er produksjonsverifisert. Det kanoniske featurelaget returnerer 234 prisede/current spillere i produksjon, og både den raske xFP-horisonten og anbefalingsdatasettet returnerer samme 234 spillerunivers. Fixture-/motstanderratingen bruker nå ordinær 2025/26-baseline og kontrollert overgang til live 2026/27-data uten treningskampstatistikk. Analyseinputet regnes dermed som stabilt for videre arbeid.
+MP-08.4 og MP-08.5 er produksjonsverifisert. Det kanoniske featurelaget og den raske xFP-/anbefalingskjeden er stabilt for videre fantasyarbeid. Fixture-/motstanderratingen bruker ordinær 2025/26-baseline og kontrollert overgang til live 2026/27-data uten treningskampstatistikk.
 
-Neste operative hovedpunkt er MP-03.6: endelig preseason-kalibrering og kvalitetssikring av Fantasy-prisene mot faktisk 2026/27-spillerpool.
+MP-03.6 er ferdig og produksjonsverifisert som V4.6.2. Prisuniverset er nå komplett 239/239 og konsistent mellom spillerpool, låste sesongpriser og lagrede preseason-lag.
+
+Neste operative hovedpunkt er **Chat 04 – MP-04.7**: vis alle motstandere i aktuell fantasy-gameweek direkte på spillerne i «Mitt lag»/lagbyggeren, med støtte for 0, 1 eller flere kamper.
 
 MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirker analyse/optimizer, og blokkerte statuser kan ikke foreslås. Varslingskjeden er teknisk produksjonsverifisert og første naturlige E2E via et reelt nytt review-funn tas når et slikt funn oppstår.
 
-MP-10.3 og MP-10.4 er ferdige og produksjonsverifiserte på `main`. Fixture/xFP-input er nå stabilt etter MP-08.5; resterende MP-10.1/10.2/10.5 ferdigstilles etter pris- og regelarbeidet i henhold til `docs/MASTERPLAN.md`.
+MP-10.3 og MP-10.4 er ferdige og produksjonsverifiserte på `main`. Fixture/xFP- og prisinput er nå stabile; resterende MP-10.1/10.2/10.5 ferdigstilles etter gameweek-/regelarbeidet i henhold til `docs/MASTERPLAN.md`.
 
 ## Testing
 
 - GitHub Actions kjører `npm run build` på push/PR mot `main`.
 - Isolerte E2E-/testkontroller er implementert for sentrale fantasyflyter, blant annet snapshots og leaderboard.
-- MP-08.4-produksjonssmoke: featurelag 234 rader, xFP-horisont 234 rader og anbefalingsdatasett 234 rader; API-endringen er Vercel-build/deploy-verifisert.
+- MP-08.4-produksjonssmoke: featurelag 234 rader, xFP-horisont 234 rader og anbefalingsdatasett 234 rader ved opprinnelig kontroll; API-endringen er Vercel-build/deploy-verifisert.
 - MP-08.5-produksjonskontroll: 225 ordinære 2025/26-kamper brukt til historisk baseline, 0 ferdigspilte 2026/27-kamper ved kontrolltidspunktet, posisjonslogikk verifisert og autoritativ faktor kontrollert uten preseason-/treningskampavhengighet. Vercel-build er grønn.
+- MP-03.6-produksjonskontroll: V4.6.2 har 239 publikasjonrader/current-roster-spillere, 14 faktiske prisendringer, 0 prislag-avvik, 239 kjøpbare spillere, 0 stale `purchase_price` og 0 eksisterende lag over 100m. Merge-/produksjonsdeploy er grønn.
 - Availability-endringene og optimizerstrategiene er build-/deploy-verifisert; produksjonsbruk følger fortsatt admin-review-gaten for availability.
 - Produksjonsregelen står fast: isolerte tester skal ikke endre ekte 2026/27-data og skal rydde opp egne testdata.
 
