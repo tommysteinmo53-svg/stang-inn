@@ -25,6 +25,8 @@ declare
   v_player_id uuid;
   v_make_available boolean;
   v_economy_lock_at timestamptz;
+  v_budget numeric;
+  v_overbudget integer;
 begin
   if p_season <> '2026/27' or p_model_version <> 'V4.6.2' then
     raise exception 'Unsupported season/model: % / %', p_season, p_model_version;
@@ -34,8 +36,11 @@ begin
     raise exception 'Publisher is not an admin';
   end if;
 
-  select economy_lock_at into v_economy_lock_at
+  select economy_lock_at, budget into v_economy_lock_at, v_budget
   from fantasy_season_rules where season = p_season;
+  if v_budget is null then
+    raise exception 'Fantasy season rules missing for %', p_season;
+  end if;
   if v_economy_lock_at is not null and now() >= v_economy_lock_at then
     raise exception 'Fantasy economy is locked at %', v_economy_lock_at;
   end if;
@@ -69,6 +74,27 @@ begin
       )
   ) then
     raise exception 'Price payload does not cover the full current roster';
+  end if;
+
+  -- Pre-publication safety gate: no already saved preseason team may become invalid
+  -- because of the calibration. Nothing has been written at this point.
+  with proposed as (
+    select (x.value->>'player_id')::uuid player_id,
+           (x.value->>'price')::numeric price
+    from jsonb_array_elements(p_rows) x
+  ), team_costs as (
+    select t.id, coalesce(sum(pr.price),0)::numeric total_cost
+    from fantasy_user_teams t
+    join fantasy_user_team_players tp on tp.team_id=t.id
+    join proposed pr on pr.player_id=tp.player_id
+    where t.season=p_season
+    group by t.id
+  )
+  select count(*) into v_overbudget
+  from team_costs where total_cost > v_budget;
+
+  if v_overbudget > 0 then
+    raise exception 'Calibration blocked: % saved fantasy team(s) would exceed budget %m', v_overbudget, v_budget;
   end if;
 
   insert into fantasy_price_publications(season, model_version, published_by, player_count, note)
