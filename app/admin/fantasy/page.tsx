@@ -47,14 +47,11 @@ export default function FantasyAdminPage(){
       ]
     },
     {
-      eyebrow:"MP-02 · PRESEASON",title:"Spillere, roster og treningskamper",description:"Spilleridentitet, priser, runder og preseason-datapipeline.",
+      eyebrow:"MP-02 · MP-05",title:"Spillere, roster og runder",description:"Spilleridentitet, priser, roster og fantasy-runder.",
       tools:[
         {href:"/admin/fantasy/roster-audit",icon:"🧾",title:"EliteProspects roster-audit",text:"Read-only kontroll av aktiv 2026/27-spillerpool mot EliteProspects-fasiten.",badge:"MP-02"},
         {href:"/admin/fantasy/player-queue",icon:"🆕",title:"Nye EHL-spillere",text:"Prisforslag V4.6, manuell kontroll og godkjenning av fast sesongpris.",badge:pending==null?"Kø":`${pending} venter`},
         {href:"/admin/fantasy/rounds",icon:"📅",title:"Fantasy-runder",text:"Administrasjon og kontroll av kalenderbaserte fantasy-runder og deadlines.",badge:"45 runder"},
-        {href:"/fantasy/admin-analysis/preseason",icon:"🏒",title:"Preseason",text:"Treningskamper, HockeyLive-import, registrerte kampdata og preseason-signaler.",badge:"2026/27"},
-        {href:"/fantasy/admin-analysis/preseason/source",icon:"📰",title:"Preseason · ekstern kilde",text:"Registrering og kontroll av treningskampdata fra eksterne kilder.",badge:"Kilder"},
-        {href:"/fantasy/admin-analysis/preseason/debug",icon:"🧪",title:"Preseason · debug",text:"Teknisk diagnose av preseason-import og datamatching.",badge:"Debug"},
       ]
     },
     {
@@ -112,7 +109,7 @@ export default function FantasyAdminPage(){
   return <main className="appShell">
     <header className="topbar"><div className="brand"><div className="brandMark">🏒</div><div><p className="eyebrow">ADMIN · FANTASYHOCKEY</p><h1>Fantasy-admin</h1></div></div><a href="/admin" className="textButton">← Adminoversikt</a></header>
     <section className="pageStack" style={{marginTop:24}}>
-      <article className="heroCard"><div><p className="eyebrow">EHL Fantasy 2026/27</p><h2>Alle adminfunksjoner samlet</h2><p className="muted">Snarveier til analyse, optimizer, availability, roster, preseason, runder, scoring og diagnostikk. Vanlige spillersider er urørt.</p></div><span className="statusPill">✓ {message}</span></article>
+      <article className="heroCard"><div><p className="eyebrow">EHL Fantasy 2026/27</p><h2>Alle adminfunksjoner samlet</h2><p className="muted">Snarveier til analyse, optimizer, availability, roster, runder, scoring og diagnostikk. Vanlige spillersider er urørt.</p></div><span className="statusPill">✓ {message}</span></article>
 
       {groups.map(group=><section key={group.title} className="pageStack" style={{gap:12}}>
         <div><p className="eyebrow">{group.eyebrow}</p><h2 style={{margin:"4px 0 6px"}}>{group.title}</h2><p className="muted" style={{margin:0}}>{group.description}</p></div>
