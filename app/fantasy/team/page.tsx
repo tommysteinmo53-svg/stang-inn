@@ -3,11 +3,15 @@
 import {useEffect,useMemo,useState} from "react";
 import {getSupabaseBrowserClient} from "../../../lib/supabase";
 import "../fantasy.css";
+import "./fixtures.css";
 
 type Pos="C"|"W"|"D"|"G";
 type Player={id:string;name:string;team:string;position:Pos;price:number};
 type Rules={max_players_per_club:number;captain_multiplier:number;vice_captain_enabled:boolean};
 type TransferStatus={effective_round_no:number;deadline_at:string;max_transfers_per_round:number;transfers_used:number;transfers_remaining:number;team_cost:number};
+type Round={id:string;round_no:number;deadline_at:string};
+type Game={game_id:string;fantasy_round_id:string;fantasy_round_no:number;starts_at:string|null;home_team:string;away_team:string};
+type Fixture={opponent:string;venue:"H"|"B";starts_at:string|null};
 const SEASON="2026/27",BUDGET=100;
 const group=(p:Player)=>p.position==="D"?"D":p.position==="G"?"G":"F";
 const lineupOrder=(a:Player,b:Player)=>({G:0,D:1,F:2}[group(a)]-({G:0,D:1,F:2}[group(b)]));
@@ -33,20 +37,24 @@ export default function FantasyTeamPage(){
  const[rules,setRules]=useState<Rules>({max_players_per_club:3,captain_multiplier:2,vice_captain_enabled:true});
  const[captain,setCaptain]=useState<string|null>(null),[viceCaptain,setViceCaptain]=useState<string|null>(null),[teamId,setTeamId]=useState<string|null>(null);
  const[seasonStarted,setSeasonStarted]=useState(false),[transferStatus,setTransferStatus]=useState<TransferStatus|null>(null);
+ const[rounds,setRounds]=useState<Round[]>([]),[roundGames,setRoundGames]=useState<Game[]>([]);
 
  useEffect(()=>{(async()=>{try{
   const s=getSupabaseBrowserClient();if(!s)throw new Error("Supabase er ikke tilgjengelig");const{data:session}=await s.auth.getSession();if(!session.session)throw new Error("Du må være logget inn");
-  const[{data:p,error},{data:prices,error:pe},{data:r},{data:firstRound}]=await Promise.all([
+  const[{data:p,error},{data:prices,error:pe},{data:r},{data:roundRows,error:re},{data:schedule,error:se}]=await Promise.all([
    s.from("fantasy_players").select("id,name,team,position").in("position",["C","W","D","G"]).order("name"),
    s.from("fantasy_player_season_prices").select("player_id,price").eq("season",SEASON),
    s.from("fantasy_season_rules").select("max_players_per_club,captain_multiplier,vice_captain_enabled").eq("season",SEASON).maybeSingle(),
-   s.from("fantasy_rounds").select("deadline_at").eq("season",SEASON).lt("round_no",9000).order("deadline_at",{ascending:true}).limit(1).maybeSingle()
+   s.from("fantasy_rounds").select("id,round_no,deadline_at").eq("season",SEASON).lt("round_no",9000).order("deadline_at",{ascending:true}),
+   s.rpc("get_fantasy_round_schedule_v1",{p_season:SEASON})
   ]);
-  if(error)throw error;if(pe)throw pe;
+  if(error)throw error;if(pe)throw pe;if(re)throw re;if(se)throw se;
   const priceMap=new Map((prices||[]).map((x:any)=>[x.player_id,Number(x.price)]));
   const pool=(p||[]).filter((x:any)=>priceMap.has(x.id)).map((x:any)=>({...x,price:priceMap.get(x.id)!})) as Player[];
-  setPlayers(pool);if(r)setRules({max_players_per_club:Number(r.max_players_per_club),captain_multiplier:Number(r.captain_multiplier),vice_captain_enabled:Boolean(r.vice_captain_enabled)});
-  setSeasonStarted(Boolean(firstRound?.deadline_at&&Date.now()>=new Date(firstRound.deadline_at).getTime()));
+  const loadedRounds=((roundRows||[]) as any[]).map(x=>({id:String(x.id),round_no:Number(x.round_no),deadline_at:String(x.deadline_at)})) as Round[];
+  setPlayers(pool);setRounds(loadedRounds);setRoundGames(((schedule||[]) as any[]).map(x=>({...x,fantasy_round_no:Number(x.fantasy_round_no)})) as Game[]);
+  if(r)setRules({max_players_per_club:Number(r.max_players_per_club),captain_multiplier:Number(r.captain_multiplier),vice_captain_enabled:Boolean(r.vice_captain_enabled)});
+  const firstRound=loadedRounds[0];setSeasonStarted(Boolean(firstRound?.deadline_at&&Date.now()>=new Date(firstRound.deadline_at).getTime()));
   const{data:t}=await s.from("fantasy_user_teams").select("id,name").eq("season",SEASON).maybeSingle();
   if(t){setTeamId(t.id);setTeamName(t.name||"Mitt lag");const{data:tp}=await s.from("fantasy_user_team_players").select("player_id,is_captain,is_vice_captain,line_no").eq("team_id",t.id);
    const roster=(tp||[]).map((x:any)=>x.player_id);setSelected(roster);setInitialRoster(roster);setCaptain((tp||[]).find((x:any)=>x.is_captain)?.player_id||null);setViceCaptain((tp||[]).find((x:any)=>x.is_vice_captain)?.player_id||null);
@@ -66,6 +74,9 @@ export default function FantasyTeamPage(){
  const pendingTransfers=seasonStarted&&teamId?selected.filter(id=>!initialRoster.includes(id)).length:0;
  const transferLimit=transferStatus?.max_transfers_per_round??2,used=transferStatus?.transfers_used??0;
  const visible=players.filter(p=>(filter==="ALL"||(filter==="F"?group(p)==="F":p.position===filter))&&(clubFilter==="ALL"||p.team===clubFilter)&&(!q||`${p.name} ${p.team}`.toLowerCase().includes(q.toLowerCase())));
+ const targetRoundNo=transferStatus?.effective_round_no??rounds.find(r=>new Date(r.deadline_at).getTime()>Date.now())?.round_no??rounds.at(-1)?.round_no??null;
+ const fixturesByTeam=useMemo(()=>{const m=new Map<string,Fixture[]>();if(targetRoundNo==null)return m;const games=roundGames.filter(g=>g.fantasy_round_no===targetRoundNo).sort((a,b)=>(a.starts_at||"").localeCompare(b.starts_at||""));for(const g of games){m.set(g.home_team,[...(m.get(g.home_team)||[]),{opponent:g.away_team,venue:"H",starts_at:g.starts_at}]);m.set(g.away_team,[...(m.get(g.away_team)||[]),{opponent:g.home_team,venue:"B",starts_at:g.starts_at}])}return m},[roundGames,targetRoundNo]);
+ const fixtureLabel=(team:string)=>{if(targetRoundNo==null)return "Gameweek: ikke tilgjengelig";const fixtures=fixturesByTeam.get(team)||[];return fixtures.length?`Runde ${targetRoundNo} · ${fixtures.map(f=>`${f.venue}: ${f.opponent}`).join(" · ")}`:`Runde ${targetRoundNo} · Ingen kamp`};
 
  function toggle(p:Player){
   if(selected.includes(p.id)){const next=selected.filter(x=>x!==p.id);setSelected(next);setLine1(buildLine1(next,players,line1));if(captain===p.id)setCaptain(null);if(viceCaptain===p.id)setViceCaptain(null);return}
@@ -90,9 +101,9 @@ export default function FantasyTeamPage(){
  }catch(e:any){setMsg(`Lagring stoppet: ${e.message||e}`)}finally{setBusy(false)}}
 
  const linePlayers=(n:1|2)=>chosen.filter(p=>n===1?line1.includes(p.id):!line1.includes(p.id)).sort(lineupOrder);
- const renderPlayer=(p:Player,n:1|2)=>{const alternatives=linePlayers(n===1?2:1).filter(x=>group(x)===group(p));return <div key={p.id} className="team-player-row">
+ const renderPlayer=(p:Player,n:1|2)=>{const alternatives=linePlayers(n===1?2:1).filter(x=>group(x)===group(p));const noGame=targetRoundNo!=null&&(fixturesByTeam.get(p.team)||[]).length===0;return <div key={p.id} className="team-player-row">
   <span className={`team-pos team-pos-${group(p).toLowerCase()}`}>{group(p)}</span>
-  <div className="team-player-main"><strong onClick={()=>window.location.assign(`/fantasy/players/${p.id}`)} title="Åpne spillerprofil" style={{cursor:"pointer",textDecoration:"underline",textUnderlineOffset:3}}>{p.name}</strong><small>{p.team} · {p.position}</small></div>
+  <div className="team-player-main"><strong onClick={()=>window.location.assign(`/fantasy/players/${p.id}`)} title="Åpne spillerprofil" style={{cursor:"pointer",textDecoration:"underline",textUnderlineOffset:3}}>{p.name}</strong><small>{p.team} · {p.position}</small><small className={`team-player-fixtures ${noGame?"no-game":""}`}>{fixtureLabel(p.team)}</small></div>
   <span className="team-price">{p.price.toFixed(1)}m</span>
   <div className="team-badges"><button className={captain===p.id?"active":""} onClick={()=>setC(p.id)} title="Kaptein">C</button><button className={viceCaptain===p.id?"active":""} onClick={()=>setVC(p.id)} title="Visekaptein">VC</button></div>
   <select className="team-line-select" value="" onChange={e=>swapLine(p.id,e.target.value)}><option value="">Bytt rekke</option>{alternatives.map(x=><option key={x.id} value={x.id}>med {x.name}</option>)}</select>
@@ -113,6 +124,7 @@ export default function FantasyTeamPage(){
    <div className="team-panel team-lineup-panel">
     <div className="team-panel-top"><div><p className="eyebrow">OPPSTILLING</p><h2>{teamName}</h2></div><input className="team-name-input" value={teamName} onChange={e=>setTeamName(e.target.value)}/></div>
     {seasonStarted&&transferStatus&&<div className="team-round-strip"><strong>Runde {transferStatus.effective_round_no}</strong><span>{transferStatus.transfers_remaining} av {transferStatus.max_transfers_per_round} bytter igjen</span><span>Frist {new Date(transferStatus.deadline_at).toLocaleString("nb-NO")}</span></div>}
+    {!seasonStarted&&targetRoundNo!=null&&<div className="team-round-strip"><strong>Bygger for runde {targetRoundNo}</strong><span>Motstanderne under hver spiller følger denne fantasy-runden</span></div>}
     {([1,2] as const).map(n=><div key={n} className="team-line-card"><div className="team-line-head"><h3>{n}. rekke</h3><span>1G · 2D · 3F</span></div>{linePlayers(n).map(p=>renderPlayer(p,n))}</div>)}
     {clubOverflow&&<p className="team-error">For mange spillere fra {clubOverflow[0]}: {clubOverflow[1]}/{rules.max_players_per_club}</p>}
     {!lineupValid&&selected.length===12&&<p className="team-error">Hver rekke må være 1G · 2D · 3F.</p>}
