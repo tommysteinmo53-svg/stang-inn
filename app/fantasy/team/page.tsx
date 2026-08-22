@@ -2,6 +2,7 @@
 
 import {useEffect,useMemo,useState} from "react";
 import {getSupabaseBrowserClient} from "../../../lib/supabase";
+import {canonicalFantasyTeam} from "../../../lib/fantasy/team-normalization";
 import "../fantasy.css";
 import "./fixtures.css";
 
@@ -75,8 +76,8 @@ export default function FantasyTeamPage(){
  const transferLimit=transferStatus?.max_transfers_per_round??2,used=transferStatus?.transfers_used??0;
  const visible=players.filter(p=>(filter==="ALL"||(filter==="F"?group(p)==="F":p.position===filter))&&(clubFilter==="ALL"||p.team===clubFilter)&&(!q||`${p.name} ${p.team}`.toLowerCase().includes(q.toLowerCase())));
  const targetRoundNo=transferStatus?.effective_round_no??rounds.find(r=>new Date(r.deadline_at).getTime()>Date.now())?.round_no??rounds.at(-1)?.round_no??null;
- const fixturesByTeam=useMemo(()=>{const m=new Map<string,Fixture[]>();if(targetRoundNo==null)return m;const games=roundGames.filter(g=>g.fantasy_round_no===targetRoundNo).sort((a,b)=>(a.starts_at||"").localeCompare(b.starts_at||""));for(const g of games){m.set(g.home_team,[...(m.get(g.home_team)||[]),{opponent:g.away_team,venue:"H",starts_at:g.starts_at}]);m.set(g.away_team,[...(m.get(g.away_team)||[]),{opponent:g.home_team,venue:"B",starts_at:g.starts_at}])}return m},[roundGames,targetRoundNo]);
- const fixtureLabel=(team:string)=>{if(targetRoundNo==null)return "Gameweek: ikke tilgjengelig";const fixtures=fixturesByTeam.get(team)||[];return fixtures.length?`Runde ${targetRoundNo} · ${fixtures.map(f=>`${f.venue}: ${f.opponent}`).join(" · ")}`:`Runde ${targetRoundNo} · Ingen kamp`};
+ const fixturesByTeam=useMemo(()=>{const m=new Map<string,Fixture[]>();if(targetRoundNo==null)return m;const games=roundGames.filter(g=>g.fantasy_round_no===targetRoundNo).sort((a,b)=>(a.starts_at||"").localeCompare(b.starts_at||""));for(const g of games){const home=canonicalFantasyTeam(g.home_team),away=canonicalFantasyTeam(g.away_team);m.set(home,[...(m.get(home)||[]),{opponent:away,venue:"H",starts_at:g.starts_at}]);m.set(away,[...(m.get(away)||[]),{opponent:home,venue:"B",starts_at:g.starts_at}])}return m},[roundGames,targetRoundNo]);
+ const fixtureLabel=(team:string)=>{if(targetRoundNo==null)return "Gameweek: ikke tilgjengelig";const fixtures=fixturesByTeam.get(canonicalFantasyTeam(team))||[];return fixtures.length?`Runde ${targetRoundNo} · ${fixtures.map(f=>`${f.venue}: ${f.opponent}`).join(" · ")}`:`Runde ${targetRoundNo} · Ingen kamp`};
 
  function toggle(p:Player){
   if(selected.includes(p.id)){const next=selected.filter(x=>x!==p.id);setSelected(next);setLine1(buildLine1(next,players,line1));if(captain===p.id)setCaptain(null);if(viceCaptain===p.id)setViceCaptain(null);return}
@@ -101,7 +102,7 @@ export default function FantasyTeamPage(){
  }catch(e:any){setMsg(`Lagring stoppet: ${e.message||e}`)}finally{setBusy(false)}}
 
  const linePlayers=(n:1|2)=>chosen.filter(p=>n===1?line1.includes(p.id):!line1.includes(p.id)).sort(lineupOrder);
- const renderPlayer=(p:Player,n:1|2)=>{const alternatives=linePlayers(n===1?2:1).filter(x=>group(x)===group(p));const noGame=targetRoundNo!=null&&(fixturesByTeam.get(p.team)||[]).length===0;return <div key={p.id} className="team-player-row">
+ const renderPlayer=(p:Player,n:1|2)=>{const alternatives=linePlayers(n===1?2:1).filter(x=>group(x)===group(p));const noGame=targetRoundNo!=null&&(fixturesByTeam.get(canonicalFantasyTeam(p.team))||[]).length===0;return <div key={p.id} className="team-player-row">
   <span className={`team-pos team-pos-${group(p).toLowerCase()}`}>{group(p)}</span>
   <div className="team-player-main"><strong onClick={()=>window.location.assign(`/fantasy/players/${p.id}`)} title="Åpne spillerprofil" style={{cursor:"pointer",textDecoration:"underline",textUnderlineOffset:3}}>{p.name}</strong><small>{p.team} · {p.position}</small><small className={`team-player-fixtures ${noGame?"no-game":""}`}>{fixtureLabel(p.team)}</small></div>
   <span className="team-price">{p.price.toFixed(1)}m</span>
