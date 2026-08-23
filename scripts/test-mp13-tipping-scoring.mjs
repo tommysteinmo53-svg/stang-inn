@@ -77,6 +77,19 @@ check("Månedsvinner bruker samme poeng- og tie-break-rekkefølge som rundevinne
   assert.match(monthlyBlock, /b\.correct - a\.correct/);
   assert.match(monthlyBlock, /localeCompare\(b\.p\.display_name, "no"\)/);
 });
+check("Eksperttittel krever 75 prosent deltakelse og rangerer på treffprosent", () => {
+  const expertBlock = awardsSource.slice(awardsSource.indexOf("const expertMinTips"), awardsSource.indexOf("let streak"));
+  assert.match(expertBlock, /Math\.ceil\(finished\.length \* 0\.75\)/);
+  assert.match(expertBlock, /row\.tipped >= expertMinTips/);
+  assert.match(expertBlock, /\(row\.exact \+ row\.correct\) \/ row\.tipped/);
+  assert.match(expertBlock, /b\.hitRate - a\.hitRate/);
+  assert.match(expertBlock, /b\.exact - a\.exact/);
+  assert.match(expertBlock, /b\.points - a\.points/);
+  assert.match(expertBlock, /b\.correct - a\.correct/);
+  assert.match(expertBlock, /localeCompare\(b\.p\.display_name, "no"\)/);
+  assert.match(awardsSource, /title: "Eksperttittel"/);
+  assert.match(awardsSource, /minst 75 % deltakelse/);
+});
 check("Ukens bom bruker siste fullførte EHL-runde og deterministisk avvik", () => {
   assert.match(awardsSource, /const completedRounds/);
   assert.match(awardsSource, /const latestRound = completedRounds\.at\(-1\)/);
