@@ -45,7 +45,11 @@ Sist kontrollert mot GitHub `main`: 2026-08-23
 - Personlige stats-RPC-er er authenticated-only og `anon` har ikke EXECUTE.
 - **MP-07.4 rundevisning er produksjonspolert.** Neste runde åpnes automatisk; kampvindu/deadline, kamper og lag med 0 eller flere kamper vises eksplisitt. Vercel-verifisert grønn.
 - **MP-07.5 tie-break-regelverket er låst og migrert:** totalpoeng → flest rundeseire → høyeste enkelt-rundescore → delt plass ved fortsatt likhet. Teamnavn er kun stabil visningsrekkefølge. Samme sportslige kriterier brukes i movement/previous-rank. Regelen er publisert på Regler-siden.
-- Fantasy-navigasjonen er ryddet: Mitt lag/Eventlag/Bytter er samlet som én seksjon, Poeng/Rundehistorikk/Min statistikk er samlet som én seksjon, og Achievements vises over Leaderboard i stedet for som eget hovedmenypunkt.
+- **MP-11.1–MP-11.5 samlet Fantasy UX-/mobilpass er ferdigstilt.** Fantasy-navigasjonen bruker riktig informasjonsarkitektur og mobilgrid; Fantasy markeres ikke lenger feil som Profil i global mobilnav. Mitt lag/Eventlag/Bytter har konsistent panelstil og større touch targets. Spillermarkedet, runder, Stats, Regler, Bonus Weeks og sentrale states er mobilpolert uten å endre forretningslogikk.
+- **Spillere er nå en beslutningsflate.** `/fantasy/players` viser faktiske FP, FP/kamp, Form 5, eierandel, pris og kommende gameweek/motstander(e), med relevante sorteringer. Desktop bruker tabell-lignende rader; mobil viser kompakte kort uten nødvendig horisontal scrolling. Spillerprofilen er responsivt harmonisert med samme UI.
+- Ny read-only RPC `get_fantasy_player_market_summary_v1` leverer bulk-FP til spillerlisten med samme latest-per-game-semantikk som eksisterende spillerprofil. Den er `authenticated`-only og `anon=false`; ingen scoringdata eller regler endres av RPC-en.
+- Statistikksidens tidligere 820px brede runde-for-runde-tabell blir kort på mobil. Reglenes scoringtabeller blir tilsvarende mobilkort, mens desktop-tabellene beholdes.
+- Bonus Weeks har eksplisitt loading/error/retry. Rundehistorikk forklarer at historikken blir tilgjengelig når første lag låses ved deadline. Spillere/spillerprofil har tydelige loading/error/empty states.
 - Spillernavn i lagbygger/spillermarked og Eventlag åpner spillerprofil.
 - MP-08 analyse-/xFP-kjernen er produksjonsverifisert; preseason-/treningskampstatistikk brukes ikke som Fantasy-signal.
 - MP-09 availability-kjernen er produksjonsverifisert med konservativ matching/adminreview og kun godkjent availability inn i analyse/optimizer.
@@ -53,9 +57,9 @@ Sist kontrollert mot GitHub `main`: 2026-08-23
 
 ## Aktivt område / neste kobling
 
-**MP-07.4–MP-07.9 er nå ferdigstilt og produksjonsverifisert på `main`.** Konkurransepresentasjon, tie-break, snapshot-first rundehistorikk, personlig statistikk og sikre sesonginnsikter er på plass. Siste runde-/tie-break-frontendcommit er Vercel `SUCCESS`.
+**MP-11.3–MP-11.5 er ferdigstilt og Vercel-verifisert på `main` 2026-08-23.** UX-passet endret presentasjon, responsive layouts og read-only spilleroppsummering, men ikke scoring, fantasy-runder, deadlines, snapshots, transferregler, Bonus/Event Week-regler, budsjett, C/VC-multiplikatorer eller leaderboard/tie-break.
 
-**Neste operative hovedpunkt er Chat 11 – MP-11.3–MP-11.5.** Nå som funksjonaliteten og informasjonsarkitekturen er stabil, skal hele Fantasy-brukerreisen gjennomgås samlet på mobil og desktop: lagbygger, spillerkort, runder, leaderboard, Poeng/Stats, Eventlag/Bytter, navigasjon, readability og loading/error/empty states.
+**Neste operative hovedpunkt er Chat 12 – MP-12.3 + MP-12.7.** Nå skal bred regresjon/pre-launch kvalitet verifisere scoring, transfers, deadlines, RLS, admin og sentrale brukerflyter før produksjons-/launch-gaten.
 
 MP-02 preseason-rosterkontroll er produksjonsverifisert mot EliteProspects: 239/239 spillere, 0 mangler, 0 tvetydige, 0 lagavvik, 0 ekstra og 0 posisjonsavvik. Robust identitetsgate og løpende MP-02.6-drift beholdes.
 
@@ -74,7 +78,8 @@ MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirke
 - MP-07.7 produksjonskontroll bekreftet snapshot-first source, ingen `fantasy_user_team_players`, authenticated EXECUTE og ingen anon EXECUTE. Ingen falske 2026/27 snapshot-/lag-/poengdata ble opprettet.
 - MP-07.9 spiller-/benchmark-RPC-er er eksplisitt hardened til `authenticated=true`, `anon=false`.
 - MP-04.7 produksjonsdata viser 45 autoritative fantasy-runder; det finnes både runder med lag uten kamp og runder med dobbeltkamper.
-- MP-07.4/07.5 siste frontend/deploy er Vercel `SUCCESS`; tie-break-funksjonen er migrert til produksjon.
+- MP-11 spilleroppsummerings-RPC er verifisert med `authenticated_execute=true` og `anon_execute=false`. UX-passet skrev ikke testdata til ekte 2026/27-lag/runder.
+- Samlet MP-11 frontend-head gjennom Regler er Vercel `SUCCESS`; siste empty-state-commit ble også Vercel-verifisert før dokumentasjonshandoff.
 - Produksjonsregelen står fast: isolerte tester skal ikke endre ekte 2026/27-data og skal rydde opp egne testdata.
 
 ## Kjente dokumentasjonsforhold
