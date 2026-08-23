@@ -56,7 +56,7 @@ const players=[
 const rows:RoundDetail[]=players.map(([player_id,player_name,player_position,player_team,player_price,line_no,is_captain,is_vice_captain,played,games_played,raw_points,line_multiplier,multiplier,bonus_points,player_total_points])=>({
  ...base,
  player_id,player_name,player_position,player_team,player_price,line_no,is_captain,is_vice_captain,played,games_played,raw_points,line_multiplier,
- role_multiplier:line_multiplier===0?1:Number(multiplier)/Number(line_multiplier),
+ role_multiplier:Number(multiplier)/Number(line_multiplier),
  multiplier,bonus_points,player_total_points
 }));
 
