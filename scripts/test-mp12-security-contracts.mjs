@@ -7,6 +7,7 @@ const e2eHardening = read("supabase/mp12-lock-e2e-rpcs-v1.sql");
 const adminMutatorHardening = read("supabase/mp12-service-only-admin-mutators-v1.sql");
 const noAnonFantasy = read("supabase/mp12-no-anon-fantasy-security-definer-v1.sql");
 const dataIntegrityHardening = read("supabase/mp12-data-integrity-view-hardening-v1.sql");
+const lineMultiplierHardening = read("supabase/mp12-fantasy-line-multiplier-search-path-v1.sql");
 
 const signatures = [
   "public.select_fantasy_booster_v1(text,text,uuid)",
@@ -69,6 +70,7 @@ check("No-anon invariant revokes PUBLIC and anon without touching authenticated/
 check("Data-integrity diagnostics run as SECURITY INVOKER", dataIntegrityHardening.includes("alter view public.data_integrity_report set (security_invoker=true);"));
 check("Data-integrity diagnostics are unavailable to direct client roles", dataIntegrityHardening.includes("revoke all on public.data_integrity_report from public, anon, authenticated;"));
 check("Data-integrity diagnostics remain readable by service role", dataIntegrityHardening.includes("grant select on public.data_integrity_report to service_role;"));
+check("Fantasy line multiplier has a pinned empty search_path", lineMultiplierHardening.includes("alter function public.fantasy_line_multiplier(smallint) set search_path = '';"));
 
 let failed = 0;
 for (const [name, pass] of checks) {
