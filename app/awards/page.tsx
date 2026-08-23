@@ -81,6 +81,14 @@ export default function AwardsPage() {
     const byPlayer = players.map((player) => summarize(player, scored.filter((tip) => tip.player_id === player.id)));
     const sniper = scored.length ? [...byPlayer].sort((a, b) => b.exact - a.exact || b.points - a.points || b.correct - a.correct || a.p.display_name.localeCompare(b.p.display_name, "no"))[0] : null;
 
+    const expertMinTips = finished.length ? Math.max(1, Math.ceil(finished.length * 0.75)) : 0;
+    const expert = expertMinTips
+      ? byPlayer
+          .filter((row) => row.tipped >= expertMinTips)
+          .map((row) => ({ ...row, hitRate: (row.exact + row.correct) / row.tipped }))
+          .sort((a, b) => b.hitRate - a.hitRate || b.exact - a.exact || b.points - a.points || b.correct - a.correct || a.p.display_name.localeCompare(b.p.display_name, "no"))[0] || null
+      : null;
+
     let streak: { p: Player; n: number } | null = null;
     if (scored.length) {
       for (const player of players) {
@@ -133,6 +141,7 @@ export default function AwardsPage() {
     const awards: Award[] = [
       { icon: "🏆", title: "Rundevinner", player: roundWinner?.p || null, value: roundWinner ? `${roundWinner.points} poeng` : "–", detail: latestRound !== undefined ? `Runde ${latestRound}` : "Ingen ferdigspilte runder" },
       { icon: "📅", title: "Månedsvinner", player: monthlyWinner?.p || null, value: monthlyWinner ? `${monthlyWinner.points} poeng` : "–", detail: latestClosedMonth ? monthLabel(latestClosedMonth) : "Kåres etter første avsluttede kalendermåned med scorede tips" },
+      { icon: "🧠", title: "Eksperttittel", player: expert?.p || null, value: expert ? `${Math.round(expert.hitRate * 100)} % treff` : "–", detail: expertMinTips ? `Høyest treffprosent blant spillere med minst ${expertMinTips} av ${finished.length} ferdigspilte kamper tippet` : "Kåres når første kamp er ferdigspilt" },
       { icon: "🎯", title: "Sniper", player: sniper?.p || null, value: sniper ? `${sniper.exact} eksakte` : "–", detail: "Flest eksakte tips denne sesongen" },
       { icon: "🔥", title: "Beste streak", player: streak?.p || null, value: streak ? `${streak.n} på rad` : "–", detail: "Lengste rekke med poenggivende tips" },
       { icon: "🤦", title: "Ukens bom", player: weeklyMiss?.p || null, value: weeklyMiss ? `${weeklyMiss.tip.home_tip}–${weeklyMiss.tip.away_tip}` : "–", detail: weeklyMiss ? `Runde ${latestRound}: ${weeklyMiss.match.home_team}–${weeklyMiss.match.away_team} endte ${weeklyMiss.match.home_score}–${weeklyMiss.match.away_score}` : "Kåres etter siste ferdigspilte runde" },
@@ -148,7 +157,7 @@ export default function AwardsPage() {
     <section className="pageStack" style={{ marginTop: 22 }}>
       <article className="heroCard"><div><p className="eyebrow">Prestasjoner</p><h2>Hvem utmerker seg?</h2><p className="muted">Kåringer bruker poengene fra den autoritative tippingmotoren.</p></div><div className="countdown"><strong>🏅</strong><span>Stang Inn</span></div></article>
       <section className="awardsGrid">{data.map((award) => <article className="awardCard" key={award.title}><div className="awardIcon">{award.icon}</div><p className="eyebrow">{award.title}</p><h2>{award.player?.display_name || "Ikke kåret"}</h2><strong>{award.value}</strong><p className="muted">{award.detail}</p>{award.player && <a href={`/player/${award.player.id}`}>Se spillerprofil →</a>}</article>)}</section>
-      <article className="panel"><div className="panelHeading"><div><p className="eyebrow">Sesongen</p><h3>Kåringer aktiveres av faktiske resultater</h3></div></div><p className="muted">Poengbaserte kåringer bruker bare tips som er scoret av produksjonsmotoren. Månedsvinner kåres først når kalendermåneden er avsluttet, og Ukens bom bruker siste fullførte EHL-runde.</p></article>
+      <article className="panel"><div className="panelHeading"><div><p className="eyebrow">Sesongen</p><h3>Kåringer aktiveres av faktiske resultater</h3></div></div><p className="muted">Poengbaserte kåringer bruker bare tips som er scoret av produksjonsmotoren. Månedsvinner kåres først når kalendermåneden er avsluttet, Eksperttittel krever minst 75 % deltakelse, og Ukens bom bruker siste fullførte EHL-runde.</p></article>
     </section>
   </main>;
 }
