@@ -46,8 +46,8 @@ must("user xFP RPC is read-only definition",!/(insert\s+into|update\s+\w+\s+set|
 must("user economy RPC requires authentication",economySql.includes("if auth.uid() is null then raise exception 'Not authenticated'"));
 must("user economy RPC does not grant anon",economySql.includes('revoke all on function public.get_fantasy_economy_v1(text) from anon'));
 must("helper allows Bytteboost four-transfer maximum",helper.includes('Math.min(4'));
-must("final rules document says normal max two",/2 permanente bytter/i.test(transferRules));
-must("final rules document says Bytteboost four",/Bytteboost[\s\S]{0,200}4/i.test(transferRules));
-must("final rules document blocks permanent Event Week transfers",/Rik Onkel[\s\S]{0,250}Fattig Onkel/i.test(transferRules)&&/sperr|blokker|ikke.*permanent/i.test(transferRules));
+must("final rules document says normal max two",transferRules.includes('maks 2 permanente spillerbytter per ordinær fantasy-runde'));
+must("final rules document says Bytteboost four",transferRules.includes('Bytteboost')&&transferRules.includes('4 bytter'));
+must("final rules document blocks permanent Event Week transfers",transferRules.includes('Permanente transfers er sperret')&&transferRules.includes('Rik Onkel')&&transferRules.includes('Fattig Onkel'));
 
 console.log(`MP-10 optimizer regression: ${checks.length}/${checks.length} checks passed.`);
