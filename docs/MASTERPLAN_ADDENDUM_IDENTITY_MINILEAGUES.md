@@ -38,6 +38,18 @@ Krav:
 - Rangering/tie-break skal fortsatt følge autoritativ poenglogikk; eiernavn og lagnavn er visningsdata, ikke sportslig tie-break med mindre dette senere besluttes eksplisitt.
 - Historiske snapshots/runder skal ikke omskrives feil ved navneendringer. Det skal defineres tydelig om historiske flater viser dagens profil-/lagnavn eller fryser navn per snapshot; dette må velges og testes eksplisitt før implementasjonen markeres ferdig.
 
+### MP-07.11 ⬜ Fastsett hvilke gameweeks som er Rik Onkel og Fattig Onkel
+
+Event Week-mekanikken er implementert, men de konkrete fantasy-rundene for sesongen må besluttes og publiseres før launch.
+
+- Velg én konkret gameweek for **Rik Onkel** (200m eventlag).
+- Velg én konkret gameweek for **Fattig Onkel** (70m eventlag).
+- Valget skal gjøres mot den autoritative 45-runders termin-/fantasyplanen og bør vurdere kampmengde, double/blank gameweeks, avstand mellom Event Weeks og sportslig variasjon.
+- Event Weeks bør ligge med god avstand fra hverandre og ikke plasseres tilfeldig bare for å fylle kalenderen.
+- Kontroller at valgte runder ikke gir uønskede konflikter med personlige boostere, transfers, deadlines eller andre spesialrunder.
+- Når rundene er besluttet skal de konfigureres i produksjonsdata, vises tydelig i Fantasy-kalender/regler og inngå i snapshot-, scoring-, transfer- og regresjonskontroller.
+- Endring av Event Week etter at brukere har begynt å planlegge/lagre eventlag skal behandles som en kontrollert regelendring og ikke gjøres uten eksplisitt beslutning.
+
 ### MP-13.6 ⬜ Felles miniligaer på tvers av Tipping og Fantasy
 
 Miniliga-medlemskap skal være produktuavhengig: er en bruker medlem av en miniliga i Stang Inn, er brukeren medlem av den samme ligaen både i Tipping og Fantasy.
@@ -54,13 +66,16 @@ Miniliga-medlemskap skal være produktuavhengig: er en bruker medlem av en minil
 
 Identitetskravene bør implementeres før felles miniligaer ferdigstilles. Da får både Tipping og Fantasy én stabil brukeridentitet å vise i ligaene, og Fantasy slipper generiske lag som `Mitt lag` i leaderboard/miniligaer.
 
+Event Week-rundene bør fastsettes før full pre-launch regresjon og før regelverket låses i MP-14. Mekanikken finnes allerede, så dette er primært en produkt-/kalenderbeslutning med påfølgende produksjonskonfigurasjon og verifikasjon.
+
 Anbefalt rekkefølge innen dette sporet:
 
 1. MP-01.7 – profilnavn/onboarding.
 2. MP-04.8 – obligatorisk Fantasy-lagnavn.
 3. MP-07.10 – vis lagnavn + eier i Fantasy-tabeller.
 4. MP-13.6 – felles miniligaer på tvers av produktene.
-5. MP-12 – regresjon av auth/RLS, lagring, leaderboard og liga-medlemskap.
+5. MP-07.11 – fastsett Rik Onkel/Fattig Onkel-gameweeks.
+6. MP-12 – regresjon av auth/RLS, lagring, leaderboard, Event Weeks og liga-medlemskap.
 
 ## Oppdatert prioritert arbeidskø
 
@@ -69,8 +84,9 @@ Anbefalt rekkefølge innen dette sporet:
 3. **Chat 04 – MP-04.8: obligatorisk lagnavn.** Ingen nye Fantasy-lag skal kunne lagres med `Mitt lag`/tomt standardnavn.
 4. **Chat 07 – MP-07.10: lagnavn + eiernavn i tabeller.** Oppdater Fantasy leaderboard/runder/miniligavisning med begge identiteter.
 5. **Chat 13 – MP-13.6: felles miniligaer.** Bygg ett medlemskap som brukes av både Tipping og Fantasy, med separate produkttabeller.
-6. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Ta med profilnavn, lagnavn, leaderboardvisning og felles miniliga-RLS i regresjonsmatrisen.
-7. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.**
-8. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske gates er PASS.
+6. **Chat 07 – MP-07.11: bestem Rik Onkel- og Fattig Onkel-gameweeks.** Analyser de 45 autoritative fantasy-rundene, velg og konfigurer de to Event Weeks og verifiser at de fungerer med deadlines, transfers, snapshots og øvrige boostere.
+7. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Ta med profilnavn, lagnavn, leaderboardvisning, Event Week-konfigurasjon og felles miniliga-RLS i regresjonsmatrisen.
+8. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.**
+9. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske gates er PASS.
 
 **Sesongavhengig:** MP-06.6 gjennomføres i Chat 06 når representative 2026/27-seriekamper finnes. MP-02.6 og MP-09 fortsetter løpende gjennom sesongen.
