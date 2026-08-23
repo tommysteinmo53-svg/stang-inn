@@ -8,7 +8,6 @@ const items=[
  {href:"/fantasy",label:"Oversikt",icon:"🏒"},
  {href:"/fantasy/team",label:"Mitt lag",icon:"👥"},
  {href:"/fantasy/transfers",label:"Bytter",icon:"🔁"},
- {href:"/fantasy/event-team",label:"Eventlag",icon:"🎯"},
  {href:"/fantasy/players",label:"Spillere",icon:"🧍"},
  {href:"/fantasy/my-rounds",label:"Poeng",icon:"📊"},
  {href:"/fantasy/leaderboard",label:"Leaderboard",icon:"🏆"},
@@ -26,6 +25,6 @@ export default function FantasyNav(){
  if(hiddenPrefixes.some(p=>pathname===p||pathname.startsWith(`${p}/`)))return null;
  if(!productionPrefixes.some(p=>pathname===p||pathname.startsWith(`${p}/`)))return null;
  return <><PlayerProfileClickBridge/><div className="fantasy-player-nav-wrap"><nav className="fantasy-player-nav" aria-label="Fantasy-meny">
-  {items.map(item=>{const active=item.href==="/fantasy"?pathname==="/fantasy":item.href==="/fantasy/my-rounds"?(pathname===item.href||pathname.startsWith(`${item.href}/`)||pathname==="/fantasy/stats"||pathname.startsWith("/fantasy/stats/")):(pathname===item.href||pathname.startsWith(`${item.href}/`));return <a key={item.href} href={item.href} className={active?"active":""} aria-current={active?"page":undefined}><span aria-hidden>{item.icon}</span><b>{item.label}</b></a>})}
+  {items.map(item=>{const active=item.href==="/fantasy"?pathname==="/fantasy":item.href==="/fantasy/team"?(pathname===item.href||pathname.startsWith(`${item.href}/`)||pathname==="/fantasy/event-team"||pathname.startsWith("/fantasy/event-team/")):item.href==="/fantasy/my-rounds"?(pathname===item.href||pathname.startsWith(`${item.href}/`)||pathname==="/fantasy/stats"||pathname.startsWith("/fantasy/stats/")):(pathname===item.href||pathname.startsWith(`${item.href}/`));return <a key={item.href} href={item.href} className={active?"active":""} aria-current={active?"page":undefined}><span aria-hidden>{item.icon}</span><b>{item.label}</b></a>})}
  </nav></div>{pathname==="/fantasy/team"&&<div className="team-launch-wrap"><TeamLaunchStatus/></div>}</>
 }
