@@ -16,7 +16,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-23
 - TypeScript 5.9.x
 - Supabase
 - Vercel
-- GitHub Actions build-CI + Bonus Weeks-kontrakt/regresjon
+- GitHub Actions build-CI + Bonus Weeks- og MP-04 transferkontrakt/regresjon
 
 ## EHL 2026/27
 
@@ -39,6 +39,9 @@ Sist kontrollert mot GitHub `main`: 2026-08-23
 - Kaptein og visekaptein.
 - Klubb-/lagvalideringer.
 - MP-04.7 gameweek-fixtures i «Mitt lag»: hver valgt spiller viser motstander(e) for den fantasy-runden laget bygges/redigeres for, med H/B-markering og eksplisitt «Ingen kamp». Visningen bruker den autoritative `get_fantasy_round_schedule_v1`-rundelogikken og felles `canonicalFantasyTeam()` for å koble HockeyLive-klubbnavn til kanoniske Fantasy-lag. Ingen ny database-/terminlistelogikk ble innført.
+- **MP-04.5/MP-04.6 transfer-/regelkjernen er ferdigstilt.** Fast modell: maks 2 permanente spillerbytter per ordinær fantasy-runde, ingen byttebank og ingen poengtrekk. Bytteboost øker grensen til 4 og låses når lagret transferbruk passerer 2. Endringer teller først når de lagres server-side; lagrede bytter refunderes ikke. Rekke, kaptein, visekaptein og lagnavn er gratis endringer. Event Weeks sperrer permanente transfers.
+- Transferledger bruker `fantasy_transfer_batches` + `fantasy_transfer_items` med runde, tidspunkt, antall, lagverdi før/etter og alle INN/UT-spillere med pris. Autentisert read-only RPC `get_my_fantasy_transfer_history_v1` er migrert til produksjon, og `/fantasy/transfers` viser regler og historikk responsivt. Eventlag er fysisk separate og inngår aldri i permanent transferhistorikk.
+- Endelig transfer-/låseregelverk er dokumentert i `docs/FANTASY_TRANSFER_RULES.md`. Snapshot ved deadline er historisk fasit, og senere transfers skal aldri rekonstruere eller endre tidligere runder.
 - Kalenderbaserte runder.
 - Deadline-sikre snapshots og freeze/readiness-kontroller.
 - Fantasy-poengmotor med special-teams-relatert scoring.
@@ -77,18 +80,20 @@ MP-03.6 er ferdig og produksjonsverifisert som V4.6.2. Prisuniverset er nå komp
 
 MP-04.7 er ferdig på `main`. «Mitt lag» gjenbruker `fantasy_rounds` + `get_fantasy_round_schedule_v1`, velger effektiv transfer-runde når den finnes og ellers neste deadline, normaliserer kampklubber med felles `canonicalFantasyTeam()`, og viser 0/1/flere kamper med H/B direkte under spillerens klubb/posisjon. Produksjonsdata bekrefter både runder med lag uten kamp og runder med dobbeltkamper.
 
-**MP-07.6 er ferdig og produksjonsverifisert 2026-08-23.** Regelspesifikasjon, datamodell, sikre booster-/event-RPC-er, eventlag, snapshots, scoring, Bytteboost, UI, leaderboard-historikk og filbasert regresjonsdekning er på `main`. Under implementeringen ble en faktisk produksjonsskjema-mismatch i spiller-rundepoeng oppdaget og reparert; aktiv scoringfunksjon er verifisert schema-aligned (`PASS`).
+**MP-04.5 + MP-04.6 er ferdig på `main` og produksjonssmoket 2026-08-23.** Transfermodellen er låst til 2 per ordinær runde uten bank/hits, 4 med Bytteboost, med server-side deadline/snapshot/event-gater. Transferhistorikk-RPC er migrert i Supabase og read-only produksjonskontroll bekrefter at RPC, Event Week-blokk og Bytteboost commit-gate finnes. `/fantasy/transfers` er lagt inn i hovednavigasjonen. Vercel-deploy for implementasjonen er grønn.
 
-**Neste operative hovedpunkt er Chat 04 – MP-04.5 + MP-04.6:** full transfersyklus og endelige låseregler. Bonus Weeks-reglene er nå låst, slik at transferbank/frie bytter/historikk og endelig regelverk kan ferdigstilles uten uavklarte boosteravhengigheter.
+**MP-07.6 er ferdig og produksjonsverifisert 2026-08-23.** Regelspesifikasjon, datamodell, sikre booster-/event-RPC-er, eventlag, snapshots, scoring, Bytteboost, UI, leaderboard-historikk og filbasert regresjonsdekning er på `main`. Under implementeringen ble en faktisk produksjonsskjema-mismatch i spiller-rundepoeng oppdaget og reparert; aktiv scoringfunksjon er verifisert schema-aligned (`PASS`).
 
 MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirker analyse/optimizer, og blokkerte statuser kan ikke foreslås. Varslingskjeden er teknisk produksjonsverifisert og første naturlige E2E via et reelt nytt review-funn tas når et slikt funn oppstår.
 
-MP-10.3 og MP-10.4 er ferdige og produksjonsverifiserte på `main`. Fixture/xFP- og prisinput er stabile; resterende MP-10.1/10.2/10.5 tas etter MP-04.5/04.6 i henhold til `docs/MASTERPLAN.md`.
+**Neste operative hovedpunkt er Chat 10 – MP-10.1 + MP-10.2 + MP-10.5.** Transfer-/regelinput, fixture/xFP, availability og priser er nå stabile, slik at lagoptimalisatoren kan ferdigstilles mot de faktiske sluttreglene.
 
 ## Testing
 
-- GitHub Actions kjører `npm run test:bonus-weeks` før `npm run build` på push/PR mot `main`.
+- GitHub Actions kjører `npm run test:mp04:transfers` og `npm run test:mp07:bonus-weeks` før `npm run build` på push/PR mot `main`.
+- MP-04 transferregresjonen er deterministisk og filbasert og skriver aldri til Supabase. Den beskytter kontrakter for 2-byttegrense, ingen bank/hits, serverlagring, Event Week-sperre, Bytteboost, deadline/snapshot-gate, transferhistorikk og navigasjon/UI.
 - Bonus Weeks-regresjonen er deterministisk og filbasert og skriver aldri til Supabase. Den beskytter kritiske kontrakter for eventlag-isolasjon, 200m/70m, booster inventory/stacking/deadline, snapshotmetadata, Kapteins-/Rekkeboost, double-GW-summering, Bytteboost, Event Week-transfer-sperre og historikkmarkører.
+- MP-04 produksjonssmoke: `get_my_fantasy_transfer_history_v1(text)` finnes, aktiv `apply_fantasy_transfers_v1` har Event Week-blokk og Bytteboost commit-gate, og kontrollen gjorde ingen writes til 2026/27-data. Vercel-build/deploy er grønn.
 - Siste MP-07.6L-commit `fb9ee0a` er Vercel-verifisert `SUCCESS` 2026-08-23.
 - Schema-reparasjonen for Bonus Weeks-scoring ble manuelt kjørt i Supabase og read-only verifisert med `scoring_schema_alignment = PASS`.
 - Isolerte E2E-/testkontroller er implementert for sentrale fantasyflyter, blant annet snapshots og leaderboard.
