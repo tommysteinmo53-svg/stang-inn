@@ -16,7 +16,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-23
 - TypeScript 5.9.x
 - Supabase
 - Vercel
-- GitHub Actions build-CI + Bonus Weeks-, MP-04 transfer- og MP-10 optimizerkontrakt/regresjon
+- GitHub Actions build-CI + Bonus Weeks-, MP-04 transfer-, MP-07.7 rundehistorikk- og MP-10 optimizerkontrakt/regresjon
 
 ## EHL 2026/27
 
@@ -55,6 +55,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-23
 - Bytteboost øker server-side transfergrensen 2 → 4 og blir irreversibel når bytte nummer 3 gjennomføres. Permanente transfers er sperret i Event Weeks.
 - «Mitt lag» har boosterkort-UI med tilgjengelig/valgt/låst/brukt-status og tydelig regeltekst. Eventlag har egen side med 200m/70m-budsjett, deadline og tydelig informasjon om at permanentlaget ikke påvirkes.
 - Leaderboardets utfoldbare rundehistorikk viser boost/event-markører fra snapshotet uten å fylle hovedtabellen med ekstra kolonner.
+- **MP-07.7 rundehistorikk er ferdigstilt som snapshot-first brukerhistorikk.** `get_my_fantasy_round_history_v1` starter fra `fantasy_team_round_snapshots` og `fantasy_team_round_snapshot_players`; dagens `fantasy_user_team_players` brukes aldri til historisk rekonstruksjon. Snapshotspillere fryser nå også `player_name` i tillegg til klubb, posisjon, pris, rekke, C/VC. Score, kampantall og multiplikatorer er nullable `LEFT JOIN`-kontekst, slik at et snapshot kan vises umiddelbart etter deadline før runden er scoret. `/fantasy/my-rounds` viser rekke 1 og rekke 2, lagverdi ved snapshot, C/VC, Bonus/Event Week, rundepoeng når de finnes og ordinære transfers knyttet til runden. Event Weeks viser ikke permanent transferledger. RPC-en er authenticated-only og `anon` har ikke EXECUTE.
 - Spillernavn i lagbygger/spillermarked og Eventlag åpner spillerens profil, mens lagvalg håndteres separat.
 - Admin/analysegrunnlag med avviklet preseason-FP/treningskampstatistikk som Fantasy-signal.
 - MP-08.4 kanonisk analyse-featurelag `get_fantasy_analysis_features_admin_v1`: sesong-FP/kamp, form 3/5/10, hjemme/borte, sample counts, pris og observert FP/kamp per million samles før modellberegning. Den raske xFP-horisonten bruker featurelaget direkte; anbefalingene arver samme datagrunnlag. Form 5 er fortsatt modellens form-input, og verken scoringregler eller xFP-vekter ble endret.
@@ -86,18 +87,22 @@ MP-04.7 er ferdig på `main`. «Mitt lag» gjenbruker `fantasy_rounds` + `get_fa
 
 **MP-07.6 er ferdig og produksjonsverifisert 2026-08-23.** Regelspesifikasjon, datamodell, sikre booster-/event-RPC-er, eventlag, snapshots, scoring, Bytteboost, UI, leaderboard-historikk og filbasert regresjonsdekning er på `main`. Under implementeringen ble en faktisk produksjonsskjema-mismatch i spiller-rundepoeng oppdaget og reparert; aktiv scoringfunksjon er verifisert schema-aligned (`PASS`).
 
+**MP-07.7 er ferdig og produksjonsverifisert 2026-08-23.** Snapshotspillerne fryser spillernavn, ny authenticated-only `get_my_fantasy_round_history_v1` er autoritativ snapshot-first lesemodell, score er valgfri `LEFT JOIN`-kontekst, og UI-et viser låste/uscorede så vel som ferdigscorede runder med to rekker, C/VC, priser, lagverdi, boost/event og relevante transfers. Read-only produksjonskontroll bekrefter `snapshot_first=true`, `avoids_current_team=true`, `score_left_join=true`, `authenticated_execute=true`, `anon_execute=false`. Produksjonen hadde 0 2026/27-snapshots under kontrollen, og ingen falske snapshot-/lag-/poengdata ble opprettet. Vercel-deploy for sluttimplementasjonen er `SUCCESS`.
+
 MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirker analyse/optimizer, og blokkerte statuser kan ikke foreslås. Varslingskjeden er teknisk produksjonsverifisert og første naturlige E2E via et reelt nytt review-funn tas når et slikt funn oppstår.
 
 **MP-10.1 + MP-10.2 + MP-10.5 er ferdig på `main` og produksjonsverifisert 2026-08-23.** Optimizeren er nå eksplisitt admin-only: offentlig side og API er fjernet, vanlig Fantasy-meny eksponerer den ikke, og compatibility-RPC-ene har admincheck. Vercel på admin-only-endringen er grønn.
 
-**Neste operative hovedpunkt er Chat 07 – MP-07.7 + MP-07.8 + MP-07.9.** Nå som snapshots, transferhistorikk, Bonus Week-metadata, scoring og admin-optimizer-/analysegrunnlag er stabile, kan historisk lagvisning og personlig sesongstatistikk bygges uten å rekonstruere historiske lag fra dagens tilstand.
+**Neste operative hovedpunkt er Chat 07 – MP-07.8 + MP-07.9.** MP-07.7 gir nå et deterministisk snapshot-first historikkgrunnlag som personlig statistikkdashboard og sesonginnsikt kan bygges på uten å rekonstruere historiske lag fra dagens tilstand.
 
 ## Testing
 
-- GitHub Actions kjører `npm run test:mp04:transfers`, `npm run test:mp07:bonus-weeks` og `npm run test:mp10:optimizer` før `npm run build` på push/PR mot `main`.
+- GitHub Actions kjører `npm run test:mp04:transfers`, `npm run test:mp07:bonus-weeks`, `npm run test:mp07:round-history` og `npm run test:mp10:optimizer` før `npm run build` på push/PR mot `main`.
 - MP-04 transferregresjonen er deterministisk og filbasert og skriver aldri til Supabase. Den beskytter kontrakter for 2-byttegrense, ingen bank/hits, serverlagring, Event Week-sperre, Bytteboost, deadline/snapshot-gate, transferhistorikk og navigasjon/UI.
 - Bonus Weeks-regresjonen er deterministisk og filbasert og skriver aldri til Supabase. Den beskytter kritiske kontrakter for eventlag-isolasjon, 200m/70m, booster inventory/stacking/deadline, snapshotmetadata, Kapteins-/Rekkeboost, double-GW-summering, Bytteboost, Event Week-transfer-sperre og historikkmarkører.
+- MP-07.7 rundehistorikkregresjonen er deterministisk og filbasert og skriver aldri til Supabase. Den beskytter snapshot-first-kontrakten, frosset spillernavn, score som `LEFT JOIN`, fravær av current-team-rekonstruksjon, transferledger som kontekst, Event Week-isolasjon, authenticated-only RPC, to rekker og støtte for låste/uscorede snapshots.
 - MP-10 optimizerregresjonen er deterministisk og filbasert og skriver aldri til Supabase. Den beskytter nå admin-only-kontrakten: ingen offentlig optimizer-side/API/navigasjon, adminverktøyet beholdes, compatibility-RPC-er har admincheck, og locked-player/0-2-4/Bytteboost/Event Week/availability/strategireglene beholdes.
+- MP-07.7 produksjonskontroll: `get_my_fantasy_round_history_v1(text,uuid)` finnes med snapshot-first source, ingen `fantasy_user_team_players`, score via `LEFT JOIN`, authenticated EXECUTE og ingen anon EXECUTE. Snapshot-tabellene hadde 0 rader for 2026/27 ved kontrollen, så verifikasjonen gjorde ingen produksjonswrites. Sluttcommit `13eab6055f55e9b0a545233746cccd33aee2d79c` er Vercel-verifisert `SUCCESS`.
 - Produksjonsendringen som fjernet offentlig optimizer-side/API er Vercel-verifisert `SUCCESS` 2026-08-23.
 - MP-10 Supabase-hardening er migrert i produksjon: compatibility-RPC-ene krever autentisert admin og `anon` har ikke EXECUTE. Ingen lag-, transfer- eller poengdata ble skrevet under verifikasjonen.
 - MP-04 produksjonssmoke: `get_my_fantasy_transfer_history_v1(text)` finnes, aktiv `apply_fantasy_transfers_v1` har Event Week-blokk og Bytteboost commit-gate, og kontrollen gjorde ingen writes til 2026/27-data. Vercel-build/deploy er grønn.
