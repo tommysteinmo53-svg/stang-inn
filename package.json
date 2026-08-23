@@ -15,6 +15,7 @@
     "test:mp07:stats": "node scripts/test-mp07-stats-dashboard.mjs",
     "test:mp10:optimizer": "node scripts/test-mp10-optimizer.mjs",
     "test:mp12:scoring": "node scripts/test-mp12-fantasy-scoring.mjs",
+    "test:mp12:security": "node scripts/test-mp12-security-contracts.mjs",
     "backtest:availability:nitten": "node scripts/backtest-nitten-availability.mjs"
   },
   "dependencies": {
