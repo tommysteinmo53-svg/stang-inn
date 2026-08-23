@@ -2,6 +2,7 @@
 
 import {useEffect,useMemo,useState} from "react";
 import {getSupabaseBrowserClient} from "../../../lib/supabase";
+import PointsSectionNav from "../PointsSectionNav";
 import "../fantasy.css";
 import "./stats.css";
 
@@ -32,8 +33,8 @@ export default function FantasyStatsPage(){
  const posTotal=Math.max(1,pos.g+pos.d+pos.f),transfers=scored.reduce((s,r)=>s+r.transfer_count,0),captain=scored.reduce((s,r)=>s+(r.captain_bonus||0)+(r.vice_captain_bonus||0),0),captainShare=total>0?captain/total*100:null;
  const roundWins=scored.filter(r=>r.round_rank===1).length,top10=scored.filter(r=>r.round_rank!=null&&r.participant_count!=null&&r.round_rank<=Math.max(1,Math.ceil(r.participant_count*.1))).length;
  const specialRounds=scored.filter(r=>r.booster_type||r.event_type),bestSpecial=specialRounds.length?specialRounds.reduce((a,b)=>(b.round_points||0)>(a.round_points||0)?b:a):null;
- if(busy)return <main className="fantasy-shell"><p className="fantasy-lead">Henter personlig statistikk …</p></main>;
- return <main className="fantasy-shell stats-shell"><section className="team-builder-head"><div><p className="fantasy-kicker">STANG INN · FANTASY 2026/27</p><h1>Min statistikk</h1><p>Sesongutvikling basert på autoritative rundesnapshots og scorede runder.</p></div></section>{message&&<p className="team-message">{message}</p>}
+ if(busy)return <main className="fantasy-shell"><PointsSectionNav/><p className="fantasy-lead">Henter personlig statistikk …</p></main>;
+ return <main className="fantasy-shell stats-shell"><PointsSectionNav/><section className="team-builder-head"><div><p className="fantasy-kicker">STANG INN · FANTASY 2026/27</p><h1>Min statistikk</h1><p>Sesongutvikling basert på autoritative rundesnapshots og scorede runder.</p></div></section>{message&&<p className="team-message">{message}</p>}
  <section className="stats-metrics"><article><span>Totalt</span><strong>{pts(total)} p</strong></article><article><span>Sammenlagt</span><strong>{currentRank?`${currentRank}.`:"—"}</strong></article><article><span>Snitt/runde</span><strong>{pts(avg)} p</strong></article><article><span>Beste runde</span><strong>{pts(best)} p</strong></article><article><span>C/VC-bonus</span><strong>{pts(captain)} p</strong></article><article><span>Bytter</span><strong>{transfers}</strong></article></section>
  {rows.length===0?<section className="team-panel"><p className="team-muted">Ingen låste fantasy-runder ennå. Statistikken fylles automatisk når sesongen starter.</p></section>:<>
  <section className="stats-grid"><div className="team-panel"><LineChart rows={scored} value={r=>r.round_points} label="Poeng per runde"/></div><div className="team-panel"><LineChart rows={scored} value={r=>r.cumulative_points} label="Kumulative poeng"/></div><div className="team-panel"><LineChart rows={scored} value={r=>r.overall_rank} label="Sammenlagtrank" invert/></div><div className="team-panel"><LineChart rows={scored} value={r=>r.squad_value} label="Lagverdi over tid"/></div></section>
