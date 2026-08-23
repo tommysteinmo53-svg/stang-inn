@@ -171,6 +171,7 @@ end;
 $$;
 
 revoke all on function public.get_my_fantasy_round_history_v1(text,uuid) from public;
+revoke execute on function public.get_my_fantasy_round_history_v1(text,uuid) from anon;
 grant execute on function public.get_my_fantasy_round_history_v1(text,uuid) to authenticated;
 
 comment on function public.get_my_fantasy_round_history_v1(text,uuid) is
