@@ -27,6 +27,8 @@ jobs:
         run: npm run test:mp12:isolation
       - name: MP-13 tipping scoring regression
         run: npm run test:mp13:scoring
+      - name: MP-13 season readiness regression
+        run: npm run test:mp13:readiness
       - name: MP-04 transfer regression
         run: npm run test:mp04:transfers
       - name: Bonus Weeks regression
