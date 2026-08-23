@@ -1,23 +1,25 @@
 import fs from "node:fs";
 
 const read=(p)=>fs.readFileSync(p,"utf8");
+const exists=(p)=>fs.existsSync(p);
 const route=read("app/api/admin/fantasy/transfer-optimizer/route.ts");
-const publicRoute=read("app/api/fantasy/transfer-optimizer/route.ts");
 const page=read("app/fantasy/admin-analysis/optimizer/page.tsx");
-const publicPage=read("app/fantasy/optimizer/page.tsx");
 const nav=read("app/fantasy/FantasyNav.tsx");
 const helper=read("lib/fantasy/optimizer-transfer-policy.ts");
-const xfpSql=read("supabase/mp10-user-optimizer-xfp-v1.sql");
-const economySql=read("supabase/mp10-user-optimizer-economy-v1.sql");
+const adminOnlySql=read("supabase/mp10-admin-only-optimizer-v1.sql");
 const transferRules=read("docs/FANTASY_TRANSFER_RULES.md");
 
 const checks=[];
 function must(name,condition){checks.push({name,ok:Boolean(condition)});if(!condition)throw new Error(`MP-10 regression failed: ${name}`)}
 
-must("authenticated user xFP horizon engine used",route.includes('get_fantasy_xfp_round_horizons_v1'));
-must("authenticated user economy RPC used",route.includes('get_fantasy_economy_v1'));
-must("optimizer verifies authenticated user",route.includes('sb.auth.getUser()'));
-must("admin-only gate removed from user optimizer handler",!route.includes('requireFantasyAdmin'));
+must("public optimizer page removed",!exists("app/fantasy/optimizer/page.tsx"));
+must("public optimizer API removed",!exists("app/api/fantasy/transfer-optimizer/route.ts"));
+must("fantasy navigation hides optimizer",!nav.includes('/fantasy/optimizer'));
+must("admin optimizer page retained",page.includes('/api/admin/fantasy/transfer-optimizer'));
+must("admin optimizer keeps locked IDs",page.includes('qs.set("locked",Array.from(nextLocked).join(","))'));
+must("optimizer xFP compatibility RPC is admin-only",adminOnlySql.includes("p.admin=true")&&adminOnlySql.includes("get_fantasy_xfp_round_horizons_v1"));
+must("optimizer economy compatibility RPC is admin-only",adminOnlySql.includes("p.admin=true")&&adminOnlySql.includes("get_fantasy_economy_v1"));
+must("anon has no optimizer helper execute",adminOnlySql.includes("revoke all on function public.get_fantasy_xfp_round_horizons_v1(text) from public, anon")&&adminOnlySql.includes("revoke all on function public.get_fantasy_economy_v1(text) from public, anon"));
 must("authoritative transfer status retained",route.includes('get_fantasy_transfer_status_v1'));
 must("old hard cap of two removed",!route.includes('Math.min(2,Number(statusRow.transfers_remaining'));
 must("0/2/4 transfer limit normalized from RPC",route.includes('normalizeOptimizerTransferLimit(statusRow.transfers_remaining)'));
@@ -30,21 +32,6 @@ must("blocked availability gate retained",route.includes('isOptimizerEligibleAva
 must("balanced strategy retained",route.includes('balanced:'));
 must("conservative strategy retained",route.includes('conservative:'));
 must("offensive strategy retained",route.includes('offensive:'));
-must("admin UI still sends locked IDs",page.includes('qs.set("locked",Array.from(nextLocked).join(","))'));
-must("public UI sends locked IDs",publicPage.includes('qs.set("locked",Array.from(nextLocked).join(","))'));
-must("public UI exposes lock action",publicPage.includes('🔓 Lås')&&publicPage.includes('🔒 Låst'));
-must("public UI shows OUT and IN",publicPage.includes('>UT<')&&publicPage.includes('>INN<'));
-must("public UI shows new team value",publicPage.includes('ny lagverdi'));
-must("public UI explains no bank",publicPage.includes('Ingen byttebank'));
-must("public UI explains no points hit",publicPage.includes('ingen poengtrekk'));
-must("public UI calls public optimizer API",publicPage.includes('/api/fantasy/transfer-optimizer'));
-must("public optimizer API alias exists",publicRoute.includes('../../admin/fantasy/transfer-optimizer/route'));
-must("fantasy navigation exposes optimizer",nav.includes('/fantasy/optimizer')&&nav.includes('Optimalisator'));
-must("user xFP RPC requires authentication",xfpSql.includes("if auth.uid() is null then raise exception 'Not authenticated'"));
-must("user xFP RPC does not grant anon",xfpSql.includes('revoke all on function public.get_fantasy_xfp_round_horizons_v1(text) from anon'));
-must("user xFP RPC is read-only definition",!/(insert\s+into|update\s+\w+\s+set|delete\s+from)/i.test(xfpSql));
-must("user economy RPC requires authentication",economySql.includes("if auth.uid() is null then raise exception 'Not authenticated'"));
-must("user economy RPC does not grant anon",economySql.includes('revoke all on function public.get_fantasy_economy_v1(text) from anon'));
 must("helper allows Bytteboost four-transfer maximum",helper.includes('Math.min(4'));
 must("final rules document says normal max two",transferRules.includes('maks 2 permanente spillerbytter per ordinær fantasy-runde'));
 must("final rules document says Bytteboost four",transferRules.includes('Bytteboost')&&transferRules.includes('4 bytter'));
