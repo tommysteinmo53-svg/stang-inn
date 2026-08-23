@@ -16,7 +16,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-23
 - TypeScript 5.9.x
 - Supabase
 - Vercel
-- GitHub Actions build-CI + Bonus Weeks- og MP-04 transferkontrakt/regresjon
+- GitHub Actions build-CI + Bonus Weeks-, MP-04 transfer- og MP-10 optimizerkontrakt/regresjon
 
 ## EHL 2026/27
 
@@ -65,10 +65,12 @@ Sist kontrollert mot GitHub `main`: 2026-08-23
 - Atomisk admin-godkjenning: gjeldende availability, historikk og funnstatus oppdateres i én PostgreSQL-transaksjon.
 - Deterministisk kildeinnhenting fra allowlistede EHL-klubbsider og nitten.no med 45-dagers freshness-gate og deduplisering.
 - HockeyLive MatchTeamMembers-kontroll for preseason og ordinære `fantasy_games`; ufullstendige kamptropper hoppes over, og fravær kan kun foreslå `not_in_lineup`.
-- Lagoptimalisator med «beste komplette oppstilling» og «optimaliser med ledige bytter» på den raske `get_fantasy_xfp_round_horizons_admin_v2`-dataveien.
-- Availability-policy i optimizer: `available` 100 %, `returning` 85 %, `questionable` 60 %, og `out`/`long_term`/`not_in_lineup` ekskluderes.
-- MP-10.3 produksjonsverifisert: forventet poenggevinst, risikoscore, spiller-risiko, datatillit, availability-justert xFP og effektiv Fantasy-xFP med rekke/C/VC.
-- MP-10.4 produksjonsverifisert 2026-08-21: Balansert, Konservativ og Offensiv bruker separate modellobjektiver og viser forventet gevinst, risiko, modellert oppside og UT → INN-forskjeller.
+- **MP-10 lagoptimalisator er ferdigstilt og produksjonsverifisert 2026-08-23.** Sluttbrukersiden `/fantasy/optimizer` analyserer innlogget brukers faktiske lag og viser Balansert, Konservativ og Offensiv med tydelige UT → INN-forslag, ny lagverdi, forventet xFP-gevinst, risiko, availability og datatillit.
+- Brukeren kan låse spillere som ikke skal foreslås UT. Låse-ID-er valideres server-side mot brukerens faktiske lag og låste spillere ekskluderes fra outgoing-poolen.
+- Optimizeren bruker autoritativ `get_fantasy_transfer_status_v1`: 2 permanente bytter ordinært, ingen bank/hits, opptil 4 med Bytteboost og 0 permanente transfers under Rik/Fattig Onkel. Den gamle optimizer-hardgrensen på 2 er fjernet.
+- Bytteboost-søk med opptil 4 bytter er produksjonssikret med en begrenset flerfaktor-kandidatpool basert på xFP, verdi, pris, risiko og oppside før full budsjett-/posisjons-/klubb-/lineup-validering.
+- Availability-policy i optimizer står fast: `available` 100 %, `returning` 85 %, `questionable` 60 %, og `out`/`long_term`/`not_in_lineup` ekskluderes. Availability-gaten er ikke svekket.
+- MP-10 bruker egne read-only sluttbruker-RPC-er `get_fantasy_xfp_round_horizons_v1` og `get_fantasy_economy_v1`. Begge krever autentisering; `anon` har ikke EXECUTE. Produksjonskontroll ga 239 xFP-rader og én økonomirad uten writes.
 
 ## Aktivt område / neste kobling
 
@@ -86,13 +88,19 @@ MP-04.7 er ferdig på `main`. «Mitt lag» gjenbruker `fantasy_rounds` + `get_fa
 
 MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirker analyse/optimizer, og blokkerte statuser kan ikke foreslås. Varslingskjeden er teknisk produksjonsverifisert og første naturlige E2E via et reelt nytt review-funn tas når et slikt funn oppstår.
 
-**Neste operative hovedpunkt er Chat 10 – MP-10.1 + MP-10.2 + MP-10.5.** Transfer-/regelinput, fixture/xFP, availability og priser er nå stabile, slik at lagoptimalisatoren kan ferdigstilles mot de faktiske sluttreglene.
+**MP-10.1 + MP-10.2 + MP-10.5 er ferdig på `main` og produksjonsverifisert 2026-08-23.** PR #59 ble squash-merget som `fd73d546642cda1bd0dedb41a56185b11ba72d17`. Vercel på merge-commit er `SUCCESS`. Sluttbrukeroptimizer, autoritative transfergrenser/Bytteboost/Event Week-sperre, locked-player constraints og read-only autentiserte xFP-/økonomi-RPC-er er aktive.
+
+**Neste operative hovedpunkt er Chat 07 – MP-07.7 + MP-07.8 + MP-07.9.** Nå som snapshots, transferhistorikk, Bonus Week-metadata, scoring og optimizer-/analysegrunnlag er stabile, kan historisk lagvisning og personlig sesongstatistikk bygges uten å rekonstruere historiske lag fra dagens tilstand.
 
 ## Testing
 
-- GitHub Actions kjører `npm run test:mp04:transfers` og `npm run test:mp07:bonus-weeks` før `npm run build` på push/PR mot `main`.
+- GitHub Actions kjører `npm run test:mp04:transfers`, `npm run test:mp07:bonus-weeks` og `npm run test:mp10:optimizer` før `npm run build` på push/PR mot `main`.
 - MP-04 transferregresjonen er deterministisk og filbasert og skriver aldri til Supabase. Den beskytter kontrakter for 2-byttegrense, ingen bank/hits, serverlagring, Event Week-sperre, Bytteboost, deadline/snapshot-gate, transferhistorikk og navigasjon/UI.
 - Bonus Weeks-regresjonen er deterministisk og filbasert og skriver aldri til Supabase. Den beskytter kritiske kontrakter for eventlag-isolasjon, 200m/70m, booster inventory/stacking/deadline, snapshotmetadata, Kapteins-/Rekkeboost, double-GW-summering, Bytteboost, Event Week-transfer-sperre og historikkmarkører.
+- MP-10 optimizerregresjonen er deterministisk og filbasert og skriver aldri til Supabase. Siste PR-verifikasjon ga **35/35 PASS** og beskytter autentisert sluttbrukertilgang, locked-player constraints, 0/2/4 transferstatus, Bytteboost-søk, Event Week-sperre, availability-gate, tre strategier, UT/INN-output, navigasjon og read-only RPC-kontrakter.
+- PR #59-verifikasjon: MP-04 **17/17 PASS**, MP-07 **32/32 PASS**, MP-10 **35/35 PASS**, Next.js production build **PASS** og Vercel preview **SUCCESS** før merge.
+- Produksjonsmerge `fd73d546642cda1bd0dedb41a56185b11ba72d17` er Vercel-verifisert `SUCCESS` 2026-08-23.
+- MP-10 Supabase-smoke: vanlig autentisert kontekst ga 239 rader fra `get_fantasy_xfp_round_horizons_v1` og én rad fra `get_fantasy_economy_v1`; `authenticated` har EXECUTE, `anon` har ikke EXECUTE. Kontrollen gjorde ingen lag-, transfer- eller poengwrites.
 - MP-04 produksjonssmoke: `get_my_fantasy_transfer_history_v1(text)` finnes, aktiv `apply_fantasy_transfers_v1` har Event Week-blokk og Bytteboost commit-gate, og kontrollen gjorde ingen writes til 2026/27-data. Vercel-build/deploy er grønn.
 - Siste MP-07.6L-commit `fb9ee0a` er Vercel-verifisert `SUCCESS` 2026-08-23.
 - Schema-reparasjonen for Bonus Weeks-scoring ble manuelt kjørt i Supabase og read-only verifisert med `scoring_schema_alignment = PASS`.
@@ -101,7 +109,6 @@ MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirke
 - MP-08.4-produksjonssmoke: featurelag 234 rader, xFP-horisont 234 rader og anbefalingsdatasett 234 rader ved opprinnelig kontroll; API-endringen er Vercel-build/deploy-verifisert.
 - MP-08.5-produksjonskontroll: 225 ordinære 2025/26-kamper brukt til historisk baseline, 0 ferdigspilte 2026/27-kamper ved kontrolltidspunktet, posisjonslogikk verifisert og autoritativ faktor kontrollert uten preseason-/treningskampavhengighet. Vercel-build er grønn.
 - MP-03.6-produksjonskontroll: V4.6.2 har 239 publikasjonrader/current-roster-spillere, 14 faktiske prisendringer, 0 prislag-avvik, 239 kjøpbare spillere, 0 stale `purchase_price` og 0 eksisterende lag over 100m. Merge-/produksjonsdeploy er grønn.
-- Availability-endringene og optimizerstrategiene er build-/deploy-verifisert; produksjonsbruk følger fortsatt admin-review-gaten for availability.
 - Produksjonsregelen står fast: isolerte tester skal ikke endre ekte 2026/27-data og skal rydde opp egne testdata.
 
 ## Kjente dokumentasjonsforhold
