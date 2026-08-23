@@ -4,6 +4,7 @@ const read = (path) => fs.readFileSync(path, "utf8");
 const activation = read("supabase/mp07-bonus-activation-rpcs-v1.sql");
 const hardening = read("supabase/mp12-bonus-rpc-auth-hardening-v1.sql");
 const e2eHardening = read("supabase/mp12-lock-e2e-rpcs-v1.sql");
+const adminMutatorHardening = read("supabase/mp12-service-only-admin-mutators-v1.sql");
 
 const signatures = [
   "public.select_fantasy_booster_v1(text,text,uuid)",
@@ -29,6 +30,15 @@ const e2eSignatures = [
   "public.run_fantasy_transfers_e2e_test()",
 ];
 
+const serviceOnlyAdminMutators = [
+  "public.approve_fantasy_player_price_v1(uuid,uuid,numeric,text)",
+  "public.publish_fantasy_prices_v461(jsonb,uuid,text,text)",
+  "public.publish_fantasy_prices_v462(jsonb,uuid,text,text)",
+  "public.reject_fantasy_player_queue_v1(uuid,uuid,text)",
+  "public.set_fantasy_player_price_suggestion_v1(uuid,numeric,text,text,jsonb,boolean)",
+  "public.sync_fantasy_roster_2026(jsonb,uuid,uuid,uuid)",
+];
+
 const checks = [];
 const check = (name, condition) => checks.push([name, Boolean(condition)]);
 
@@ -43,6 +53,11 @@ for (const signature of signatures) {
 for (const signature of e2eSignatures) {
   check(`${signature}: client roles cannot execute legacy E2E helper`, e2eHardening.includes(`revoke all on function ${signature} from public, anon, authenticated;`));
   check(`${signature}: controlled service role remains explicit`, e2eHardening.includes(`grant execute on function ${signature} to service_role;`));
+}
+
+for (const signature of serviceOnlyAdminMutators) {
+  check(`${signature}: direct client execution is revoked`, adminMutatorHardening.includes(`revoke all on function ${signature} from public, anon, authenticated;`));
+  check(`${signature}: server service role remains explicit`, adminMutatorHardening.includes(`grant execute on function ${signature} to service_role;`));
 }
 
 let failed = 0;
