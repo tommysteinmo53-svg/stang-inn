@@ -2,6 +2,7 @@
 
 import {usePathname} from "next/navigation";
 import TeamLaunchStatus from "./team/TeamLaunchStatus";
+import TeamSectionNav from "./team/TeamSectionNav";
 import PlayerProfileClickBridge from "./PlayerProfileClickBridge";
 
 const items=[
@@ -24,7 +25,8 @@ export default function FantasyNav(){
  const pathname=usePathname();
  if(hiddenPrefixes.some(p=>pathname===p||pathname.startsWith(`${p}/`)))return null;
  if(!productionPrefixes.some(p=>pathname===p||pathname.startsWith(`${p}/`)))return null;
+ const teamSection=pathname==="/fantasy/team"||pathname.startsWith("/fantasy/team/")||pathname==="/fantasy/event-team"||pathname.startsWith("/fantasy/event-team/");
  return <><PlayerProfileClickBridge/><div className="fantasy-player-nav-wrap"><nav className="fantasy-player-nav" aria-label="Fantasy-meny">
   {items.map(item=>{const active=item.href==="/fantasy"?pathname==="/fantasy":item.href==="/fantasy/team"?(pathname===item.href||pathname.startsWith(`${item.href}/`)||pathname==="/fantasy/event-team"||pathname.startsWith("/fantasy/event-team/")):item.href==="/fantasy/my-rounds"?(pathname===item.href||pathname.startsWith(`${item.href}/`)||pathname==="/fantasy/stats"||pathname.startsWith("/fantasy/stats/")):(pathname===item.href||pathname.startsWith(`${item.href}/`));return <a key={item.href} href={item.href} className={active?"active":""} aria-current={active?"page":undefined}><span aria-hidden>{item.icon}</span><b>{item.label}</b></a>})}
- </nav></div>{pathname==="/fantasy/team"&&<div className="team-launch-wrap"><TeamLaunchStatus/></div>}</>
+ </nav></div>{teamSection&&<TeamSectionNav/>}{pathname==="/fantasy/team"&&<div className="team-launch-wrap"><TeamLaunchStatus/></div>}</>
 }
