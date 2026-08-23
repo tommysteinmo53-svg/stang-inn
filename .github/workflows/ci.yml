@@ -19,6 +19,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: MP-04 transfer regression
+        run: npm run test:mp04:transfers
       - name: Bonus Weeks regression
         run: npm run test:mp07:bonus-weeks
       - name: Build
