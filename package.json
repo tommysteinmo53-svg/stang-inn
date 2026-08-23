@@ -11,6 +11,7 @@
     "start": "next start",
     "test:mp04:transfers": "node scripts/test-mp04-transfers.mjs",
     "test:mp07:bonus-weeks": "node scripts/test-mp07-bonus-weeks.mjs",
+    "test:mp10:optimizer": "node scripts/test-mp10-optimizer.mjs",
     "backtest:availability:nitten": "node scripts/backtest-nitten-availability.mjs"
   },
   "dependencies": {

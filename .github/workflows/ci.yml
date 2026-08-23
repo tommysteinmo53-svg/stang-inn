@@ -23,6 +23,8 @@ jobs:
         run: npm run test:mp04:transfers
       - name: Bonus Weeks regression
         run: npm run test:mp07:bonus-weeks
+      - name: MP-10 optimizer regression
+        run: npm run test:mp10:optimizer
       - name: Build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
