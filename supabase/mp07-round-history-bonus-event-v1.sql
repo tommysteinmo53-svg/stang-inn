@@ -82,7 +82,9 @@ as $$
   join fantasy_rounds r on r.id=trp.round_id
   join fantasy_user_teams t on t.id=trp.team_id
   join fantasy_team_round_player_points pp on pp.team_round_points_id=trp.id
-  join fantasy_team_round_snapshot_players sp on sp.id=pp.snapshot_player_id
+  join fantasy_team_round_snapshot_players sp
+    on sp.snapshot_id=s.id
+   and sp.player_id=pp.player_id
   join fantasy_players fp on fp.id=pp.player_id
   where trp.user_id=auth.uid()
     and trp.season=p_season
