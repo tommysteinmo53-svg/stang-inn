@@ -5,6 +5,7 @@ const activation = read("supabase/mp07-bonus-activation-rpcs-v1.sql");
 const hardening = read("supabase/mp12-bonus-rpc-auth-hardening-v1.sql");
 const e2eHardening = read("supabase/mp12-lock-e2e-rpcs-v1.sql");
 const adminMutatorHardening = read("supabase/mp12-service-only-admin-mutators-v1.sql");
+const noAnonFantasy = read("supabase/mp12-no-anon-fantasy-security-definer-v1.sql");
 
 const signatures = [
   "public.select_fantasy_booster_v1(text,text,uuid)",
@@ -59,6 +60,10 @@ for (const signature of serviceOnlyAdminMutators) {
   check(`${signature}: direct client execution is revoked`, adminMutatorHardening.includes(`revoke all on function ${signature} from public, anon, authenticated;`));
   check(`${signature}: server service role remains explicit`, adminMutatorHardening.includes(`grant execute on function ${signature} to service_role;`));
 }
+
+check("All Fantasy SECURITY DEFINER functions are covered by a no-anon database invariant", noAnonFantasy.includes("p.prosecdef=true"));
+check("No-anon invariant is scoped to Fantasy function names", noAnonFantasy.includes("p.proname like '%fantasy%'") && noAnonFantasy.includes("p.proname like 'get_my_fantasy%'"));
+check("No-anon invariant revokes PUBLIC and anon without touching authenticated/service grants", noAnonFantasy.includes("revoke all on function %s from public, anon"));
 
 let failed = 0;
 for (const [name, pass] of checks) {
