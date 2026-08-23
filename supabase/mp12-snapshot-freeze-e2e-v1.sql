@@ -19,10 +19,10 @@ begin
   delete from fantasy_user_teams where season=v_season;
   delete from fantasy_rounds where season=v_season;
 
-  select array_agg(id order by id) into v_f from (select id from fantasy_players where active=true and position in('C','W') order by id limit 6) q;
-  select array_agg(id order by id) into v_d from (select id from fantasy_players where active=true and position='D' order by id limit 4) q;
-  select array_agg(id order by id) into v_g from (select id from fantasy_players where active=true and position='G' order by id limit 2) q;
-  if coalesce(array_length(v_f,1),0)<>6 or coalesce(array_length(v_d,1),0)<>4 or coalesce(array_length(v_g,1),0)<>2 then raise exception 'Need 6F/4D/2G active players'; end if;
+  select array_agg(id order by id) into v_f from (select id from fantasy_players where active=true and on_current_roster=true and available_for_purchase=true and position in('C','W') order by id limit 6) q;
+  select array_agg(id order by id) into v_d from (select id from fantasy_players where active=true and on_current_roster=true and available_for_purchase=true and position='D' order by id limit 4) q;
+  select array_agg(id order by id) into v_g from (select id from fantasy_players where active=true and on_current_roster=true and available_for_purchase=true and position='G' order by id limit 2) q;
+  if coalesce(array_length(v_f,1),0)<>6 or coalesce(array_length(v_d,1),0)<>4 or coalesce(array_length(v_g,1),0)<>2 then raise exception 'Need 6F/4D/2G purchasable current-roster players'; end if;
   v_cap:=v_f[1]; v_vice:=v_f[2];
 
   insert into fantasy_user_teams(user_id,season,name,budget) values(v_user,v_season,'MP12 snapshot E2E',100) returning id into v_team;
