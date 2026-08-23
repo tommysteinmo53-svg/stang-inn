@@ -21,6 +21,8 @@ jobs:
         run: npm install
       - name: MP-12 scoring regression
         run: npm run test:mp12:scoring
+      - name: MP-12 security contract regression
+        run: npm run test:mp12:security
       - name: MP-04 transfer regression
         run: npm run test:mp04:transfers
       - name: Bonus Weeks regression
