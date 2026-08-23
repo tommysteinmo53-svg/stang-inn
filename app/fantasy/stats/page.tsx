@@ -1,0 +1,40 @@
+"use client";
+
+import {useEffect,useMemo,useState} from "react";
+import {getSupabaseBrowserClient} from "../../../lib/supabase";
+import "../fantasy.css";
+import "./stats.css";
+
+const SEASON="2026/27";
+type Row={round_id:string;round_no:number;round_name:string|null;deadline_at:string;snapshot_id:string;team_name:string;squad_value:number;booster_type?:string|null;event_type?:string|null;is_scored:boolean;round_points:number|null;cumulative_points:number|null;round_rank:number|null;overall_rank:number|null;participant_count:number|null;rank_change:number|null;captain_bonus:number|null;vice_captain_bonus:number|null;goalkeeper_points:number|null;defender_points:number|null;forward_points:number|null;transfer_count:number};
+const n=(v:any)=>v==null?null:Number(v);
+const pts=(v:number|null|undefined)=>v==null?"—":v.toFixed(1).replace(".0","");
+const special=(r:Row)=>r.event_type==="rich_uncle"?"💰 Rik Onkel":r.event_type==="poor_uncle"?"🪙 Fattig Onkel":r.booster_type==="captain_boost"?"⭐ Kapteinsboost":r.booster_type==="line_boost"?"🔥 Rekkeboost":r.booster_type==="transfer_boost"?"🔄 Bytteboost":null;
+
+function LineChart({rows,value,label,invert=false}:{rows:Row[];value:(r:Row)=>number|null;label:string;invert?:boolean}){
+ const data=rows.map(r=>({x:r.round_no,y:value(r)})).filter((x):x is {x:number;y:number}=>x.y!=null);
+ if(data.length<2)return <div className="stats-chart-empty">Minst to scorede runder trengs for graf.</div>;
+ const w=700,h=220,p=28,minX=Math.min(...data.map(d=>d.x)),maxX=Math.max(...data.map(d=>d.x));
+ const vals=data.map(d=>d.y),minY=Math.min(...vals),maxY=Math.max(...vals),spanY=Math.max(1,maxY-minY),spanX=Math.max(1,maxX-minX);
+ const py=(y:number)=>invert?p+((y-minY)/spanY)*(h-2*p):h-p-((y-minY)/spanY)*(h-2*p);
+ const px=(x:number)=>p+((x-minX)/spanX)*(w-2*p);
+ const path=data.map((d,i)=>`${i?"L":"M"}${px(d.x)},${py(d.y)}`).join(" ");
+ return <div className="stats-chart"><div className="stats-chart-title">{label}</div><svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label={label}><line x1={p} y1={h-p} x2={w-p} y2={h-p}/><line x1={p} y1={p} x2={p} y2={h-p}/><path d={path}/>{data.map(d=><g key={d.x}><circle cx={px(d.x)} cy={py(d.y)} r="4"/><text x={px(d.x)} y={h-7} textAnchor="middle">R{d.x}</text></g>)}</svg></div>;
+}
+
+export default function FantasyStatsPage(){
+ const[rows,setRows]=useState<Row[]>([]),[busy,setBusy]=useState(true),[message,setMessage]=useState("");
+ useEffect(()=>{(async()=>{try{const sb=getSupabaseBrowserClient();if(!sb)throw new Error("Supabase er ikke tilgjengelig");const{data:s}=await sb.auth.getSession();if(!s.session)throw new Error("Du må være logget inn");const{data,error}=await sb.rpc("get_my_fantasy_stats_dashboard_v1",{p_season:SEASON});if(error)throw error;setRows((data||[]).map((r:any)=>({...r,round_no:Number(r.round_no),squad_value:Number(r.squad_value),round_points:n(r.round_points),cumulative_points:n(r.cumulative_points),round_rank:n(r.round_rank),overall_rank:n(r.overall_rank),participant_count:n(r.participant_count),rank_change:n(r.rank_change),captain_bonus:n(r.captain_bonus),vice_captain_bonus:n(r.vice_captain_bonus),goalkeeper_points:n(r.goalkeeper_points),defender_points:n(r.defender_points),forward_points:n(r.forward_points),transfer_count:Number(r.transfer_count||0)})))}catch(e:any){setMessage(`Kunne ikke hente statistikk: ${e.message||e}`)}finally{setBusy(false)}})()},[]);
+ const scored=useMemo(()=>rows.filter(r=>r.is_scored&&r.round_points!=null),[rows]);
+ const total=scored.at(-1)?.cumulative_points??0,avg=scored.length?total/scored.length:null,best=scored.length?Math.max(...scored.map(r=>r.round_points||0)):null,currentRank=scored.at(-1)?.overall_rank??null;
+ const pos=scored.reduce((a,r)=>({g:a.g+(r.goalkeeper_points||0),d:a.d+(r.defender_points||0),f:a.f+(r.forward_points||0)}),{g:0,d:0,f:0});
+ const posTotal=Math.max(1,pos.g+pos.d+pos.f),transfers=scored.reduce((s,r)=>s+r.transfer_count,0),captain=scored.reduce((s,r)=>s+(r.captain_bonus||0)+(r.vice_captain_bonus||0),0);
+ if(busy)return <main className="fantasy-shell"><p className="fantasy-lead">Henter personlig statistikk …</p></main>;
+ return <main className="fantasy-shell stats-shell"><section className="team-builder-head"><div><p className="fantasy-kicker">STANG INN · FANTASY 2026/27</p><h1>Min statistikk</h1><p>Sesongutvikling basert på autoritative rundesnapshots og scorede runder.</p></div></section>{message&&<p className="team-message">{message}</p>}
+ <section className="stats-metrics"><article><span>Totalt</span><strong>{pts(total)} p</strong></article><article><span>Sammenlagt</span><strong>{currentRank?`${currentRank}.`:"—"}</strong></article><article><span>Snitt/runde</span><strong>{pts(avg)} p</strong></article><article><span>Beste runde</span><strong>{pts(best)} p</strong></article><article><span>C/VC-bonus</span><strong>{pts(captain)} p</strong></article><article><span>Bytter</span><strong>{transfers}</strong></article></section>
+ {rows.length===0?<section className="team-panel"><p className="team-muted">Ingen låste fantasy-runder ennå. Statistikken fylles automatisk når sesongen starter.</p></section>:<>
+ <section className="stats-grid"><div className="team-panel"><LineChart rows={scored} value={r=>r.round_points} label="Poeng per runde"/></div><div className="team-panel"><LineChart rows={scored} value={r=>r.cumulative_points} label="Kumulative poeng"/></div><div className="team-panel"><LineChart rows={scored} value={r=>r.overall_rank} label="Sammenlagtrank" invert/></div><div className="team-panel"><LineChart rows={scored} value={r=>r.squad_value} label="Lagverdi over tid"/></div></section>
+ <section className="team-panel"><div className="leaderboard-section-head"><div><p className="eyebrow">POENGFORDELING</p><h2>Etter posisjon</h2></div></div><div className="stats-bars"><div><span>Keeper</span><i><b style={{width:`${pos.g/posTotal*100}%`}}/></i><strong>{pts(pos.g)} p</strong></div><div><span>Back</span><i><b style={{width:`${pos.d/posTotal*100}%`}}/></i><strong>{pts(pos.d)} p</strong></div><div><span>Forward</span><i><b style={{width:`${pos.f/posTotal*100}%`}}/></i><strong>{pts(pos.f)} p</strong></div></div></section>
+ <section className="team-panel stats-table-panel"><div className="leaderboard-section-head"><div><p className="eyebrow">RUNDE FOR RUNDE</p><h2>Sesongtabell</h2></div></div><div className="stats-table"><div className="stats-tr stats-th"><span>Runde</span><span>Poeng</span><span>Runderank</span><span>Sammenlagt</span><span>Endring</span><span>Lagverdi</span><span>Bytter</span></div>{[...rows].reverse().map(r=><div className="stats-tr" key={r.round_id}><span><b>R{r.round_no}</b><small>{special(r)||r.round_name||"Ordinær"}</small></span><span>{r.is_scored?`${pts(r.round_points)} p`:"Låst"}</span><span>{r.round_rank?`${r.round_rank}.`:"—"}</span><span>{r.overall_rank?`${r.overall_rank}. av ${r.participant_count}`:"—"}</span><span>{r.rank_change==null||!r.is_scored?"—":r.rank_change>0?`↑ ${r.rank_change}`:r.rank_change<0?`↓ ${Math.abs(r.rank_change)}`:"→"}</span><span>{pts(r.squad_value)}m</span><span>{r.event_type?"Event":r.transfer_count}</span></div>)}</div><p className="team-save-note">Transfergevinst/-tap vises ikke ennå. Den statistikken krever et sikkert kontrafaktisk sammenligningsgrunnlag og blir ikke estimert fra dagens lag.</p></section></>}
+ </main>;
+}
