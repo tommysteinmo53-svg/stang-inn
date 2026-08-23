@@ -69,12 +69,12 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-04 – Lagbygger, regler og brukerlag
 
-**Status: ✅ transfer-/regelkjernen ferdigstilt / 🟡 videre UI-polering**
+**Status: ✅ transfer-/regelkjernen og brukerflaten ferdigstilt / 🔵 sesongvedlikehold**
 
 - MP-04.1 ✅ Persistente fantasybrukerlag etablert.
 - MP-04.2 ✅ Kaptein og visekaptein støttes.
 - MP-04.3 ✅ Klubbbegrensning og sentrale lagvalideringer implementert.
-- MP-04.4 🟡 Lagbygger/UI finnes og viderepoleres for mobil og desktop.
+- MP-04.4 ✅ Lagbygger/UI er sluttpolert for mobil og desktop gjennom MP-11. Touch targets, spiller-/fixturehierarki, Eventlag og Bytter er harmonisert uten å endre lag- eller transferlogikk.
 - MP-04.5 ✅ Full transfersyklus er ferdigstilt og dokumentert: fast maks 2 permanente spillerbytter per ordinær fantasy-runde uten byttebank og uten poengtrekk; Bytteboost øker grensen til 4 i valgt runde og låses når lagret transferbruk passerer 2. Transfers teller først ved serverlagring, lagrede bytter refunderes ikke, og transferledger lagrer batch, runde, tidspunkt, lagverdi før/etter og alle INN/UT-spillere med pris. Egen brukerflate `/fantasy/transfers` viser reglene og historikken via autentisert read-only RPC. Rik/Fattig Onkel bruker separate eventlag og skriver aldri permanent transferhistorikk.
 - MP-04.6 ✅ Endelig låseregelverk er dokumentert i `docs/FANTASY_TRANSFER_RULES.md`: transfers gjelder neste åpne autoritative fantasy-runde og må skje før deadline; rekke, kaptein, visekaptein og lagnavn teller ikke som transfer; Event Weeks sperrer permanente transfers; snapshot ved deadline er historisk fasit og senere transfers kan ikke endre historiske runder. Server-side validering for deadline, snapshot, budsjett, posisjoner, klubbgrense, Bytteboost og Event Week beholdes som autoritativ gate.
 - MP-04.7 ✅ Motstandere i aktuell fantasy-gameweek vises direkte på hver spiller i «Mitt lag»/lagbyggeren. Løsningen gjenbruker `fantasy_rounds` og autoritativ `get_fantasy_round_schedule_v1`, bruker felles klubbnormalisering, viser H/B og håndterer 0, 1 eller flere kamper uten å endre scoring, deadlines eller rundedefinisjoner. Produksjonsdata og grønn Vercel-build er verifisert 2026-08-22.
@@ -153,13 +153,13 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-11 – UI/UX og mobilopplevelse
 
-**Status: 🟡**
+**Status: ✅ samlet Fantasy UX-/mobilpass ferdigstilt 2026-08-23**
 
-- MP-11.1 🟡 Felles fantasy-navigasjon og adminstruktur finnes. Fantasy-hovedmenyen er ryddet ved å samle Mitt lag/Eventlag/Bytter og Poeng/Rundehistorikk/Min statistikk i interne seksjoner; Achievements er integrert over Leaderboard.
-- MP-11.2 🟡 Leaderboard er polert for desktop/mobil og konkurranseinformasjon/achievements er samlet.
-- MP-11.3 🟡 Lagbygger, runder, spillerkort og analyse gjennomgås systematisk for mobil.
-- MP-11.4 ⬜ Samlet UX-pass før lansering.
-- MP-11.5 ⬜ Tilgjengelighet/readability/loading/error/empty states kvalitetssikres.
+- MP-11.1 ✅ **Navigasjon og felles Fantasy-layout:** Fantasy-hovedmenyen samler Mitt lag/Eventlag/Bytter og Poeng/Rundehistorikk/Min statistikk i interne seksjoner; Achievements er integrert i Leaderboard. Mobilfeilen der Fantasy ble markert som «Profil» i globalmenyen er fjernet, 8/7-gridavviket er rettet, og Fantasy-menyen bruker en eksplisitt mobilgrid uten nødvendig horisontal scrolling.
+- MP-11.2 ✅ **Leaderboard og konkurransepresentasjon:** desktop-/mobilpresentasjon, egen-lag-markering, achievements, historikk og redusert kolonnevisning på små skjermer er kontrollert. Eksisterende løsning ble beholdt der den allerede var god.
+- MP-11.3 ✅ **Lagbygger, spillerflater, runder og statistikk:** Mitt lag, Eventlag og Bytter er harmonisert med større touch targets og konsistent panel-/kontrollspråk. `/fantasy/players` er bygget om til en beslutningstabell med faktiske FP, FP/kamp, Form 5, eierandel, pris og neste gameweek/motstander(e), med sortering og mobilkort uten horisontal scrolling. FP-tallene kommer fra authenticated-only read-RPC `get_fantasy_player_market_summary_v1`, som bruker samme siste-beregning-per-kamp-semantikk som spillerprofilen; `anon` har ikke EXECUTE. Spillerprofil, runder, DGW/BGW-visning, Stats og Regler er mobilpolert; Stats' 820px runde-tabell og Regler-tabellene blir kortvisning på telefon.
+- MP-11.4 ✅ **Samlet UX-pass:** Fantasy-forsiden er justert til den forenklede informasjonsarkitekturen, Eventlag/Bytter er visuelt samlet med resten av Fantasy, sidebredder/spacings/touchflater er harmonisert og eksisterende fungerende forretningslogikk er beholdt uendret.
+- MP-11.5 ✅ **Readability/loading/error/empty states:** tydeligere states er lagt inn på sentrale flater, blant annet Spillere, spillerprofil, Bonus Weeks og Rundehistorikk. Bonus Weeks har eksplisitt loading/error/retry, og Rundehistorikk forklarer at historikken blir tilgjengelig når laget først låses ved deadline. Ingen scoring-, snapshot-, deadline-, transfer-, Event Week-, Booster-, budsjett-, C/VC- eller leaderboardregel ble endret i UX-passet.
 
 # MP-12 – Testing, sikkerhet og datakvalitet
 
@@ -202,10 +202,9 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når et steg er ferdig, blokkert eller når ny informasjon endrer avhengighetene. Arbeidschatten som fullfører et steg skal lese siste versjon av denne køen på `main` før den sender brukeren videre.
 
-1. **Chat 11 – MP-11.3–11.5: samlet Fantasy UX-/mobilpass.** MP-07 konkurransepresentasjon, rundehistorikk og personlig statistikk er nå ferdigstilt. Gjennomgå lagbygger, spillerkort, runder, leaderboard, Poeng/Stats, Eventlag/Bytter, navigasjon, mobil/desktop, readability og loading/error/empty states som én samlet brukerreise.
-2. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Scoring, transfers, deadlines, RLS, admin og sentrale brukerflyter.
-3. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** Regelverk, 45 runder/deadlines, produksjon, cron/secrets, smoke tests, backup og rollback.
-4. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske launch-gates er PASS.
+1. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Scoring, transfers, deadlines, RLS, admin og sentrale brukerflyter. MP-11 UX-/mobilpasset er ferdig, så neste effektive steg er å bevise at den samlede løsningen er regresjonssikker før launch-gate.
+2. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** Regelverk, 45 runder/deadlines, produksjon, cron/secrets, smoke tests, backup og rollback.
+3. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske launch-gates er PASS.
 
 **Sesongavhengig:** MP-06.6 full produksjonsvalidering mot faktiske 2026/27-kamper gjennomføres i **Chat 06** så snart representative seriekamper finnes. MP-02.6 og øvrig synk/datadrift fortsetter løpende. MP-09 følger nye reelle availability-funn gjennom sesongen og første naturlige E2E via review-køen verifiseres ved første faktiske funn. **Chat 13 / MP-13** er et separat tipping-spor som kan utvikles parallelt så lenge det ikke blokkerer Fantasy XI-kritisk arbeid.
 
