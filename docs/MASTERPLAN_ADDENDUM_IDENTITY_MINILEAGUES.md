@@ -1,4 +1,4 @@
-# Stang Inn – MASTERPLAN ADDENDUM: identitet, lagnavn og felles miniligaer
+# Stang Inn – MASTERPLAN ADDENDUM: identitet, lagnavn, miniligaer og Event Weeks
 
 > Operativt tillegg til `docs/MASTERPLAN.md`. GitHub `main` er teknisk source of truth. Dette tillegget gjelder foran eldre formuleringer dersom det oppstår konflikt, inntil punktene er foldet inn i hovedfilen.
 
@@ -27,28 +27,41 @@ Et Fantasy-lag skal ikke kunne lagres første gang uten at brukeren aktivt har r
 
 ### MP-07.10 ⬜ Vis både lagnavn og eiernavn i Fantasy-tabeller
 
-Fantasy leaderboard, rundetabeller og relevante miniliga-/konkurranseflater skal vise både:
-
-1. **Lagnavn** – fantasy-lagets registrerte navn.
-2. **Eier** – profilnavnet til brukeren som opprettet/eier laget.
-
-Krav:
+Fantasy leaderboard, rundetabeller og relevante miniliga-/konkurranseflater skal vise både lagnavn og profilnavnet til brukeren som eier laget.
 
 - Presentasjonen skal være tydelig på mobil og desktop.
-- Rangering/tie-break skal fortsatt følge autoritativ poenglogikk; eiernavn og lagnavn er visningsdata, ikke sportslig tie-break med mindre dette senere besluttes eksplisitt.
-- Historiske snapshots/runder skal ikke omskrives feil ved navneendringer. Det skal defineres tydelig om historiske flater viser dagens profil-/lagnavn eller fryser navn per snapshot; dette må velges og testes eksplisitt før implementasjonen markeres ferdig.
+- Rangering/tie-break følger fortsatt autoritativ poenglogikk.
+- Historiske snapshots/runder skal ikke omskrives feil ved navneendringer; visningspolicy må velges og testes eksplisitt.
 
-### MP-07.11 ⬜ Fastsett hvilke gameweeks som er Rik Onkel og Fattig Onkel
+### MP-07.11 ⬜ Fastsett og produksjonskonfigurer Rik Onkel og Fattig Onkel
 
-Event Week-mekanikken er implementert, men de konkrete fantasy-rundene for sesongen må besluttes og publiseres før launch.
+Produktbeslutning er tatt:
 
-- Velg én konkret gameweek for **Rik Onkel** (200m eventlag).
-- Velg én konkret gameweek for **Fattig Onkel** (70m eventlag).
-- Valget skal gjøres mot den autoritative 45-runders termin-/fantasyplanen og bør vurdere kampmengde, double/blank gameweeks, avstand mellom Event Weeks og sportslig variasjon.
-- Event Weeks bør ligge med god avstand fra hverandre og ikke plasseres tilfeldig bare for å fylle kalenderen.
-- Kontroller at valgte runder ikke gir uønskede konflikter med personlige boostere, transfers, deadlines eller andre spesialrunder.
-- Når rundene er besluttet skal de konfigureres i produksjonsdata, vises tydelig i Fantasy-kalender/regler og inngå i snapshot-, scoring-, transfer- og regresjonskontroller.
-- Endring av Event Week etter at brukere har begynt å planlegge/lagre eventlag skal behandles som en kontrollert regelendring og ikke gjøres uten eksplisitt beslutning.
+- **GW15 – Rik Onkel** (200m eventlag).
+- **GW38 – Fattig Onkel** (70m eventlag).
+
+Beslutningen er dokumentert i `docs/MP07_EVENT_WEEK_SCHEDULE_2026_27.md`. Punktet står ⬜ til rundene er konfigurert i produksjonsdata og verifisert mot deadlines, transfers, snapshots, øvrige boostere, scoring og UI.
+
+### MP-07.12 ⬜ Julebord Event Week – GW22
+
+Produktbeslutning er tatt:
+
+- **GW22 – Julebord**, torsdag 3. desember 2026.
+- Tema: **Alle skal med!**
+- I Julebord-runden teller både rekke 1 og rekke 2 **100 %** av sine ordinære fantasy-poeng.
+- Kaptein beholder ordinær ×2 og visekaptein ordinær ×1,5 etter gjeldende regler.
+- Personlige boostere skal ikke kunne brukes i Julebord-runden.
+- Ordinære deadline-, snapshot-, klubb-, posisjons- og lagregler gjelder ellers.
+
+Full produktregel og ferdigkriterier er dokumentert i `docs/MP07_JULEBORD_2026_27.md`.
+
+Punktet kan først markeres ✅ når GW22 er verifisert mot den autoritative 45-runders kalenderen, eventtypen er konfigurert i produksjon, scoring/snapshot/boosterkonflikt fungerer korrekt, UI/regler viser runden tydelig og regresjonstester er bestått.
+
+Sesongens planlagte felles Event Weeks er dermed:
+
+1. GW15 – **Rik Onkel**.
+2. GW22 – **Julebord**.
+3. GW38 – **Fattig Onkel**.
 
 ### MP-13.6 ⬜ Felles miniligaer på tvers av Tipping og Fantasy
 
@@ -66,16 +79,7 @@ Miniliga-medlemskap skal være produktuavhengig: er en bruker medlem av en minil
 
 Identitetskravene bør implementeres før felles miniligaer ferdigstilles. Da får både Tipping og Fantasy én stabil brukeridentitet å vise i ligaene, og Fantasy slipper generiske lag som `Mitt lag` i leaderboard/miniligaer.
 
-Event Week-rundene bør fastsettes før full pre-launch regresjon og før regelverket låses i MP-14. Mekanikken finnes allerede, så dette er primært en produkt-/kalenderbeslutning med påfølgende produksjonskonfigurasjon og verifikasjon.
-
-Anbefalt rekkefølge innen dette sporet:
-
-1. MP-01.7 – profilnavn/onboarding.
-2. MP-04.8 – obligatorisk Fantasy-lagnavn.
-3. MP-07.10 – vis lagnavn + eier i Fantasy-tabeller.
-4. MP-13.6 – felles miniligaer på tvers av produktene.
-5. MP-07.11 – fastsett Rik Onkel/Fattig Onkel-gameweeks.
-6. MP-12 – regresjon av auth/RLS, lagring, leaderboard, Event Weeks og liga-medlemskap.
+Event Weeks må være produksjonskonfigurert og verifisert før full pre-launch regresjon og før regelverket låses i MP-14. Rik Onkel/Fattig Onkel og Julebord skal behandles samlet i Chat 07 slik at kalender, UI, scoring, boosterkonflikter og snapshots verifiseres i én sammenhengende Event Week-pass.
 
 ## Oppdatert prioritert arbeidskø
 
@@ -84,8 +88,8 @@ Anbefalt rekkefølge innen dette sporet:
 3. **Chat 04 – MP-04.8: obligatorisk lagnavn.** Ingen nye Fantasy-lag skal kunne lagres med `Mitt lag`/tomt standardnavn.
 4. **Chat 07 – MP-07.10: lagnavn + eiernavn i tabeller.** Oppdater Fantasy leaderboard/runder/miniligavisning med begge identiteter.
 5. **Chat 13 – MP-13.6: felles miniligaer.** Bygg ett medlemskap som brukes av både Tipping og Fantasy, med separate produkttabeller.
-6. **Chat 07 – MP-07.11: bestem Rik Onkel- og Fattig Onkel-gameweeks.** Analyser de 45 autoritative fantasy-rundene, velg og konfigurer de to Event Weeks og verifiser at de fungerer med deadlines, transfers, snapshots og øvrige boostere.
-7. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Ta med profilnavn, lagnavn, leaderboardvisning, Event Week-konfigurasjon og felles miniliga-RLS i regresjonsmatrisen.
+6. **Chat 07 – MP-07.11 + MP-07.12: produksjonskonfigurer Event Weeks.** Konfigurer og verifiser GW15 Rik Onkel, GW22 Julebord og GW38 Fattig Onkel. Julebord skal gi 100 % poeng fra begge rekker og blokkere personlige boostere. Verifiser alle tre mot kalender, deadlines, transfers, scoring, snapshots, UI og historikk.
+7. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Ta med profilnavn, lagnavn, leaderboardvisning, alle Event Weeks og felles miniliga-RLS i regresjonsmatrisen.
 8. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.**
 9. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske gates er PASS.
 
