@@ -4,6 +4,7 @@ import {useEffect,useState} from "react";
 import {getSupabaseBrowserClient} from "../../../lib/supabase";
 import RoundPointsView,{type RoundDetail} from "./RoundPointsView";
 import "../fantasy.css";
+import "./bonus-history.css";
 
 const SEASON="2026/27";
 
