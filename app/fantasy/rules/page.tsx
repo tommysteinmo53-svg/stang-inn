@@ -71,6 +71,17 @@ export default function FantasyRulesPage(){
   </section>
 
   <section className="rules-section team-panel">
+   <p className="eyebrow">KONKURRANSEN</p><h2>Leaderboard og lik poengsum</h2>
+   <div className="rules-copy-grid">
+    <div><h3>1. Totalpoeng</h3><p>Flest fantasy-poeng gjennom sesongen gir høyest plassering.</p></div>
+    <div><h3>2. Rundeseire</h3><p>Hvis to eller flere lag har lik totalpoengsum, rangeres laget med flest rundeseire foran.</p></div>
+    <div><h3>3. Beste runde</h3><p>Er lagene fortsatt like, rangeres laget med høyest enkelt-rundescore foran.</p></div>
+    <div><h3>Fortsatt helt likt?</h3><p>Hvis totalpoeng, rundeseire og beste runde er identisk, <strong>deler lagene plasseringen</strong>. Lagnavn brukes bare for stabil visningsrekkefølge og avgjør aldri konkurransen.</p></div>
+   </div>
+   <p className="rules-footnote">Samme tie-break-rekkefølge brukes når rankendring fra forrige scorede runde beregnes.</p>
+  </section>
+
+  <section className="rules-section team-panel">
    <p className="eyebrow">EKSEMPEL</p><h2>Eksempel på spillerpoeng</h2>
    <div className="rules-example"><div><strong>Forward</strong><p>Spiller kampen (+2), scorer 1 mål (+10), har 1 assist (+6), 4 skudd (+4), +2 i +/- (+2) og 2 utvisningsminutter (−2).</p><b>Totalt: 22 poeng</b></div><div><strong>Samme spiller som kaptein</strong><p>22 grunnpoeng × 2.</p><b>Totalt til fantasylaget: 44 poeng</b></div><div><strong>Samme spiller som visekaptein</strong><p>22 grunnpoeng × 1,5.</p><b>Totalt til fantasylaget: 33 poeng</b></div></div>
   </section>
