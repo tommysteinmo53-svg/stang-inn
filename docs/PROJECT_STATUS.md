@@ -1,6 +1,6 @@
 # Stang Inn – PROJECT STATUS
 
-Sist kontrollert mot GitHub `main`: 2026-08-22
+Sist kontrollert mot GitHub `main`: 2026-08-23
 
 ## Source of truth
 
@@ -16,7 +16,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-22
 - TypeScript 5.9.x
 - Supabase
 - Vercel
-- GitHub Actions build-CI
+- GitHub Actions build-CI + Bonus Weeks-kontrakt/regresjon
 
 ## EHL 2026/27
 
@@ -44,6 +44,15 @@ Sist kontrollert mot GitHub `main`: 2026-08-22
 - Fantasy-poengmotor med special-teams-relatert scoring.
 - Kaptein ×2 og visekaptein ×1,5.
 - Sesong-leaderboard, rundering/rank og movement UI.
+- **MP-07.6 Bonus Weeks er implementert og produksjonsverifisert.** Hvert lag har én Kapteinsboost (C ×2,5), én Rekkeboost (rekke 2 = 100 %) og én Bytteboost (opptil 4 bytter) per sesong. Maks ett personlig kort kan brukes i samme fantasy-runde, og kortene følger eksisterende deadline/snapshot-gate.
+- **Rik Onkel og Fattig Onkel er implementert som felles Event Weeks.** Rik Onkel bruker separat midlertidig 200m-eventlag, Fattig Onkel separat 70m-eventlag. Eventlagene ligger fysisk separat fra permanentlaget, lager ingen permanente transfers og ordinært 100m-lag kommer tilbake uendret etter eventrunden.
+- Personlige boosterkort er sperret i Rik/Fattig Onkel. Eventlag bruker vanlige posisjons-, klubb-, rekke- og C/VC-regler og samme autoritative rundedeadline.
+- Bonus-/eventmetadata fryses i autoritative snapshots (`booster_type`, `event_type`, `event_budget` og relevante multiplikator-overstyringer), slik at historisk re-scoring er deterministisk.
+- Autoritativ scoring støtter Kapteinsboost og Rekkeboost samt 0/1/flere kamper i samme fantasy-runde; alle kamp-poeng summeres før rekke-/rolle-multiplikatorer.
+- Bytteboost øker server-side transfergrensen 2 → 4 og blir irreversibel når bytte nummer 3 gjennomføres. Permanente transfers er sperret i Event Weeks.
+- «Mitt lag» har boosterkort-UI med tilgjengelig/valgt/låst/brukt-status og tydelig regeltekst. Eventlag har egen side med 200m/70m-budsjett, deadline og tydelig informasjon om at permanentlaget ikke påvirkes.
+- Leaderboardets utfoldbare rundehistorikk viser boost/event-markører fra snapshotet uten å fylle hovedtabellen med ekstra kolonner.
+- Spillernavn i lagbygger/spillermarked og Eventlag åpner spillerens profil, mens lagvalg håndteres separat.
 - Admin/analysegrunnlag med avviklet preseason-FP/treningskampstatistikk som Fantasy-signal.
 - MP-08.4 kanonisk analyse-featurelag `get_fantasy_analysis_features_admin_v1`: sesong-FP/kamp, form 3/5/10, hjemme/borte, sample counts, pris og observert FP/kamp per million samles før modellberegning. Den raske xFP-horisonten bruker featurelaget direkte; anbefalingene arver samme datagrunnlag. Form 5 er fortsatt modellens form-input, og verken scoringregler eller xFP-vekter ble endret.
 - MP-08.5 dynamisk fixture-/motstanderrating er produksjonskalibrert uten treningskampdata. Historisk baseline bruker ordinær EHL 2025/26, posisjonsbevisst GF/GA-logikk, live-kurve med eksponent 0,80 og clamp 0,70–1,35. 2026/27-data fases lineært inn over de første 12 ferdigspilte seriekampene; Ringerike bruker nøytral 1,000-baseline på grunn av manglende ordinært EHL-grunnlag fra 2025/26. Produksjonskontroll bekrefter at den autoritative motstanderfaktoren ikke leser preseason-/treningskampstatistikk.
@@ -68,15 +77,20 @@ MP-03.6 er ferdig og produksjonsverifisert som V4.6.2. Prisuniverset er nå komp
 
 MP-04.7 er ferdig på `main`. «Mitt lag» gjenbruker `fantasy_rounds` + `get_fantasy_round_schedule_v1`, velger effektiv transfer-runde når den finnes og ellers neste deadline, normaliserer kampklubber med felles `canonicalFantasyTeam()`, og viser 0/1/flere kamper med H/B direkte under spillerens klubb/posisjon. Produksjonsdata bekrefter både runder med lag uten kamp og runder med dobbeltkamper.
 
-Neste operative hovedpunkt er **Chat 07 – MP-07.6**: Bonus Weeks / fantasy-boostere. Prinsippene bør avklares før MP-04.5/04.6 ferdigstilles dersom boostere skal påvirke bytter, scoring eller deadlines.
+**MP-07.6 er ferdig og produksjonsverifisert 2026-08-23.** Regelspesifikasjon, datamodell, sikre booster-/event-RPC-er, eventlag, snapshots, scoring, Bytteboost, UI, leaderboard-historikk og filbasert regresjonsdekning er på `main`. Under implementeringen ble en faktisk produksjonsskjema-mismatch i spiller-rundepoeng oppdaget og reparert; aktiv scoringfunksjon er verifisert schema-aligned (`PASS`).
+
+**Neste operative hovedpunkt er Chat 04 – MP-04.5 + MP-04.6:** full transfersyklus og endelige låseregler. Bonus Weeks-reglene er nå låst, slik at transferbank/frie bytter/historikk og endelig regelverk kan ferdigstilles uten uavklarte boosteravhengigheter.
 
 MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirker analyse/optimizer, og blokkerte statuser kan ikke foreslås. Varslingskjeden er teknisk produksjonsverifisert og første naturlige E2E via et reelt nytt review-funn tas når et slikt funn oppstår.
 
-MP-10.3 og MP-10.4 er ferdige og produksjonsverifiserte på `main`. Fixture/xFP- og prisinput er nå stabile; resterende MP-10.1/10.2/10.5 ferdigstilles etter gameweek-/regelarbeidet i henhold til `docs/MASTERPLAN.md`.
+MP-10.3 og MP-10.4 er ferdige og produksjonsverifiserte på `main`. Fixture/xFP- og prisinput er stabile; resterende MP-10.1/10.2/10.5 tas etter MP-04.5/04.6 i henhold til `docs/MASTERPLAN.md`.
 
 ## Testing
 
-- GitHub Actions kjører `npm run build` på push/PR mot `main`.
+- GitHub Actions kjører `npm run test:bonus-weeks` før `npm run build` på push/PR mot `main`.
+- Bonus Weeks-regresjonen er deterministisk og filbasert og skriver aldri til Supabase. Den beskytter kritiske kontrakter for eventlag-isolasjon, 200m/70m, booster inventory/stacking/deadline, snapshotmetadata, Kapteins-/Rekkeboost, double-GW-summering, Bytteboost, Event Week-transfer-sperre og historikkmarkører.
+- Siste MP-07.6L-commit `fb9ee0a` er Vercel-verifisert `SUCCESS` 2026-08-23.
+- Schema-reparasjonen for Bonus Weeks-scoring ble manuelt kjørt i Supabase og read-only verifisert med `scoring_schema_alignment = PASS`.
 - Isolerte E2E-/testkontroller er implementert for sentrale fantasyflyter, blant annet snapshots og leaderboard.
 - MP-04.7 er build-/Vercel-verifisert på `main`. Produksjonsdata viser 45 autoritative fantasy-runder; runde 7/9/20/24 har bare 8 deltakende lag (0 kamper for to lag), mens runde 11/13/14/39 har lag med 2 kamper. Linus Pettersson er `Stavanger · W`, og runde 1 har Stavanger borte mot Vålerenga. Responsive CSS lar fixturelinjen brytes på mobil uten å endre eksisterende lagbygger-grid.
 - MP-08.4-produksjonssmoke: featurelag 234 rader, xFP-horisont 234 rader og anbefalingsdatasett 234 rader ved opprinnelig kontroll; API-endringen er Vercel-build/deploy-verifisert.
