@@ -10,7 +10,7 @@ const items = [
   { href: "/leagues", icon: "🤝", label: "Ligaer", match: (p: string) => p.startsWith("/leagues") },
   { href: "/awards", icon: "🏅", label: "Awards", match: (p: string) => p.startsWith("/awards") },
   { href: "/notifications", icon: "🔔", label: "Varsler", match: (p: string) => p.startsWith("/notifications") },
-  { href: "/profile", icon: "👤", label: "Profil", match: (p: string) => p.startsWith("/profile") || p.startsWith("/admin") || p.startsWith("/fantasy") },
+  { href: "/profile", icon: "👤", label: "Profil", match: (p: string) => p.startsWith("/profile") || p.startsWith("/admin") },
 ];
 
 export default function GlobalMobileNav() {
