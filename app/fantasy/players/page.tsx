@@ -2,28 +2,44 @@
 
 import {useEffect,useMemo,useState} from "react";
 import {getSupabaseBrowserClient} from "../../../lib/supabase";
+import {canonicalFantasyTeam} from "../../../lib/fantasy/team-normalization";
 import "../fantasy.css";
+import "./players.css";
 
 const SEASON="2026/27";
-type Player={id:string;name:string;team:string;position:string;price:number};
-type SortOrder="NAME"|"PRICE_ASC"|"PRICE_DESC";
+type SortOrder="NAME"|"FP_DESC"|"AVG_DESC"|"FORM_DESC"|"OWN_DESC"|"PRICE_ASC"|"PRICE_DESC";
+type Player={id:string;name:string;team:string;position:string;price:number;fantasyPoints:number;fantasyPointsPerGame:number;gamesScored:number;form5Points:number;form5Average:number;form5Games:number;ownershipPercent:number};
+type Round={id:string;round_no:number;deadline_at:string};
+type Game={fantasy_round_no:number;starts_at:string|null;home_team:string;away_team:string};
+type Fixture={opponent:string;venue:"H"|"B"};
+const posLabel=(p:string)=>p==="C"||p==="W"?"F":p;
+const pts=(v:number)=>Number(v||0).toFixed(1).replace(".0","");
 
 export default function FantasyPlayersPage(){
- const[players,setPlayers]=useState<Player[]>([]),[busy,setBusy]=useState(true),[message,setMessage]=useState("");
- const[q,setQ]=useState(""),[teamFilter,setTeamFilter]=useState("ALL"),[posFilter,setPosFilter]=useState("ALL"),[sortOrder,setSortOrder]=useState<SortOrder>("NAME");
+ const[players,setPlayers]=useState<Player[]>([]),[rounds,setRounds]=useState<Round[]>([]),[games,setGames]=useState<Game[]>([]),[busy,setBusy]=useState(true),[message,setMessage]=useState("");
+ const[q,setQ]=useState(""),[teamFilter,setTeamFilter]=useState("ALL"),[posFilter,setPosFilter]=useState("ALL"),[sortOrder,setSortOrder]=useState<SortOrder>("FP_DESC");
 
  useEffect(()=>{(async()=>{try{
   const sb=getSupabaseBrowserClient();if(!sb)throw new Error("Supabase er ikke tilgjengelig");
   const{data:s}=await sb.auth.getSession();if(!s.session)throw new Error("Du må være logget inn");
-  const[{data:p,error},{data:prices,error:pe}]=await Promise.all([
-   sb.from("fantasy_players").select("id,name,team,position").in("position",["C","W","D","G"]).order("name"),
-   sb.from("fantasy_player_season_prices").select("player_id,price").eq("season",SEASON)
+  const[{data:p,error},{data:prices,error:pe},{data:summary,error:su},{data:roundRows,error:re},{data:schedule,error:se}]=await Promise.all([
+   sb.from("fantasy_players").select("id,name,team,position").in("position",["C","W","D","G"]).eq("on_current_roster",true).order("name"),
+   sb.from("fantasy_player_season_prices").select("player_id,price").eq("season",SEASON),
+   sb.rpc("get_fantasy_player_market_summary_v1",{p_season:SEASON}),
+   sb.from("fantasy_rounds").select("id,round_no,deadline_at").eq("season",SEASON).lt("round_no",9000).order("deadline_at",{ascending:true}),
+   sb.rpc("get_fantasy_round_schedule_v1",{p_season:SEASON})
   ]);
-  if(error)throw error;if(pe)throw pe;
-  const priceMap=new Map((prices||[]).map((x:any)=>[x.player_id,Number(x.price)]));
-  setPlayers((p||[]).filter((x:any)=>priceMap.has(x.id)).map((x:any)=>({...x,price:priceMap.get(x.id)!})));
+  if(error)throw error;if(pe)throw pe;if(su)throw su;if(re)throw re;if(se)throw se;
+  const priceMap=new Map((prices||[]).map((x:any)=>[String(x.player_id),Number(x.price)]));
+  const summaryMap=new Map((summary||[]).map((x:any)=>[String(x.player_id),x]));
+  setPlayers((p||[]).filter((x:any)=>priceMap.has(String(x.id))).map((x:any)=>{const s=summaryMap.get(String(x.id)) as any;return {...x,price:priceMap.get(String(x.id))!,fantasyPoints:Number(s?.fantasy_points||0),fantasyPointsPerGame:Number(s?.fantasy_points_per_game||0),gamesScored:Number(s?.games_scored||0),form5Points:Number(s?.form5_points||0),form5Average:Number(s?.form5_average||0),form5Games:Number(s?.form5_games||0),ownershipPercent:Number(s?.ownership_percent||0)}}));
+  setRounds(((roundRows||[])as any[]).map(x=>({id:String(x.id),round_no:Number(x.round_no),deadline_at:String(x.deadline_at)})));
+  setGames(((schedule||[])as any[]).map(x=>({...x,fantasy_round_no:Number(x.fantasy_round_no)})));
  }catch(e:any){setMessage(`Kunne ikke hente spillere: ${e.message||e}`)}finally{setBusy(false)}})()},[]);
 
+ const targetRoundNo=rounds.find(r=>new Date(r.deadline_at).getTime()>Date.now())?.round_no??rounds.at(-1)?.round_no??null;
+ const fixturesByTeam=useMemo(()=>{const m=new Map<string,Fixture[]>();if(targetRoundNo==null)return m;for(const g of games.filter(g=>g.fantasy_round_no===targetRoundNo).sort((a,b)=>(a.starts_at||"").localeCompare(b.starts_at||""))){const h=canonicalFantasyTeam(g.home_team),a=canonicalFantasyTeam(g.away_team);m.set(h,[...(m.get(h)||[]),{opponent:a,venue:"H"}]);m.set(a,[...(m.get(a)||[]),{opponent:h,venue:"B"}])}return m},[games,targetRoundNo]);
+ const fixtureText=(team:string)=>{if(targetRoundNo==null)return"Ingen runde";const f=fixturesByTeam.get(canonicalFantasyTeam(team))||[];return f.length?f.map(x=>`${x.venue}: ${x.opponent}`).join(" · "):"Ingen kamp"};
  const teams=useMemo(()=>Array.from(new Set(players.map(p=>p.team))).sort((a,b)=>a.localeCompare(b,"nb")),[players]);
  const filtered=useMemo(()=>players.filter(p=>{
   const search=!q||`${p.name} ${p.team}`.toLowerCase().includes(q.toLowerCase());
@@ -31,17 +47,33 @@ export default function FantasyPlayersPage(){
   const pos=posFilter==="ALL"||(posFilter==="F"?(p.position==="C"||p.position==="W"):p.position===posFilter);
   return search&&team&&pos;
  }).sort((a,b)=>{
+  if(sortOrder==="FP_DESC")return b.fantasyPoints-a.fantasyPoints||b.fantasyPointsPerGame-a.fantasyPointsPerGame||a.name.localeCompare(b.name,"nb");
+  if(sortOrder==="AVG_DESC")return b.fantasyPointsPerGame-a.fantasyPointsPerGame||b.fantasyPoints-a.fantasyPoints||a.name.localeCompare(b.name,"nb");
+  if(sortOrder==="FORM_DESC")return b.form5Average-a.form5Average||b.fantasyPoints-a.fantasyPoints||a.name.localeCompare(b.name,"nb");
+  if(sortOrder==="OWN_DESC")return b.ownershipPercent-a.ownershipPercent||b.fantasyPoints-a.fantasyPoints||a.name.localeCompare(b.name,"nb");
   if(sortOrder==="PRICE_ASC")return a.price-b.price||a.name.localeCompare(b.name,"nb");
   if(sortOrder==="PRICE_DESC")return b.price-a.price||a.name.localeCompare(b.name,"nb");
   return a.name.localeCompare(b.name,"nb");
  }),[players,q,teamFilter,posFilter,sortOrder]);
 
- return <main className="fantasy-shell">
-  <section className="team-builder-head"><div><p className="fantasy-kicker">STANG INN · FANTASY 2026/27</p><h1>Spillere</h1><p>Se alle spillere med låst sesongpris og åpne spillerprofilen for mer statistikk.</p></div></section>
-  <section className="team-panel" style={{marginTop:18}}>
-   <div className="team-panel-top" style={{gap:12,flexWrap:"wrap"}}><input className="team-search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Søk etter spiller eller lag …"/><select className="team-line-select" value={teamFilter} onChange={e=>setTeamFilter(e.target.value)}><option value="ALL">Alle lag</option>{teams.map(t=><option key={t} value={t}>{t}</option>)}</select><select className="team-line-select" value={posFilter} onChange={e=>setPosFilter(e.target.value)}><option value="ALL">Alle posisjoner</option><option value="F">Forward</option><option value="D">Back</option><option value="G">Keeper</option></select><select className="team-line-select" aria-label="Sorter spillere" value={sortOrder} onChange={e=>setSortOrder(e.target.value as SortOrder)}><option value="NAME">Navn A–Å</option><option value="PRICE_DESC">Pris høy–lav</option><option value="PRICE_ASC">Pris lav–høy</option></select></div>
-   {message&&<p className="team-message">{message}</p>}
-   {busy?<p className="team-muted">Henter spillere …</p>:<div className="team-pool-list" style={{marginTop:14}}>{filtered.map(p=><a key={p.id} href={`/fantasy/players/${p.id}`} className="team-pool-player" style={{textDecoration:"none",color:"inherit"}}><div><strong>{p.name}</strong><small>{p.team} · {p.position==="C"||p.position==="W"?"F":p.position}</small></div><span className="team-price">{p.price.toFixed(1)}m</span></a>)}{!filtered.length&&<p className="team-muted">Ingen spillere matcher filtrene.</p>}</div>}
+ return <main className="fantasy-shell players-shell">
+  <section className="team-builder-head"><div><p className="fantasy-kicker">STANG INN · FANTASY 2026/27</p><h1>Spillere</h1><p>Sammenlign pris, faktiske Fantasy-poeng og neste gameweek. Trykk på en spiller for full profil og kamphistorikk.</p></div></section>
+  <section className="team-panel players-panel">
+   <div className="players-filters"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Søk spiller eller klubb …"/><select value={teamFilter} onChange={e=>setTeamFilter(e.target.value)}><option value="ALL">Alle lag</option>{teams.map(t=><option key={t} value={t}>{t}</option>)}</select><select value={posFilter} onChange={e=>setPosFilter(e.target.value)}><option value="ALL">Alle posisjoner</option><option value="F">Forward</option><option value="D">Back</option><option value="G">Keeper</option></select><select aria-label="Sorter spillere" value={sortOrder} onChange={e=>setSortOrder(e.target.value as SortOrder)}><option value="FP_DESC">FP totalt</option><option value="AVG_DESC">FP per kamp</option><option value="FORM_DESC">Form siste 5</option><option value="OWN_DESC">Eierandel</option><option value="PRICE_DESC">Pris høy–lav</option><option value="PRICE_ASC">Pris lav–høy</option><option value="NAME">Navn A–Å</option></select></div>
+   <div className="players-context"><span>{filtered.length} spillere</span><span>{targetRoundNo?`Neste: runde ${targetRoundNo}`:"Ingen kommende fantasy-runde"}</span><span>FP = faktiske scorede Fantasy-poeng</span></div>
+   {message&&<div className="players-state error"><strong>Noe gikk galt</strong><span>{message}</span></div>}
+   {busy?<div className="players-state"><strong>Henter spillerdata …</strong><span>Pris, Fantasy-poeng og neste motstandere lastes inn.</span></div>:filtered.length===0?<div className="players-state"><strong>Ingen spillere matcher filtrene.</strong><span>Prøv et annet søk, lag eller en annen posisjon.</span></div>:<div className="players-table" role="table" aria-label="Fantasy-spillere">
+    <div className="players-table-head" role="row"><span>Spiller</span><span>FP</span><span>FP/kamp</span><span>Form 5</span><span>Eier</span><span>Pris</span><span>Neste GW</span></div>
+    {filtered.map(p=>{const fixture=fixtureText(p.team),noGame=fixture==="Ingen kamp";return <a key={p.id} href={`/fantasy/players/${p.id}`} className="players-row" role="row">
+     <span className="players-name"><strong>{p.name}</strong><small>{p.team} · {posLabel(p.position)} · {p.gamesScored} scorede kamper</small></span>
+     <span className="players-stat"><small>FP</small><b>{pts(p.fantasyPoints)}</b></span>
+     <span className="players-stat"><small>FP/kamp</small><b>{pts(p.fantasyPointsPerGame)}</b></span>
+     <span className="players-stat players-secondary"><small>Form 5</small><b>{p.form5Games?pts(p.form5Average):"—"}</b></span>
+     <span className="players-stat players-secondary"><small>Eier</small><b>{pts(p.ownershipPercent)}%</b></span>
+     <span className="players-stat"><small>Pris</small><b>{p.price.toFixed(1)}m</b></span>
+     <span className={`players-fixture ${noGame?"no-game":""}`}><small>{targetRoundNo?`R${targetRoundNo}`:"Neste"}</small><b>{fixture}</b></span>
+    </a>})}
+   </div>}
   </section>
  </main>;
 }
