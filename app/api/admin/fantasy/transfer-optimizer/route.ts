@@ -1,6 +1,5 @@
 import {NextRequest,NextResponse} from "next/server";
 import {createClient} from "@supabase/supabase-js";
-import {requireFantasyAdmin} from "../../../../../lib/fantasy/admin-auth";
 import {availabilityXfpFactor,isOptimizerEligibleAvailability,normalizeFantasyAvailabilityStatus} from "../../../../../lib/fantasy/availability-policy";
 import {normalizeOptimizerTransferLimit,optimizerTransferReason,parseLockedPlayerIds} from "../../../../../lib/fantasy/optimizer-transfer-policy";
 
@@ -22,7 +21,7 @@ const STRATEGIES:Record<StrategyKey,{label:string;description:string;riskPenalty
   conservative:{label:"Konservativ",description:"Straffer usikker availability og lav datatillit tydeligere, og foretrekker stabile forslag når forventningen er nær.",riskPenalty:.62,upsideWeight:0},
   offensive:{label:"Offensiv",description:"Vekter forventet Fantasy-xFP høyest og gir ekstra verdi til modellert oppside når usikkerheten kan gi et høyere tak.",riskPenalty:.05,upsideWeight:.30},
 };
-const SEARCH_CAP:Record<Pos,number>={G:10,D:16,F:20};
+const SEARCH_CAP:Record<Pos,number>={G:5,D:8,F:10};
 
 function userClient(request:NextRequest){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -31,7 +30,7 @@ function userClient(request:NextRequest){
   if(!url||!key||!header?.startsWith("Bearer "))return null;
   return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:header}}});
 }
-function adminClient(){
+function serviceClient(){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key=process.env.SUPABASE_SECRET_KEY;
   if(!url||!key)return null;
@@ -137,9 +136,10 @@ function boundedIncomingPool(players:Player[],position:Pos){
 }
 
 export async function GET(request:NextRequest){
-  const admin=await requireFantasyAdmin(request);if(!admin.ok)return admin.response;
-  const sb=userClient(request),server=adminClient();
-  if(!sb||!server)return NextResponse.json({ok:false,error:"Supabase-konfigurasjon mangler."},{status:503});
+  const sb=userClient(request),server=serviceClient();
+  if(!sb||!server)return NextResponse.json({ok:false,error:"Supabase-konfigurasjon eller innlogging mangler."},{status:401});
+  const{data:userData,error:userError}=await sb.auth.getUser();
+  if(userError||!userData.user)return NextResponse.json({ok:false,error:"Du må være logget inn for å bruke optimalisatoren."},{status:401});
   const horizon=request.nextUrl.searchParams.get("horizon")||"next3";
   if(!["next_game","next3"].includes(horizon))return NextResponse.json({ok:false,error:"Ugyldig horisont."},{status:400});
   const lockedIds=parseLockedPlayerIds(request.nextUrl.searchParams.get("locked"));
@@ -147,8 +147,8 @@ export async function GET(request:NextRequest){
   const[{data:team,error:teamError},{data:status,error:statusError},{data:xfp,error:xfpError},{data:economy,error:economyError},{data:catalog,error:catalogError},{data:availability,error:availabilityError}]=await Promise.all([
     sb.from("fantasy_user_teams").select("id,name").eq("season","2026/27").maybeSingle(),
     sb.rpc("get_fantasy_transfer_status_v1",{p_season:"2026/27"}),
-    sb.rpc("get_fantasy_xfp_round_horizons_admin_v2",{p_season:"2026/27"}),
-    sb.rpc("get_fantasy_economy_admin_v1",{p_season:"2026/27"}),
+    sb.rpc("get_fantasy_xfp_round_horizons_v1",{p_season:"2026/27"}),
+    sb.rpc("get_fantasy_economy_v1",{p_season:"2026/27"}),
     server.from("fantasy_players").select("id,name,team,position,price,active,on_current_roster,available_for_purchase"),
     server.from("fantasy_player_availability").select("player_id,status"),
   ]);
