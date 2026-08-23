@@ -3,6 +3,7 @@
 import {useEffect,useMemo,useState} from "react";
 import {getSupabaseBrowserClient} from "../../../lib/supabase";
 import "../fantasy.css";
+import "./rounds.css";
 
 type Round={id:string;round_no:number;name:string|null;starts_at:string|null;deadline_at:string;ends_at:string|null;status:string};
 type Game={game_id:string;fantasy_round_id:string;fantasy_round_no:number;starts_at:string|null;home_team:string;away_team:string};
@@ -29,5 +30,5 @@ export default function FantasyRoundsPage(){
    {rounds.length===0&&<div className="leaderboard-empty"><strong>Ingen fantasy-runder funnet.</strong><span>Rundene opprettes automatisk fra terminlisten.</span></div>}
   </section>
   <section className="team-info-grid"><article className="team-info-card"><h3>📅 Faktisk kampdato</h3><p>Flyttes en EHL-kamp, følger kampen den fantasy-runden som samsvarer med den nye kampdatoen.</p></article><article className="team-info-card"><h3>⏰ Deadline</h3><p>Hele laget fryses ved første kampstart i fantasy-runden.</p></article><article className="team-info-card"><h3>🏒 Ulikt antall kamper</h3><p>En runde kan ha for eksempel 4, 5 eller 6 kamper. Et lag kan derfor ha 0, 1 eller flere kamper i samme runde.</p></article></section>
- </main>
+ </main>;
 }
