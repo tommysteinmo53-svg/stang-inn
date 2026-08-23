@@ -143,13 +143,13 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-10 – Lagoptimalisator
 
-**Status: ✅ – komplett sluttbrukeroptimalisator implementert og produksjonsverifisert 2026-08-23**
+**Status: ✅ – komplett adminverktøy implementert og produksjonsverifisert 2026-08-23**
 
-- MP-10.1 ✅ Komplett input er koblet til innlogget brukers faktiske lag, gjeldende budsjett og autoritative transferstatus. Brukeren kan låse spillere som ikke skal foreslås UT; låsene valideres server-side mot nåværende lag og låste spillere ekskluderes fra outgoing-poolen.
-- MP-10.2 ✅ Sluttbrukerflaten `/fantasy/optimizer` er i ordinær Fantasy-navigasjon og viser tydelige `UT → INN`-forslag, ny lagverdi, forventet xFP-gevinst, risiko, availability, datatillit og forklarbar base-/availability-/effektiv Fantasy-xFP. Balansert, konservativ og offensiv strategi presenteres separat.
+- MP-10.1 ✅ Komplett input er koblet til adminens faktiske lag, gjeldende budsjett og autoritative transferstatus. Admin kan låse spillere som ikke skal foreslås UT; låsene valideres mot nåværende lag og låste spillere ekskluderes fra outgoing-poolen.
+- MP-10.2 ✅ Output i `Admin → Analyse → Optimalisator` viser tydelige `UT → INN`-forslag, ny lagverdi, forventet xFP-gevinst, risiko, availability, datatillit og forklarbar base-/availability-/effektiv Fantasy-xFP. Optimalisatoren er ikke tilgjengelig i ordinær Fantasy-navigasjon og har ingen offentlig `/fantasy/optimizer`-flate eller offentlig optimizer-API.
 - MP-10.3 ✅ Forventet poenggevinst, risikoscore, risiko per foreslått INN-spiller, datatillit, availability-justert xFP og effektiv Fantasy-xFP etter rekke/C/VC er implementert og produksjonsverifisert.
 - MP-10.4 ✅ Balansert, konservativ og offensiv strategi er modellberegnet med ulike risiko-/oppsideobjektiver. Forventet gevinst, risiko, modellert oppside og avvikende UT → INN-bytter vises. Produksjonsverifisert 2026-08-21 og beholdt gjennom sluttføringen.
-- MP-10.5 ✅ Optimizeren bruker autoritativ `get_fantasy_transfer_status_v1` og de endelige MP-04-reglene: maks 2 permanente bytter per ordinær runde, ingen byttebank, ingen poengtrekk, opptil 4 med Bytteboost og 0 permanente transfers i Rik/Fattig Onkel. Bytteboost-søket bruker en begrenset flerfaktor-kandidatpool for å holde 4-byttesøk produksjonsforsvarlig, mens endelig budsjett-, posisjons-, klubb-, lineup- og availability-validering fortsatt skjer på hvert forslag. Separate read-only RPC-er for autentiserte sluttbrukere eksponerer kun nødvendig xFP-/økonomidata; `anon` har ikke EXECUTE. Availability-gaten er uendret og blokkerte spillere kan ikke foreslås.
+- MP-10.5 ✅ Optimizeren bruker autoritativ `get_fantasy_transfer_status_v1` og de endelige MP-04-reglene: maks 2 permanente bytter per ordinær runde, ingen byttebank, ingen poengtrekk, opptil 4 med Bytteboost og 0 permanente transfers i Rik/Fattig Onkel. Bytteboost-søket bruker en begrenset flerfaktor-kandidatpool for å holde 4-byttesøk produksjonsforsvarlig, mens endelig budsjett-, posisjons-, klubb-, lineup- og availability-validering fortsatt skjer på hvert forslag. Compatibility-RPC-ene som ble introdusert under sluttbrukerforsøket er nå eksplisitt admin-only og `anon` har ikke EXECUTE. Availability-gaten er uendret og blokkerte spillere kan ikke foreslås.
 
 # MP-11 – UI/UX og mobilopplevelse
 
@@ -202,7 +202,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når et steg er ferdig, blokkert eller når ny informasjon endrer avhengighetene. Arbeidschatten som fullfører et steg skal lese siste versjon av denne køen på `main` før den sender brukeren videre.
 
-1. **Chat 07 – MP-07.7 + MP-07.8 + MP-07.9: rundehistorikk og personlig fantasy-statistikk.** Bygg historisk lagvisning fra autoritative snapshots, grafer/tabeller og prioriter de mest nyttige sesongstatsene. Transferhistorikk, Bonus Week-metadata og ferdig optimizer-/analysegrunnlag kan nå brukes som sikre støttedatasett uten å rekonstruere historiske lag fra dagens lag.
+1. **Chat 07 – MP-07.7 + MP-07.8 + MP-07.9: rundehistorikk og personlig fantasy-statistikk.** Bygg historisk lagvisning fra autoritative snapshots, grafer/tabeller og prioriter de mest nyttige sesongstatsene. Transferhistorikk, Bonus Week-metadata og ferdig admin-optimizer-/analysegrunnlag kan nå brukes som sikre støttedatasett uten å rekonstruere historiske lag fra dagens lag.
 2. **Chat 07 + Chat 11 – MP-07.4/07.5 og MP-11.3–11.5: konkurransepresentasjon og samlet UX-pass.** Rundevisning, regler, mobil/desktop, readability og states.
 3. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Scoring, transfers, deadlines, RLS, admin og sentrale brukerflyter.
 4. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** Regelverk, 45 runder/deadlines, produksjon, cron/secrets, smoke tests, backup og rollback.
