@@ -12,6 +12,7 @@
     "test:mp04:transfers": "node scripts/test-mp04-transfers.mjs",
     "test:mp07:bonus-weeks": "node scripts/test-mp07-bonus-weeks.mjs",
     "test:mp07:round-history": "node scripts/test-mp07-round-history.mjs",
+    "test:mp07:stats": "node scripts/test-mp07-stats-dashboard.mjs",
     "test:mp10:optimizer": "node scripts/test-mp10-optimizer.mjs",
     "backtest:availability:nitten": "node scripts/backtest-nitten-availability.mjs"
   },
