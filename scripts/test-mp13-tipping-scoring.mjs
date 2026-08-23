@@ -4,8 +4,10 @@ import ts from "typescript";
 
 const scoringPath = "lib/score-engine.ts";
 const syncPath = "lib/sync-service.ts";
+const awardsPath = "app/awards/page.tsx";
 const scoringSource = fs.readFileSync(scoringPath, "utf8");
 const syncSource = fs.readFileSync(syncPath, "utf8");
+const awardsSource = fs.readFileSync(awardsPath, "utf8");
 
 const compiled = ts.transpileModule(scoringSource, {
   compilerOptions: {
@@ -83,6 +85,32 @@ check("Fantasy-livssyklus er separat fra tipping-scoring i synktjenesten", () =>
   const fantasyScheduleIndex = syncSource.indexOf("syncFantasySchedule()");
   assert.ok(tippingScoreIndex >= 0, "Tipping scoring call must exist");
   assert.ok(fantasyScheduleIndex > tippingScoreIndex, "Shared EHL sync may continue into Fantasy only after tipping scoring is handled separately");
+});
+
+check("Awards bruker bare autoritativt lagrede tippingpoeng", () => {
+  assert.match(awardsSource, /tip\.points !== null/);
+  assert.match(awardsSource, /Number\(tip\.points \?\? 0\)/);
+  assert.doesNotMatch(awardsSource, /resolvedPoints/);
+  assert.doesNotMatch(awardsSource, /return 5;/);
+  assert.doesNotMatch(awardsSource, /\?3:0/);
+});
+
+check("Månedsvinner kåres bare for avsluttet kalendermåned", () => {
+  assert.match(awardsSource, /function monthIsClosed/);
+  assert.match(awardsSource, /closedScoredMonths/);
+  assert.match(awardsSource, /title: "Månedsvinner"/);
+  assert.match(awardsSource, /Kåres etter første avsluttede kalendermåned med scorede tips/);
+});
+
+check("Månedsvinner bruker samme poeng- og tie-break-rekkefølge som rundevinner", () => {
+  const monthlyBlock = awardsSource.slice(
+    awardsSource.indexOf("let monthlyWinner"),
+    awardsSource.indexOf("let miss:"),
+  );
+  assert.match(monthlyBlock, /b\.points - a\.points/);
+  assert.match(monthlyBlock, /b\.exact - a\.exact/);
+  assert.match(monthlyBlock, /b\.correct - a\.correct/);
+  assert.match(monthlyBlock, /localeCompare\(b\.p\.display_name, "no"\)/);
 });
 
 let failed = 0;
