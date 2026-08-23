@@ -8,6 +8,7 @@ const safeAutomation = read("supabase/v0.27.1-fantasy-round-automation-e2e.sql")
 const safeRoundDetails = read("supabase/v0.29.1-fantasy-my-round-details-e2e.sql");
 const safeTeamScoring = read("supabase/mp12-team-scoring-schema-bridge-v1.sql");
 const safeSnapshot = read("supabase/mp12-snapshot-freeze-e2e-v1.sql");
+const safeDgwBlank = read("supabase/mp12-dgw-blank-week-e2e-v1.sql");
 
 const unsafeSignatures = [
   "public.create_fantasy_snapshot_test_round(text)",
@@ -40,5 +41,9 @@ console.log("PASS team-scoring E2E synthetic-season isolation");
 assert.ok(safeSnapshot.includes("__e2e_mp12_snapshot__"), "Snapshot E2E must use synthetic season");
 assert.ok(!safeSnapshot.includes("v_season constant text:='2026/27'"), "Snapshot E2E must never use production season as its namespace");
 console.log("PASS snapshot E2E synthetic-season isolation");
+
+assert.ok(safeDgwBlank.includes("__e2e_mp12_dgw_blank__"), "DGW/blank-week E2E must use synthetic season");
+assert.ok(!safeDgwBlank.includes("v_season constant text:='2026/27'"), "DGW/blank-week E2E must never use production season as its namespace");
+console.log("PASS DGW/blank-week E2E synthetic-season isolation");
 
 console.log("\nPASS MP-12 test-isolation gate.");
