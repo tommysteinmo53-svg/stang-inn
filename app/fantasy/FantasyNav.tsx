@@ -11,6 +11,7 @@ const items=[
  {href:"/fantasy/event-team",label:"Eventlag",icon:"🎯"},
  {href:"/fantasy/players",label:"Spillere",icon:"🧍"},
  {href:"/fantasy/my-rounds",label:"Poeng",icon:"📊"},
+ {href:"/fantasy/stats",label:"Min statistikk",icon:"📈"},
  {href:"/fantasy/leaderboard",label:"Leaderboard",icon:"🏆"},
  {href:"/fantasy/leagues",label:"Ligaer",icon:"🤝"},
  {href:"/fantasy/achievements",label:"Achievements",icon:"🔥"},
@@ -18,7 +19,7 @@ const items=[
  {href:"/fantasy/rules",label:"Regler",icon:"📖"},
 ];
 
-const productionPrefixes=["/fantasy","/fantasy/team","/fantasy/transfers","/fantasy/event-team","/fantasy/players","/fantasy/my-rounds","/fantasy/leaderboard","/fantasy/leagues","/fantasy/achievements","/fantasy/rounds","/fantasy/rules"];
+const productionPrefixes=["/fantasy","/fantasy/team","/fantasy/transfers","/fantasy/event-team","/fantasy/players","/fantasy/my-rounds","/fantasy/stats","/fantasy/leaderboard","/fantasy/leagues","/fantasy/achievements","/fantasy/rounds","/fantasy/rules"];
 const hiddenPrefixes=["/fantasy/admin-tools","/fantasy/admin-analysis","/fantasy/diagnose","/fantasy/scoring","/fantasy/special-teams-diagnostic"];
 
 export default function FantasyNav(){
