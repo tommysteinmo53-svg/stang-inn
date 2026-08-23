@@ -1,0 +1,104 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import ts from "typescript";
+
+const scoringPath = "lib/score-engine.ts";
+const syncPath = "lib/sync-service.ts";
+const scoringSource = fs.readFileSync(scoringPath, "utf8");
+const syncSource = fs.readFileSync(syncPath, "utf8");
+
+const compiled = ts.transpileModule(scoringSource, {
+  compilerOptions: {
+    module: ts.ModuleKind.CommonJS,
+    target: ts.ScriptTarget.ES2022,
+  },
+  fileName: scoringPath,
+});
+
+const module = { exports: {} };
+new Function("exports", "module", "require", compiled.outputText)(module.exports, module, () => {
+  throw new Error("Tipping score engine unexpectedly imported a runtime dependency");
+});
+
+const { calculateTipPoints } = module.exports;
+assert.equal(typeof calculateTipPoints, "function", "Production tipping scoring function must be loadable");
+
+const checks = [];
+function check(name, fn) {
+  try {
+    fn();
+    checks.push({ name, pass: true });
+  } catch (error) {
+    checks.push({ name, pass: false, error });
+  }
+}
+
+check("Eksakt resultat gir 5 poeng", () => {
+  assert.equal(calculateTipPoints(4, 2, 4, 2), 5);
+});
+
+check("Riktig hjemmeseier gir 3 poeng", () => {
+  assert.equal(calculateTipPoints(3, 1, 5, 2), 3);
+});
+
+check("Riktig borteseier gir 3 poeng", () => {
+  assert.equal(calculateTipPoints(1, 4, 2, 3), 3);
+});
+
+check("Riktig uavgjort utfall gir 3 poeng", () => {
+  assert.equal(calculateTipPoints(2, 2, 1, 1), 3);
+});
+
+check("Feil utfall gir 0 poeng", () => {
+  assert.equal(calculateTipPoints(2, 1, 1, 3), 0);
+});
+
+check("Konfigurerbare poengregler brukes av samme produksjonsfunksjon", () => {
+  assert.equal(calculateTipPoints(2, 1, 2, 1, { exact: 7, outcome: 4 }), 7);
+  assert.equal(calculateTipPoints(3, 1, 2, 0, { exact: 7, outcome: 4 }), 4);
+});
+
+check("Scoringmotoren er eksplisitt idempotent og verifiserer lagret poeng", () => {
+  assert.match(scoringSource, /Recalculates points for every tip belonging to a finished match/);
+  assert.match(scoringSource, /if \(tip\.points === points\) continue;/);
+  assert.match(scoringSource, /Scoring ble ikke lagret for tips/);
+});
+
+check("EHL-synk scorer tipping etter kamp-upsert", () => {
+  const upsertIndex = syncSource.indexOf('.from("matches").upsert');
+  const scoreIndex = syncSource.indexOf("scoreFinishedMatches(supabase)");
+  assert.ok(upsertIndex >= 0, "Match-upsert must exist in production sync");
+  assert.ok(scoreIndex > upsertIndex, "Tipping scoring must run after imported match results are persisted");
+});
+
+check("Gjenåpnet eller uklar kamp nullstiller gamle tippingpoeng før ny scoring", () => {
+  assert.match(syncSource, /update\(\{ points: null \}\)/);
+  const clearIndex = syncSource.indexOf("update({ points: null })");
+  const scoreIndex = syncSource.indexOf("scoreFinishedMatches(supabase)");
+  assert.ok(clearIndex >= 0 && scoreIndex > clearIndex, "Stale points must be cleared before rescoring");
+});
+
+check("Fantasy-livssyklus er separat fra tipping-scoring i synktjenesten", () => {
+  const tippingScoreIndex = syncSource.indexOf("scoreFinishedMatches(supabase)");
+  const fantasyScheduleIndex = syncSource.indexOf("syncFantasySchedule()");
+  assert.ok(tippingScoreIndex >= 0, "Tipping scoring call must exist");
+  assert.ok(fantasyScheduleIndex > tippingScoreIndex, "Shared EHL sync may continue into Fantasy only after tipping scoring is handled separately");
+});
+
+let failed = 0;
+for (const result of checks) {
+  if (result.pass) {
+    console.log(`PASS ${result.name}`);
+  } else {
+    failed += 1;
+    console.error(`FAIL ${result.name}`);
+    console.error(result.error);
+  }
+}
+
+if (failed) {
+  console.error(`\nMP-13 tipping scoring regression failed: ${failed}/${checks.length}`);
+  process.exit(1);
+}
+
+console.log(`\nPASS ${checks.length}/${checks.length} MP-13 tipping scoring regression checks.`);
