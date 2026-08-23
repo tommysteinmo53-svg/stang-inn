@@ -41,7 +41,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 - MP-01.2 ✅ Supabase og innlogging etablert.
 - MP-01.3 🟡 RLS og sikkerhetsmodell finnes og skal regresjonstestes ved nye funksjoner.
 - MP-01.4 ✅ Vercel/produksjonsoppsett etablert.
-- MP-01.5 🟡 GitHub Actions build-CI finnes; Bonus Weeks-, MP-04 transfer- og MP-10 optimizerregresjon kjører før build og videre testdekning utvides etter behov.
+- MP-01.5 🟡 GitHub Actions build-CI finnes; Bonus Weeks-, MP-04 transfer-, MP-07.7 rundehistorikk- og MP-10 optimizerregresjon kjører før build og videre testdekning utvides etter behov.
 - MP-01.6 ⬜ Samlet produksjons-/driftschecklist før sesongstart.
 
 # MP-02 – EHL-data, terminliste og spilleridentitet
@@ -112,7 +112,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 - MP-07.4 🟡 Rundevisning og visuell presentasjon viderepoleres.
 - MP-07.5 ⬜ Endelig konkurranse-/premie-/tie-break-regelverk dokumenteres dersom nødvendig.
 - MP-07.6 ✅ **Bonus Weeks / fantasy-boostere:** komplett regel-, data-, scoring-, transfer-, snapshot-, UI- og historikksystem er implementert og produksjonsverifisert 2026-08-23. Hvert lag har én Kapteinsboost (C ×2,5), én Rekkeboost (rekke 2 = 100 %) og én Bytteboost (opptil 4 bytter) per sesong, maks ett personlig kort per runde og eksisterende deadline som aktiverings-/låsegrense. Felles Event Weeks er **Rik Onkel** med separat 200m-lag og **Fattig Onkel** med separat 70m-lag; eventlag påvirker aldri permanent 100m-lag eller ordinær transferhistorikk. Personlige kort er sperret i Event Weeks. Booster/eventmetadata fryses i snapshot og brukes av autoritativ scoring/historikk. Double gameweeks støttes ved at alle kamp-poeng i runden summeres før multiplikatorer. Leaderboardets utfoldbare rundehistorikk viser booster/eventmarkører. Schema-mismatch oppdaget under verifikasjon ble reparert mot faktisk produksjonsskjema og read-only kontroll ga `PASS`. Filbasert Bonus Weeks-regresjon kjører i CI før build, og siste Vercel-deploy er grønn.
-- MP-07.7 ⬜ **Rundehistorikk / historisk lagvisning:** brukeren skal kunne åpne tidligere fantasy-runder og se nøyaktig hvilket lag som var låst/snapshotet i den aktuelle runden, inkludert spillere, rekker/oppstilling, kaptein, visekaptein, eventuelle boostere, benyttede bytter og rundepoeng. Historikken skal bygge på autoritative snapshots og aldri rekonstrueres fra dagens lag dersom historiske data finnes.
+- MP-07.7 ✅ **Rundehistorikk / historisk lagvisning:** komplett snapshot-first historikk er implementert og produksjonsverifisert 2026-08-23. `/fantasy/my-rounds` starter fra autoritative `fantasy_team_round_snapshots` + snapshotspillere, aldri fra dagens lag eller transferrekonstruksjon. Spillernavn, klubb, posisjon, pris, rekke, kaptein og visekaptein fryses i snapshotet; score og spillermultiplikatorer kobles kun på via `LEFT JOIN`, slik at et låst lag kan vises før runden er ferdigscoret. Rekke 1/2, C/VC, lagverdi, Bonus/Event Week-metadata, rundepoeng og relevante permanente transfers vises i historikken; Event Weeks skjuler ordinær transferkontekst. Personlig RPC er authenticated-only (`anon` uten EXECUTE), filbasert regresjon er koblet til CI, og Vercel-deploy er grønn. Produksjonen hadde 0 ekte 2026/27-snapshots ved verifikasjon, så ingen falske eller eksisterende historiske lagdata ble skrevet eller endret.
 - MP-07.8 ⬜ **Personlig statistikkdashboard:** bygg grafer og tabeller for brukerens fantasyhistorikk. Minimum: poeng per runde, kumulative poeng, totalrank/rankutvikling, runderank, endring i rank, lagverdi over tid, poeng fordelt på posisjon, kaptein/visekaptein-bidrag, benyttede bytter og poenggevinst/-tap fra transfers der dette kan beregnes sikkert.
 - MP-07.9 ⬜ **Utvidede fantasy-stats og sesonginnsikt:** vurder og prioriter flere forklarbare nøkkeltall, blant annet beste/verste runde, gjennomsnittspoeng per runde, median, antall topp-X-runder, beste kapteinsvalg, kapteinspoeng som andel av totalen, mest brukte spillere, lengst beholdte spiller, beste/verste transfer, transfer-hit/kostnad mot gevinst, lagfordeling per klubb, pris-/lagverdiutvikling, total xFP mot faktiske poeng, over-/underprestasjon mot xFP, availability-tapte poeng, fixture-utnyttelse, Bonus Week-resultater og sammenligning mot overall-snitt, topp 10 % og topp 1 % når datagrunnlaget tillater det. Stats skal være forklarbare og skal ikke presenteres som sikre dersom datagrunnlaget er ufullstendig.
 
@@ -167,7 +167,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 - MP-12.1 ✅ Build-CI på push/PR til main.
 - MP-12.2 ✅ Isolerte E2E-verktøy finnes for sentrale snapshot- og leaderboard-flyter.
-- MP-12.3 🟡 Utvid regresjonsdekning for scoring, transfers, deadlines, RLS og admin. Bonus Weeks-, MP-04 transfer- og MP-10 optimizerkontrakter kjøres automatisk i CI uten produksjonswrites.
+- MP-12.3 🟡 Utvid regresjonsdekning for scoring, transfers, deadlines, RLS og admin. Bonus Weeks-, MP-04 transfer-, MP-07.7 rundehistorikk- og MP-10 optimizerkontrakter kjøres automatisk i CI uten produksjonswrites.
 - MP-12.4 🔵 Ingen test skal endre ekte 2026/27-data.
 - MP-12.5 🔵 Nye tester skal rydde opp egne data.
 - MP-12.6 🔵 Ikke svekk auth/RLS/sikkerhet for testbarhet.
@@ -202,7 +202,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når et steg er ferdig, blokkert eller når ny informasjon endrer avhengighetene. Arbeidschatten som fullfører et steg skal lese siste versjon av denne køen på `main` før den sender brukeren videre.
 
-1. **Chat 07 – MP-07.7 + MP-07.8 + MP-07.9: rundehistorikk og personlig fantasy-statistikk.** Bygg historisk lagvisning fra autoritative snapshots, grafer/tabeller og prioriter de mest nyttige sesongstatsene. Transferhistorikk, Bonus Week-metadata og ferdig admin-optimizer-/analysegrunnlag kan nå brukes som sikre støttedatasett uten å rekonstruere historiske lag fra dagens lag.
+1. **Chat 07 – MP-07.8 + MP-07.9: personlig fantasy-statistikk og sesonginnsikt.** MP-07.7 snapshot-first rundehistorikk er nå ferdig og blir autoritativt historikkgrunnlag. Bygg grafer/tabeller og de mest nyttige forklarbare sesongstatsene på dette grunnlaget; transferhistorikk, Bonus Week-metadata og analysegrunnlag kan brukes som støttedatasett uten å rekonstruere historiske lag.
 2. **Chat 07 + Chat 11 – MP-07.4/07.5 og MP-11.3–11.5: konkurransepresentasjon og samlet UX-pass.** Rundevisning, regler, mobil/desktop, readability og states.
 3. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Scoring, transfers, deadlines, RLS, admin og sentrale brukerflyter.
 4. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** Regelverk, 45 runder/deadlines, produksjon, cron/secrets, smoke tests, backup og rollback.
