@@ -9,6 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test:mp04:transfers": "node scripts/test-mp04-transfers.mjs",
     "test:mp07:bonus-weeks": "node scripts/test-mp07-bonus-weeks.mjs",
     "backtest:availability:nitten": "node scripts/backtest-nitten-availability.mjs"
   },
