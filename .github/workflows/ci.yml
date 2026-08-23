@@ -23,6 +23,8 @@ jobs:
         run: npm run test:mp12:scoring
       - name: MP-12 security contract regression
         run: npm run test:mp12:security
+      - name: MP-12 test isolation regression
+        run: npm run test:mp12:isolation
       - name: MP-13 tipping scoring regression
         run: npm run test:mp13:scoring
       - name: MP-04 transfer regression
