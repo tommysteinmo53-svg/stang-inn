@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {createClient} from "@supabase/supabase-js";
 import {requireFantasyAdmin} from "../../../../../lib/fantasy/admin-auth";
 import {availabilityXfpFactor,isOptimizerEligibleAvailability,normalizeFantasyAvailabilityStatus} from "../../../../../lib/fantasy/availability-policy";
+import {normalizeOptimizerTransferLimit,optimizerTransferReason,parseLockedPlayerIds} from "../../../../../lib/fantasy/optimizer-transfer-policy";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -109,13 +110,8 @@ function modeledUpside(changes:Change[]){
     return sum+availabilityGap+confidenceBand;
   },0);
 }
-function incomingRiskCost(changes:Change[]){
-  return changes.reduce((sum,c)=>sum+Math.max(0,c.in.score)*(c.in.risk_score/100),0);
-}
-function strategyUtility(candidate:Candidate,key:StrategyKey){
-  const cfg=STRATEGIES[key];
-  return candidate.score-incomingRiskCost(candidate.changes)*cfg.riskPenalty+modeledUpside(candidate.changes)*cfg.upsideWeight;
-}
+function incomingRiskCost(changes:Change[]){return changes.reduce((sum,c)=>sum+Math.max(0,c.in.score)*(c.in.risk_score/100),0)}
+function strategyUtility(candidate:Candidate,key:StrategyKey){const cfg=STRATEGIES[key];return candidate.score-incomingRiskCost(candidate.changes)*cfg.riskPenalty+modeledUpside(candidate.changes)*cfg.upsideWeight}
 function isBetter(candidate:Candidate,currentBest:Candidate,key:StrategyKey){
   const candidateUtility=strategyUtility(candidate,key),bestUtility=strategyUtility(currentBest,key);
   if(candidateUtility>bestUtility+1e-9)return true;
@@ -134,6 +130,7 @@ export async function GET(request:NextRequest){
   if(!sb||!server)return NextResponse.json({ok:false,error:"Supabase-konfigurasjon mangler."},{status:503});
   const horizon=request.nextUrl.searchParams.get("horizon")||"next3";
   if(!["next_game","next3"].includes(horizon))return NextResponse.json({ok:false,error:"Ugyldig horisont."},{status:400});
+  const lockedIds=parseLockedPlayerIds(request.nextUrl.searchParams.get("locked"));
 
   const[{data:team,error:teamError},{data:status,error:statusError},{data:xfp,error:xfpError},{data:economy,error:economyError},{data:catalog,error:catalogError},{data:availability,error:availabilityError}]=await Promise.all([
     sb.from("fantasy_user_teams").select("id,name").eq("season","2026/27").maybeSingle(),
@@ -149,13 +146,15 @@ export async function GET(request:NextRequest){
   if(economyError)return NextResponse.json({ok:false,error:economyError.message},{status:500});
   if(catalogError)return NextResponse.json({ok:false,error:catalogError.message},{status:500});
   if(availabilityError)return NextResponse.json({ok:false,error:availabilityError.message},{status:500});
-  if(!team?.id)return NextResponse.json({ok:true,team:null,status:status?.[0]||null,changes:[],current:[],optimized:[],strategies:[],message:"Fant ingen lag for innlogget bruker."});
+  if(!team?.id)return NextResponse.json({ok:true,team:null,status:status?.[0]||null,changes:[],current:[],optimized:[],strategies:[],locked_player_ids:[],message:"Fant ingen lag for innlogget bruker."});
 
   const{data:teamPlayers,error:tpError}=await sb.from("fantasy_user_team_players").select("player_id,purchase_price,line_no,is_captain,is_vice_captain").eq("team_id",team.id);
   if(tpError)return NextResponse.json({ok:false,error:tpError.message},{status:500});
 
   const teamRows=(teamPlayers||[]) as TeamPlayerRow[];
   const ids=new Set(teamRows.map(r=>r.player_id));
+  const invalidLocks=[...lockedIds].filter(id=>!ids.has(id));
+  if(invalidLocks.length)return NextResponse.json({ok:false,error:"Låste spillere må tilhøre ditt nåværende Fantasy-lag."},{status:400});
   const xfpMap=new Map<string,XfpRow>(((xfp||[]) as XfpRow[]).map(r=>[r.player_id,r]));
   const catalogMap=new Map<string,CatalogRow>(((catalog||[]) as CatalogRow[]).map(r=>[r.id,r]));
   const availabilityMap=new Map<string,string>(((availability||[]) as any[]).map(r=>[r.player_id,String(r.status||"available")]));
@@ -171,27 +170,29 @@ export async function GET(request:NextRequest){
     const dataConfidence=confidence(xr?.data_confidence);
     const risk=playerRisk(availabilityStatus,dataConfidence);
     const adjustedScore=(Number.isFinite(rawScore)?rawScore:0)*availabilityXfpFactor(availabilityStatus);
-    const player:Player={id:c.id,name:c.name,team:c.team,pos:position,price,raw_base_score:Number.isFinite(rawScore)?rawScore:0,base_score:adjustedScore,score:0,available:Boolean(c.active&&c.on_current_roster&&c.available_for_purchase!==false&&isOptimizerEligibleAvailability(availabilityStatus)),availability_status:availabilityStatus,data_confidence:dataConfidence,risk_score:risk.score,risk_label:risk.label,line_no:teamMeta?.line_no??null,is_captain:Boolean(teamMeta?.is_captain),is_vice_captain:Boolean(teamMeta?.is_vice_captain)};
-    return withEffectiveScore(player);
+    return withEffectiveScore({id:c.id,name:c.name,team:c.team,pos:position,price,raw_base_score:Number.isFinite(rawScore)?rawScore:0,base_score:adjustedScore,score:0,available:Boolean(c.active&&c.on_current_roster&&c.available_for_purchase!==false&&isOptimizerEligibleAvailability(availabilityStatus)),availability_status:availabilityStatus,data_confidence:dataConfidence,risk_score:risk.score,risk_label:risk.label,line_no:teamMeta?.line_no??null,is_captain:Boolean(teamMeta?.is_captain),is_vice_captain:Boolean(teamMeta?.is_vice_captain)});
   };
 
   const storedCurrent=teamRows.map(meta=>{const c=catalogMap.get(meta.player_id);return c?buildPlayer(c,meta):null}).filter(Boolean) as Player[];
   if(storedCurrent.length!==teamRows.length)return NextResponse.json({ok:false,error:`Kunne ikke speile hele fantasy-laget: ${storedCurrent.length}/${teamRows.length} spillere ble funnet i aktiv spillerkatalog.`},{status:500});
-  if(storedCurrent.length!==12)return NextResponse.json({ok:true,team,status:status?.[0]||null,changes:[],current:storedCurrent,optimized:storedCurrent,strategies:[],message:`Det faktiske Fantasy-laget inneholder ${storedCurrent.length}/12 spillere. Laget må være komplett før bytter kan optimaliseres.`});
+  if(storedCurrent.length!==12)return NextResponse.json({ok:true,team,status:status?.[0]||null,changes:[],current:storedCurrent,optimized:storedCurrent,strategies:[],locked_player_ids:[...lockedIds],message:`Det faktiske Fantasy-laget inneholder ${storedCurrent.length}/12 spillere. Laget må være komplett før bytter kan optimaliseres.`});
 
   const storedLineupValid=validLineup(storedCurrent);
   const current=storedLineupValid?storedCurrent.map(withEffectiveScore):optimizeLineup(storedCurrent);
   const all=((catalog||[]) as CatalogRow[]).map(c=>buildPlayer(c)).filter(Boolean) as Player[];
   const statusRow:any=status?.[0]||{};
-  const remaining=Math.max(0,Math.min(2,Number(statusRow.transfers_remaining??2)));
+  const remaining=normalizeOptimizerTransferLimit(statusRow.transfers_remaining);
+  const maxTransfers=normalizeOptimizerTransferLimit(statusRow.max_transfers_per_round);
+  const transfersUsed=Math.max(0,Number(statusRow.transfers_used||0));
   const budget=Number(economy?.[0]?.budget||100);
   const currentCost=current.reduce((s,p)=>s+p.price,0),currentScore=current.reduce((s,p)=>s+p.score,0);
   const baseline:Candidate={roster:current,score:currentScore,cost:currentCost,changes:[]};
   const bestByStrategy:Record<StrategyKey,Candidate>={balanced:baseline,conservative:baseline,offensive:baseline};
   const incomingPool=all.filter(p=>p.available&&!ids.has(p.id));
+  const removable=current.filter(p=>!lockedIds.has(p.id));
 
-  for(let k=1;k<=remaining;k++){
-    for(const outs of combinations(current,k)){
+  for(let k=1;k<=Math.min(remaining,removable.length);k++){
+    for(const outs of combinations(removable,k)){
       const kept=current.filter(p=>!outs.some(o=>o.id===p.id));
       const need={G:outs.filter(p=>p.pos==="G").length,D:outs.filter(p=>p.pos==="D").length,F:outs.filter(p=>p.pos==="F").length};
       const candidateLists:{pos:Pos;count:number;players:Player[]}[]=(Object.keys(need) as Pos[]).filter(p=>need[p]>0).map(p=>({pos:p,count:need[p],players:incomingPool.filter(x=>x.pos===p)}));
@@ -209,6 +210,7 @@ export async function GET(request:NextRequest){
         const unassigned=[...kept,...replacements].map(p=>({...p,line_no:null,score:0}));
         if(!validRoster(unassigned,budget))continue;
         const roster=optimizeLineup(unassigned);
+        if([...lockedIds].some(id=>!roster.some(p=>p.id===id)))continue;
         const score=roster.reduce((s,p)=>s+p.score,0),cost=roster.reduce((s,p)=>s+p.price,0);
         const finalById=new Map(roster.map(p=>[p.id,p]));
         const candidate:Candidate={roster,score,cost,changes:pairs.map(({out,in:incoming})=>({out,in:finalById.get(incoming.id)!}))};
@@ -217,36 +219,25 @@ export async function GET(request:NextRequest){
     }
   }
 
-  const serialize=(p:Player)=>({...p,raw_base_score:round(p.raw_base_score),base_score:round(p.base_score),score:round(p.score),price:round(p.price,1),line_multiplier:lineMultiplier(p.line_no),role_multiplier:roleMultiplier(p)});
+  const serialize=(p:Player)=>({...p,raw_base_score:round(p.raw_base_score),base_score:round(p.base_score),score:round(p.score),price:round(p.price,1),line_multiplier:lineMultiplier(p.line_no),role_multiplier:roleMultiplier(p),locked:lockedIds.has(p.id)});
   const serializeCandidate=(key:StrategyKey,candidate:Candidate)=>{
     const risk=proposalRisk(candidate.changes),upside=modeledUpside(candidate.changes);
-    return{
-      key,label:STRATEGIES[key].label,description:STRATEGIES[key].description,
-      optimized:candidate.roster.map(serialize),
-      changes:candidate.changes.map(c=>({out:serialize(c.out),in:serialize(c.in),line_no:c.in.line_no,price_change:round(c.in.price-c.out.price,1),xfp_gain:round(c.in.score-c.out.score),risk_score:c.in.risk_score,risk_label:c.in.risk_label})),
-      optimized_cost:round(candidate.cost,1),optimized_score:round(candidate.score),xfp_gain:round(candidate.score-currentScore),proposal_risk_score:risk.score,proposal_risk_label:risk.label,
-      modeled_upside:round(upside),objective_score:round(strategyUtility(candidate,key)),
-    };
+    return{key,label:STRATEGIES[key].label,description:STRATEGIES[key].description,optimized:candidate.roster.map(serialize),changes:candidate.changes.map(c=>({out:serialize(c.out),in:serialize(c.in),line_no:c.in.line_no,price_change:round(c.in.price-c.out.price,1),xfp_gain:round(c.in.score-c.out.score),risk_score:c.in.risk_score,risk_label:c.in.risk_label})),optimized_cost:round(candidate.cost,1),optimized_score:round(candidate.score),xfp_gain:round(candidate.score-currentScore),proposal_risk_score:risk.score,proposal_risk_label:risk.label,modeled_upside:round(upside),objective_score:round(strategyUtility(candidate,key))};
   };
   const strategies=(Object.keys(STRATEGIES) as StrategyKey[]).map(key=>serializeCandidate(key,bestByStrategy[key]));
   const balanced=strategies.find(s=>s.key==="balanced")!;
+  const lockedPlayers=current.filter(p=>lockedIds.has(p.id)).map(p=>({id:p.id,name:p.name}));
 
   return NextResponse.json({
-    ok:true,team,status:statusRow,economy:economy?.[0]||null,horizon,
-    current:current.map(serialize),strategies,
-    optimized:balanced.optimized,changes:balanced.changes,
+    ok:true,team,status:statusRow,economy:economy?.[0]||null,horizon,current:current.map(serialize),strategies,optimized:balanced.optimized,changes:balanced.changes,
     current_cost:round(currentCost,1),optimized_cost:balanced.optimized_cost,current_score:round(currentScore),optimized_score:balanced.optimized_score,xfp_gain:balanced.xfp_gain,transfers_available:remaining,
-    proposal_risk_score:balanced.proposal_risk_score,proposal_risk_label:balanced.proposal_risk_label,
-    strategy_policy:{
-      balanced:"expected Fantasy-xFP - moderate incoming risk penalty + small modeled upside weight",
-      conservative:"expected Fantasy-xFP - strong incoming risk penalty; rewards stable availability and confidence indirectly through lower risk",
-      offensive:"expected Fantasy-xFP - light risk penalty + modeled upside from availability headroom and confidence uncertainty",
-      invariant:"Fantasy scoring, availability factors, roster constraints, line multipliers and C/VC multipliers are identical for all strategies",
-    },
+    proposal_risk_score:balanced.proposal_risk_score,proposal_risk_label:balanced.proposal_risk_label,locked_player_ids:[...lockedIds],locked_players:lockedPlayers,
+    transfer_policy:{max_transfers:maxTransfers,transfers_used:transfersUsed,transfers_remaining:remaining,boost_active:maxTransfers===4,permanent_transfers_allowed:maxTransfers>0,reason:optimizerTransferReason(maxTransfers,transfersUsed,remaining),no_bank:true,no_points_hit:true},
+    strategy_policy:{balanced:"expected Fantasy-xFP - moderate incoming risk penalty + small modeled upside weight",conservative:"expected Fantasy-xFP - strong incoming risk penalty; rewards stable availability and confidence indirectly through lower risk",offensive:"expected Fantasy-xFP - light risk penalty + modeled upside from availability headroom and confidence uncertainty",invariant:"Fantasy scoring, availability factors, roster constraints, line multipliers and C/VC multipliers are identical for all strategies"},
     projection_policy:{player_xfp:"base xFP × availability factor",availability_factors:{available:1,returning:.85,questionable:.60,out:0,long_term:0,not_in_lineup:0},effective_fantasy_xfp:"availability-adjusted xFP × line multiplier × C/VC multiplier"},
     risk_policy:{availability:{available:0,returning:20,questionable:45,blocked:100},data_confidence:{high:0,medium:15,low:30},proposal:"65 % average incoming risk + 35 % highest incoming risk"},
     lineup_policy:{line1_multiplier:1,line2_multiplier:0.5,line_shape:"1G · 2D · 3F per rekke",stored_lineup_valid:storedLineupValid,analysis_lineup:storedLineupValid?"stored":"optimized_valid_fallback"},
     availability_policy:{authoritative_source:"fantasy_player_availability",blocked_statuses:["out","long_term","not_in_lineup"]},
-    message:storedLineupValid?undefined:"Lagrede rekkedata var ugyldige. Analysen bruker derfor en gyldig 1G · 2D · 3F-fordeling per rekke og viser hvilke rekker som bør lagres.",
+    message:maxTransfers===0?"Permanente transfers er sperret i denne runden.":storedLineupValid?undefined:"Lagrede rekkedata var ugyldige. Analysen bruker derfor en gyldig 1G · 2D · 3F-fordeling per rekke og viser hvilke rekker som bør lagres.",
   });
 }
