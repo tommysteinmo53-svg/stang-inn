@@ -2,6 +2,7 @@
 
 import {usePathname} from "next/navigation";
 import TeamLaunchStatus from "./team/TeamLaunchStatus";
+import PlayerProfileClickBridge from "./PlayerProfileClickBridge";
 
 const items=[
  {href:"/fantasy",label:"Oversikt",icon:"🏒"},
@@ -23,7 +24,7 @@ export default function FantasyNav(){
  const pathname=usePathname();
  if(hiddenPrefixes.some(p=>pathname===p||pathname.startsWith(`${p}/`)))return null;
  if(!productionPrefixes.some(p=>pathname===p||pathname.startsWith(`${p}/`)))return null;
- return <><div className="fantasy-player-nav-wrap"><nav className="fantasy-player-nav" aria-label="Fantasy-meny">
+ return <><PlayerProfileClickBridge/><div className="fantasy-player-nav-wrap"><nav className="fantasy-player-nav" aria-label="Fantasy-meny">
   {items.map(item=>{const active=item.href==="/fantasy"?pathname==="/fantasy":pathname===item.href||pathname.startsWith(`${item.href}/`);return <a key={item.href} href={item.href} className={active?"active":""} aria-current={active?"page":undefined}><span aria-hidden>{item.icon}</span><b>{item.label}</b></a>})}
  </nav></div>{pathname==="/fantasy/team"&&<div className="team-launch-wrap"><TeamLaunchStatus/></div>}</>
 }
