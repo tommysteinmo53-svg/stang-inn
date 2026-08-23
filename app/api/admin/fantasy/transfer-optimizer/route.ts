@@ -1,5 +1,6 @@
 import {NextRequest,NextResponse} from "next/server";
 import {createClient} from "@supabase/supabase-js";
+import {requireFantasyAdmin} from "../../../../../lib/fantasy/admin-auth";
 import {availabilityXfpFactor,isOptimizerEligibleAvailability,normalizeFantasyAvailabilityStatus} from "../../../../../lib/fantasy/availability-policy";
 import {normalizeOptimizerTransferLimit,optimizerTransferReason,parseLockedPlayerIds} from "../../../../../lib/fantasy/optimizer-transfer-policy";
 
@@ -136,6 +137,7 @@ function boundedIncomingPool(players:Player[],position:Pos){
 }
 
 export async function GET(request:NextRequest){
+  const admin=await requireFantasyAdmin(request);if(!admin.ok)return admin.response;
   const sb=userClient(request),server=serviceClient();
   if(!sb||!server)return NextResponse.json({ok:false,error:"Supabase-konfigurasjon eller innlogging mangler."},{status:401});
   const{data:userData,error:userError}=await sb.auth.getUser();
