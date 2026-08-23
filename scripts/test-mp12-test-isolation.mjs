@@ -5,6 +5,7 @@ const read = (path) => fs.readFileSync(path, "utf8");
 
 const removal = read("supabase/mp12-remove-unsafe-legacy-e2e-v1.sql");
 const safeAutomation = read("supabase/v0.27.1-fantasy-round-automation-e2e.sql");
+const safeAutomationV2 = read("supabase/mp12-round-automation-e2e-v2.sql");
 const safeRoundDetails = read("supabase/v0.29.1-fantasy-my-round-details-e2e.sql");
 const safeTeamScoring = read("supabase/mp12-team-scoring-schema-bridge-v1.sql");
 const safeSnapshot = read("supabase/mp12-snapshot-freeze-e2e-v1.sql");
@@ -26,9 +27,12 @@ for (const signature of unsafeSignatures) {
   console.log(`PASS blocked legacy production-namespace helper: ${signature}`);
 }
 
-assert.ok(safeAutomation.includes("__e2e_v027__"), "Round automation E2E must use synthetic season");
-assert.ok(safeAutomation.includes("No production 2026/27 round/game/team row is updated"), "Round automation E2E must document production isolation");
-console.log("PASS round automation E2E synthetic-season isolation");
+assert.ok(safeAutomation.includes("__e2e_v027__"), "Legacy round automation E2E must remain synthetic-season only");
+assert.ok(safeAutomation.includes("No production 2026/27 round/game/team row is updated"), "Legacy round automation E2E must document production isolation");
+console.log("PASS legacy round automation E2E synthetic-season isolation");
+assert.ok(safeAutomationV2.includes("__e2e_mp12_round_automation__"), "Refreshed round automation E2E must use synthetic season");
+assert.ok(!safeAutomationV2.includes("v_season constant text:='2026/27'"), "Refreshed round automation E2E must never use production season as its namespace");
+console.log("PASS refreshed round automation E2E synthetic-season isolation");
 assert.ok(safeRoundDetails.includes("__e2e_my_round_details__"), "Round-details E2E must use synthetic season");
 assert.ok(safeRoundDetails.includes("Everything created is removed before return"), "Round-details E2E must document cleanup");
 console.log("PASS round-details E2E synthetic-season isolation");
