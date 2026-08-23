@@ -67,6 +67,7 @@ order by rounds_owned desc,total_points desc,player_name;
 $$;
 
 revoke all on function public.get_my_fantasy_player_season_insights_v1(text) from public;
+revoke execute on function public.get_my_fantasy_player_season_insights_v1(text) from anon;
 grant execute on function public.get_my_fantasy_player_season_insights_v1(text) to authenticated;
 
 comment on function public.get_my_fantasy_player_season_insights_v1(text) is
