@@ -8,6 +8,7 @@ const items=[
  {href:"/fantasy",label:"Oversikt",icon:"🏒"},
  {href:"/fantasy/team",label:"Mitt lag",icon:"👥"},
  {href:"/fantasy/transfers",label:"Bytter",icon:"🔁"},
+ {href:"/fantasy/optimizer",label:"Optimalisator",icon:"🧠"},
  {href:"/fantasy/event-team",label:"Eventlag",icon:"🎯"},
  {href:"/fantasy/players",label:"Spillere",icon:"🧍"},
  {href:"/fantasy/my-rounds",label:"Poeng",icon:"📊"},
@@ -18,7 +19,7 @@ const items=[
  {href:"/fantasy/rules",label:"Regler",icon:"📖"},
 ];
 
-const productionPrefixes=["/fantasy","/fantasy/team","/fantasy/transfers","/fantasy/event-team","/fantasy/players","/fantasy/my-rounds","/fantasy/leaderboard","/fantasy/leagues","/fantasy/achievements","/fantasy/rounds","/fantasy/rules"];
+const productionPrefixes=["/fantasy","/fantasy/team","/fantasy/transfers","/fantasy/optimizer","/fantasy/event-team","/fantasy/players","/fantasy/my-rounds","/fantasy/leaderboard","/fantasy/leagues","/fantasy/achievements","/fantasy/rounds","/fantasy/rules"];
 const hiddenPrefixes=["/fantasy/admin-tools","/fantasy/admin-analysis","/fantasy/diagnose","/fantasy/scoring","/fantasy/special-teams-diagnostic"];
 
 export default function FantasyNav(){
