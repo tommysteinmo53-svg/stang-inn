@@ -4,6 +4,7 @@ import "./premium-polish.css";
 import "./premium-next-match.css";
 import "./round-carousel.css";
 import "./awards.css";
+import "./leaderboard.css";
 import "./game-mode-switch.css";
 import AuthGate from "../components/AuthGate";
 import AuthReturnRedirect from "../components/AuthReturnRedirect";
