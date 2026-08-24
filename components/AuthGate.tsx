@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../lib/supabase";
 
-type SessionProfile = { display_name: string; admin: boolean } | null;
+type SessionProfile = {
+  display_name: string;
+  admin: boolean;
+  profile_name_confirmed_at: string | null;
+} | null;
 
 const AUTH_TIMEOUT_MS = 8_000;
 
@@ -21,11 +25,25 @@ async function withTimeout<T>(operation: PromiseLike<T>, label: string): Promise
   }
 }
 
+function normalizeName(value: string | null | undefined) {
+  return (value ?? "").trim().replace(/\s+/g, " ");
+}
+
+function hasCompleteProfile(profile: SessionProfile) {
+  if (!profile?.profile_name_confirmed_at) return false;
+  const name = normalizeName(profile.display_name);
+  return name.length >= 2 && name.length <= 60;
+}
+
+function safeNext(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/onboarding")) return "/";
+  return value;
+}
+
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(!isSupabaseConfigured);
   const [profile, setProfile] = useState<SessionProfile>(null);
-  const [email, setEmail] = useState("");
-  const [onLoginPage, setOnLoginPage] = useState(false);
+  const [routeKind, setRouteKind] = useState<"app" | "login" | "onboarding">("app");
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,7 +56,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     const check = async () => {
       const path = window.location.pathname;
       const loginPage = path === "/login";
-      setOnLoginPage(loginPage);
+      const onboardingPage = path === "/onboarding";
+      setRouteKind(loginPage ? "login" : onboardingPage ? "onboarding" : "app");
 
       if (loginPage) {
         setReady(true);
@@ -58,41 +77,32 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         }
 
         const user = session.user;
-        const userEmail = user.email ?? "";
-        setEmail(userEmail);
-
-        let { data: player } = await withTimeout(
+        const { data: player } = await withTimeout(
           supabase
             .from("players")
-            .select("display_name,admin")
+            .select("display_name,admin,profile_name_confirmed_at")
             .eq("id", user.id)
             .maybeSingle(),
           "Profilkontroll",
         );
         if (cancelled) return;
 
-        if (!player) {
-          const suggestedName =
-            (user.user_metadata?.display_name as string | undefined) ||
-            userEmail.split("@")[0] ||
-            "Spiller";
+        const loadedProfile = player ?? null;
+        setProfile(loadedProfile);
+        const complete = hasCompleteProfile(loadedProfile);
 
-          const { data: created } = await withTimeout(
-            supabase
-              .from("players")
-              .upsert(
-                { id: user.id, display_name: suggestedName, email: userEmail || null, admin: false },
-                { onConflict: "id" },
-              )
-              .select("display_name,admin")
-              .single(),
-            "Profiloppretting",
-          );
-          if (cancelled) return;
-          player = created;
+        if (!complete && !onboardingPage) {
+          const requested = `${window.location.pathname}${window.location.search}`;
+          window.location.replace(`/onboarding?next=${encodeURIComponent(requested)}`);
+          return;
         }
 
-        setProfile(player ?? null);
+        if (complete && onboardingPage) {
+          const next = safeNext(new URLSearchParams(window.location.search).get("next"));
+          window.location.replace(next);
+          return;
+        }
+
         setReady(true);
       } catch (error) {
         if (cancelled) return;
@@ -135,10 +145,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
-      {isSupabaseConfigured && !onLoginPage && (
+      {isSupabaseConfigured && routeKind === "app" && (
         <aside style={{ position: "fixed", right: 12, bottom: 12, zIndex: 50, display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", borderRadius: 13, background: "rgba(8,20,37,.96)", border: "1px solid #223a5d", boxShadow: "0 12px 28px rgba(0,0,0,.3)", color: "#f4f8ff", fontSize: 12 }}>
           <div>
-            <strong style={{ display: "block" }}>{profile?.display_name || email || "Spiller"}{profile?.admin ? " · Admin" : ""}</strong>
+            <strong style={{ display: "block" }}>{profile?.display_name || "Spiller"}{profile?.admin ? " · Admin" : ""}</strong>
             <span style={{ color: "#96a9c5" }}>Innlogget</span>
           </div>
           <a href="/fantasy" style={{ borderRadius: 9, padding: "7px 9px", background: "#214b3d", color: "#e4fff4", textDecoration: "none", fontWeight: 800 }}>Fantasy</a>
