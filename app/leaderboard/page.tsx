@@ -86,35 +86,59 @@ export default function LeaderboardPage() {
     previousLeader.current = rows[0]?.id ?? null;
   }, [rows]);
 
+  const myIndex = rows.findIndex(row => row.id === currentUserId);
+  const myRow = myIndex >= 0 ? rows[myIndex] : null;
+  const leader = rows[0] ?? null;
+
   if (loading) return <main className="appShell"><p className="muted">Laster tabellen …</p></main>;
 
-  return <main className="appShell">
-    <header className="topbar"><a className="brand brandButton" href="/" style={{ textDecoration: "none" }}><div className="brandMark">🏒</div><div><p className="eyebrow">EHL 2026/27</p><h1>Stang Inn</h1></div></a><a className="textButton" href="/" style={{ textDecoration: "none" }}>Til appen →</a></header>
-    <section className="pageStack" style={{ marginTop: 24 }}>
-      <div className="pageHeading"><div><p className="eyebrow">Ligaen</p><h2>{liveCount ? "🟢 Sammenlagt · kamp pågår" : "Sammenlagt"}</h2><p className="muted">Bekreftede kamper teller her. Live-estimatet finner du i Live-senteret.</p></div><span className="statusPill">{liveCount ? `${liveCount} live nå` : `${finishedMatchIds.size} ferdigspilt`}</span></div>
-      {leaderNotice && <article className="quoteCard" style={{ borderColor: "rgba(245,196,81,.45)", background: "rgba(245,196,81,.08)" }}><span>NY LEDER</span><p><strong>{leaderNotice}</strong></p></article>}
-      <article className="panel standings">
-        <div className="tableHead" style={{ gridTemplateColumns: "48px 44px 1fr 64px 88px 64px" }}><span>#</span><span>↕</span><span>Spiller</span><span>🎯</span><span>🔥 nå/best</span><span>Poeng</span></div>
+  return <main className="appShell leaderboardPage">
+    <header className="topbar"><a className="brand brandButton" href="/" style={{ textDecoration: "none" }}><div className="brandMark">🏒</div><div><p className="eyebrow">EHL 2026/27</p><h1>Stang Inn</h1></div></a><a className="textButton" href="/" style={{ textDecoration: "none" }}>Til oversikten →</a></header>
+
+    <section className="leaderboardIntro">
+      <div>
+        <p className="eyebrow">Stang Inn tipping</p>
+        <h2>Tabell</h2>
+        <p className="muted">Sammenlagtstillingen oppdateres når ferdigspilte kamper er scoret.</p>
+      </div>
+      <span className={`statusPill ${liveCount ? "leaderboardLivePill" : ""}`}>{liveCount ? `🟢 ${liveCount} kamp${liveCount === 1 ? "" : "er"} pågår` : `${finishedMatchIds.size} kamper ferdigspilt`}</span>
+    </section>
+
+    <section className="leaderboardSummary" aria-label="Nøkkeltall">
+      <article><span>👑 Leder</span><strong>{leader?.display_name ?? "–"}</strong><small>{leader ? `${leader.points} poeng` : "Sesongen har ikke startet"}</small></article>
+      <article className="isMine"><span>📍 Din plass</span><strong>{myRow ? `${myIndex + 1}.` : "–"}</strong><small>{myRow ? `${myRow.points} poeng · ${myRow.hitRate}% treff` : "Ingen spillerprofil funnet"}</small></article>
+      <article><span>🎯 Flest eksakte</span><strong>{rows.length ? Math.max(...rows.map(row => row.exact)) : 0}</strong><small>korrekte sluttresultat</small></article>
+    </section>
+
+    {leaderNotice && <article className="leaderboardLeaderNotice"><span>NY LEDER</span><strong>{leaderNotice}</strong></article>}
+
+    <section className="competitionTable" aria-label="Sammenlagttabell">
+      <div className="competitionTableTop">
+        <div><p className="eyebrow">Sammenlagt</p><h3>Sesongtabell</h3></div>
+        <a href="/live" className="textButton">Live-senter →</a>
+      </div>
+      <div className="competitionHead" aria-hidden="true"><span>#</span><span>↕</span><span>Spiller</span><span>Eksakte</span><span>Streak</span><span>Poeng</span></div>
+      <div className="competitionRows">
         {rows.map((row,index) => {
           const move = movement[row.id] ?? 0;
           const movementLabel = move > 0 ? `▲ ${move}` : move < 0 ? `▼ ${Math.abs(move)}` : "–";
-          const movementColor = move > 0 ? "#54dea8" : move < 0 ? "#ff7b8c" : "#8fa5bf";
-          return <div className="tableRow" style={{ gridTemplateColumns: "48px 44px 1fr 64px 88px 64px", borderRadius: 12, background: index === 0 ? "rgba(245,196,81,.07)" : row.id === currentUserId ? "rgba(85,184,255,.08)" : undefined, boxShadow: index === 0 ? "inset 0 0 0 1px rgba(245,196,81,.12)" : undefined }} key={row.id}>
-            <span className="rank" style={{ fontSize: index < 3 ? 22 : undefined }}>{medal(index)}</span>
-            <span style={{ color: movementColor, fontSize: 11, fontWeight: 900 }}>{movementLabel}</span>
-            <span><a href={`/player/${row.id}`} style={{ color: "inherit", textDecoration: "none" }}><b>{index === 0 ? "👑 " : ""}{row.display_name}{row.id === currentUserId ? " · deg" : ""}</b><small>{row.hitRate}% treff · {row.scoredTips} avgjorte tips · profil →</small></a></span>
-            <span>{row.exact}</span>
-            <span>{row.streak||row.bestStreak ? `🔥 ${row.streak}/${row.bestStreak}` : "–"}</span>
-            <span className="points">{row.points}</span>
-          </div>;
+          return <a className={`competitionRow ${index < 3 ? `top${index + 1}` : ""} ${row.id === currentUserId ? "currentUser" : ""}`} href={`/player/${row.id}`} key={row.id}>
+            <span className="competitionRank">{medal(index)}</span>
+            <span className={`competitionMove ${move > 0 ? "up" : move < 0 ? "down" : "same"}`}>{movementLabel}</span>
+            <span className="competitionPlayer"><b>{index === 0 ? "👑 " : ""}{row.display_name}{row.id === currentUserId ? <em>deg</em> : null}</b><small>{row.hitRate}% treff · {row.scoredTips} avgjorte tips</small><small className="competitionMobileMeta">🎯 {row.exact} eksakte · 🔥 {row.streak}/{row.bestStreak} · {movementLabel}</small></span>
+            <span className="competitionStat">{row.exact}</span>
+            <span className="competitionStat">{row.streak || row.bestStreak ? `🔥 ${row.streak}/${row.bestStreak}` : "–"}</span>
+            <strong className="competitionPoints">{row.points}<small>p</small></strong>
+          </a>;
         })}
-        {rows.length === 0 && <p className="muted">Ingen spillere er registrert ennå.</p>}
-      </article>
-      <article className="panel">
-        <div className="panelHeading"><div><p className="eyebrow">Poenggrunnlag</p><h3>Én statistikklogikk</h3></div><span className="statusPill">5 / 3 / 0</span></div>
-        <p className="muted">Eksakt resultat gir 5 poeng, riktig utfall gir 3. Manglende eller feil tips bryter streaken. Hvis et ferdig tips mangler lagret poeng, beregnes verdien fra sluttresultatet som sikkerhetsnett.</p>
-        <p className="muted" style={{ marginTop: 8 }}>Sist oppdatert: {updatedAt?.toLocaleTimeString("no-NO", { hour:"2-digit", minute:"2-digit", second:"2-digit" })}</p>
-      </article>
+        {rows.length === 0 && <p className="leaderboardEmpty">Ingen spillere er registrert ennå.</p>}
+      </div>
+    </section>
+
+    <section className="leaderboardRules">
+      <div><span>Poeng</span><strong>5 / 3 / 0</strong></div>
+      <p>Eksakt resultat gir 5 poeng, riktig kamputfall gir 3 og feil tips gir 0. Ved lik poengsum rangeres flest eksakte først.</p>
+      <small>Sist oppdatert {updatedAt?.toLocaleTimeString("no-NO", { hour:"2-digit", minute:"2-digit" })}</small>
     </section>
   </main>;
 }
