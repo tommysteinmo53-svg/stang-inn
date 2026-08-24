@@ -11,6 +11,7 @@ import AnnouncementBanner from "../components/AnnouncementBanner";
 import GlobalMobileNav from "../components/GlobalMobileNav";
 import TopStatusBar from "../components/TopStatusBar";
 import HomeRoundPortal from "../components/HomeRoundPortal";
+import TippingNavigationPolish from "../components/TippingNavigationPolish";
 import GameModeSwitch from "../components/GameModeSwitch";
 
 export const metadata = {
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthGate>
           <GameModeSwitch />
           <HomeRoundPortal />
+          <TippingNavigationPolish />
           {children}
         </AuthGate>
         <AnnouncementBanner />
