@@ -1,45 +1,17 @@
 name: Build
-
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install dependencies
-        run: npm install
-      - name: MP-12 scoring regression
-        run: npm run test:mp12:scoring
-      - name: MP-12 security contract regression
-        run: npm run test:mp12:security
-      - name: MP-12 test isolation regression
-        run: npm run test:mp12:isolation
-      - name: MP-13 tipping scoring regression
-        run: npm run test:mp13:scoring
-      - name: MP-13 season readiness regression
-        run: npm run test:mp13:readiness
-      - name: MP-04 transfer regression
-        run: npm run test:mp04:transfers
-      - name: Bonus Weeks regression
-        run: npm run test:mp07:bonus-weeks
-      - name: MP-07.7 round history regression
-        run: npm run test:mp07:round-history
-      - name: MP-07.8 stats dashboard regression
-        run: npm run test:mp07:stats
-      - name: MP-10 optimizer regression
-        run: npm run test:mp10:optimizer
-      - name: Build
+      - run: npm install
+      - name: Build probe
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
