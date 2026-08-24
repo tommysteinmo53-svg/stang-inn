@@ -2,19 +2,22 @@
 
 > Operativt tillegg til `docs/MASTERPLAN.md`. GitHub `main` er teknisk source of truth. Dette tillegget gjelder foran eldre formuleringer dersom det oppstår konflikt, inntil punktene er foldet inn i hovedfilen.
 
-Sist oppdatert: 2026-08-23
+Sist oppdatert: 2026-08-24
 
 ## Nye masterplanpunkter
 
-### MP-01.7 ⬜ Obligatorisk brukerprofilnavn ved registrering
+### MP-01.7 ✅ Obligatorisk brukerprofilnavn ved registrering
 
-Alle brukere skal ha et eksplisitt navn i Stang Inn-profilen som kan brukes videre i Fantasy, Tipping, leaderboard og miniligaer.
+Alle brukere har nå et eksplisitt navn i Stang Inn-profilen som kan brukes videre i Fantasy, Tipping, leaderboard og miniligaer.
 
-- Ved registrering med Google skal brukeren måtte bekrefte/skrive inn navnet sitt før registreringen regnes som komplett.
-- Navnet skal lagres som Stang Inns eget profil-/visningsnavn og ikke være avhengig av at Google-navn alltid finnes eller er egnet.
-- Eksisterende brukere uten navn skal få en kontrollert kompletteringsflyt før de kan delta fullt i konkurranseflater som krever navn.
-- Navnefeltet skal ha server-side validering, rimelige lengdegrenser og håndtering av tomme/whitespace-only verdier.
-- Endringer må bevare auth/RLS og ikke eksponere e-post eller andre unødvendige personopplysninger i offentlige tabeller.
+- Google-navn brukes kun som forslag; brukeren må eksplisitt bekrefte/skrive inn profilnavnet før profilen regnes som komplett.
+- Profilnavnet lagres i den generelle `public.players`-profilen og completion markeres med `profile_name_confirmed_at`.
+- Eksisterende gyldige profiler er migrert som ferdige; ufullstendige profiler sendes til en kontrollert `/onboarding`-flyt.
+- Global `AuthGate` blokkerer direkte navigering til konkurranseflater til profilstatus er verifisert, slik at onboarding ikke kan omgås via URL.
+- `complete_stanginn_profile_v1(text)` validerer server-side, normaliserer whitespace, krever 2–60 tegn og avviser kontrolltegn.
+- RPC-en er authenticated-only. `anon` har ikke EXECUTE, authenticated-klienter har ikke direkte INSERT/UPDATE/DELETE på `players`, og `players.email` er ikke lesbar for vanlige konkurranseklienter.
+- Ny Google-bruker er produksjonstestet gjennom hele onboardingflyten. Produksjonsstatus etter testen var 3/3 profiler bekreftet, 0 ufullstendige og 0 ugyldige bekreftede navn.
+- `test:mp01:onboarding` regresjonsbeskytter completion-state, bypass-gate, eksplisitt lagring, servervalidering og profilprivilegier. Separat CI-probe bestod 8/8 kontroller 2026-08-24.
 
 ### MP-04.8 ⬜ Obligatorisk lagnavn før Fantasy-lag kan lagres
 
@@ -77,20 +80,18 @@ Miniliga-medlemskap skal være produktuavhengig: er en bruker medlem av en minil
 
 ## Avhengigheter
 
-Identitetskravene bør implementeres før felles miniligaer ferdigstilles. Da får både Tipping og Fantasy én stabil brukeridentitet å vise i ligaene, og Fantasy slipper generiske lag som `Mitt lag` i leaderboard/miniligaer.
+Identitetsgrunnlaget MP-01.7 er nå ferdig. Neste avhengighet er MP-04.8 obligatorisk Fantasy-lagnavn, deretter MP-07.10 lagnavn + eiernavn og til slutt MP-13.6 felles miniligaer.
 
 Event Weeks må være produksjonskonfigurert og verifisert før full pre-launch regresjon og før regelverket låses i MP-14. Rik Onkel/Fattig Onkel og Julebord skal behandles samlet i Chat 07 slik at kalender, UI, scoring, boosterkonflikter og snapshots verifiseres i én sammenhengende Event Week-pass.
 
 ## Oppdatert prioritert arbeidskø
 
-1. **Chat 13 – MP-13.1–13.5: ferdigstill Tipping-kjernen.** Kartlegg faktisk status på `main` og fullfør kamptips/EHL-synk, tabelltips, automatisk scoring, awards/statistikk og sesongklar brukerflyt.
-2. **Chat 01 – MP-01.7: obligatorisk profilnavn/onboarding.** Sørg for at Google-registrerte og eksisterende brukere har et eksplisitt Stang Inn-navn før konkurranse-/ligaflatene låses.
-3. **Chat 04 – MP-04.8: obligatorisk lagnavn.** Ingen nye Fantasy-lag skal kunne lagres med `Mitt lag`/tomt standardnavn.
-4. **Chat 07 – MP-07.10: lagnavn + eiernavn i tabeller.** Oppdater Fantasy leaderboard/runder/miniligavisning med begge identiteter.
-5. **Chat 13 – MP-13.6: felles miniligaer.** Bygg ett medlemskap som brukes av både Tipping og Fantasy, med separate produkttabeller.
-6. **Chat 07 – MP-07.11 + MP-07.12: produksjonskonfigurer Event Weeks.** Konfigurer og verifiser GW15 Rik Onkel, GW22 Julebord og GW38 Fattig Onkel. Julebord skal gi 100 % poeng fra begge rekker og blokkere personlige boostere. Verifiser alle tre mot kalender, deadlines, transfers, scoring, snapshots, UI og historikk.
-7. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Ta med profilnavn, lagnavn, leaderboardvisning, alle Event Weeks og felles miniliga-RLS i regresjonsmatrisen.
-8. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.**
-9. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske gates er PASS.
+1. **Chat 04 – MP-04.8: obligatorisk lagnavn.** Ingen nye Fantasy-lag skal kunne lagres med `Mitt lag`/tomt standardnavn. MP-01.7 er ferdig og gir nå stabil eieridentitet.
+2. **Chat 07 – MP-07.10: lagnavn + eiernavn i tabeller.** Oppdater Fantasy leaderboard/runder/miniligavisning med begge identiteter.
+3. **Chat 13 – MP-13.6: felles miniligaer.** Bygg ett medlemskap som brukes av både Tipping og Fantasy, med separate produkttabeller.
+4. **Chat 07 – MP-07.11 + MP-07.12: produksjonskonfigurer Event Weeks.** Konfigurer og verifiser GW15 Rik Onkel, GW22 Julebord og GW38 Fattig Onkel. Julebord skal gi 100 % poeng fra begge rekker og blokkere personlige boostere. Verifiser alle tre mot kalender, deadlines, transfers, scoring, snapshots, UI og historikk.
+5. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Ta med profilnavn, lagnavn, leaderboardvisning, alle Event Weeks og felles miniliga-RLS i regresjonsmatrisen.
+6. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.**
+7. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske gates er PASS.
 
 **Sesongavhengig:** MP-06.6 gjennomføres i Chat 06 når representative 2026/27-seriekamper finnes. MP-02.6 og MP-09 fortsetter løpende gjennom sesongen.
