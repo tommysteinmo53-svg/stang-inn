@@ -41,6 +41,8 @@ jobs:
         run: npm run test:mp07:stats
       - name: MP-07.10 team owner identity regression
         run: npm run test:mp07:identity
+      - name: MP-07.11/07.12 Event Weeks regression
+        run: npm run test:mp07:event-weeks
       - name: MP-10 optimizer regression
         run: npm run test:mp10:optimizer
       - name: Build
