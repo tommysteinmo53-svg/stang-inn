@@ -15,6 +15,7 @@
     "test:mp07:round-history": "node scripts/test-mp07-round-history.mjs",
     "test:mp07:stats": "node scripts/test-mp07-stats-dashboard.mjs",
     "test:mp07:identity": "node scripts/test-mp07-team-owner-identity.mjs",
+    "test:mp07:event-weeks": "node scripts/test-mp07-event-weeks-2026-27.mjs",
     "test:mp10:optimizer": "node scripts/test-mp10-optimizer.mjs",
     "test:mp12:scoring": "node scripts/test-mp12-fantasy-scoring.mjs",
     "test:mp12:security": "node scripts/test-mp12-security-contracts.mjs",
