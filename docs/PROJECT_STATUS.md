@@ -1,6 +1,6 @@
 # Stang Inn – PROJECT STATUS
 
-Sist kontrollert mot GitHub `main`: 2026-08-23
+Sist kontrollert mot GitHub `main`: 2026-08-24
 
 ## Source of truth
 
@@ -16,7 +16,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-23
 - TypeScript 5.9.x
 - Supabase
 - Vercel
-- GitHub Actions build-CI + Bonus Weeks-, MP-04 transfer-, MP-07 rundehistorikk/stats- og MP-10 optimizerkontrakt/regresjon
+- GitHub Actions build-CI med MP-12 scoring/security/test-isolation, MP-13 scoring/readiness, MP-04 transfer, Bonus Weeks, MP-07 rundehistorikk/stats og MP-10 optimizer før full build.
 
 ## EHL 2026/27
 
@@ -28,6 +28,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-23
 - Fire EP-bekreftede spillere uten tilgjengelig NIF-ID bruker eksplisitt provisorisk `ep:`-identitet: Filip Bratt, Matteo Mitrovic, Alexander Bjurström og Ludwig Blomstrand. NIF-ID skal aldri oppdiktes; senere overgang til NIF-identitet skal skje eksplisitt og sikkert.
 - HockeyLive tournamentId `448981` beholdes for kamp-/ID-data. `TournamentPlayers` var tom preseason, og `TournamentTeams -> TeamMembers` skal ikke behandles som autoritativ sesongroster.
 - Kalenderbasert fantasy-rundestruktur og deadline/snapshot-system er implementert.
+- MP-12 sluttkontroll 2026-08-24 bekreftet 45 autoritative fantasy-runder, 225 kamper, 0 runder uten kampkobling, 0 kamper uten fantasy-runde og 0 cross-season-lenker.
 
 ## Fantasy – implementert kjerne
 
@@ -35,10 +36,10 @@ Sist kontrollert mot GitHub `main`: 2026-08-23
 - MP-03.6 sluttkalibrering er publisert som V4.6.2. Produksjon er kontrollert med 239/239 current-roster-spillere priset, 239/239 låste sesongpriser, 239/239 kjøpbare, nøyaktig 14 godkjente prisendringer, 0 avvik mellom spillerpris og sesongpris, 0 stale lagrede `purchase_price` og 0 eksisterende lag over 100m. Ingen fantasy-scoringregler ble endret.
 - Persistente brukerlag, kaptein/visekaptein og klubb-/lagvalideringer.
 - MP-04.7 gameweek-fixtures i «Mitt lag»: hver valgt spiller viser motstander(e) for den fantasy-runden laget bygges/redigeres for, med H/B-markering og eksplisitt «Ingen kamp». Visningen bruker autoritativ `get_fantasy_round_schedule_v1`.
-- **MP-04.5/MP-04.6 transfer-/regelkjernen er ferdigstilt.** Maks 2 permanente spillerbytter per ordinær fantasy-runde, ingen byttebank og ingen poengtrekk. Bytteboost øker grensen til 4. Event Weeks sperrer permanente transfers. Transferledger lagrer batch/runde/lagverdi/INN/UT, og `/fantasy/transfers` viser reglene og historikken.
+- **MP-04.5/MP-04.6 transfer-/regelkjernen er ferdigstilt og behavioralt verifisert.** Maks 2 permanente spillerbytter per ordinær fantasy-runde, ingen byttebank og ingen poengtrekk. Bytteboost øker grensen til 4. Event Weeks sperrer permanente transfers. Transferledger lagrer batch/runde/lagverdi/INN/UT. Ny service-only synthetic E2E bruker `__e2e_*`; vanlige authenticated-brukere er fortsatt hardlåst til `2026/27`. Produksjons-E2E: 6/6 PASS.
 - Kalenderbaserte runder, deadline-sikre snapshots og freeze/readiness-kontroller.
 - Fantasy-poengmotor med special teams, kaptein ×2 og visekaptein ×1,5.
-- **MP-07.6 Bonus Weeks er implementert og produksjonsverifisert.** Kapteinsboost ×2,5, Rekkeboost rekke 2 = 100 %, Bytteboost opptil 4 transfers, Rik Onkel 200m separat eventlag og Fattig Onkel 70m separat eventlag. Bonus-/eventmetadata fryses i snapshotet.
+- **MP-07.6 Bonus Weeks er implementert og behavioralt produksjonsverifisert.** Kapteinsboost ×2,5, Rekkeboost rekke 2 = 100 %, Bytteboost opptil 4 transfers, Rik Onkel 200m separat eventlag og Fattig Onkel 70m separat eventlag. Bonus-/eventmetadata fryses i snapshotet. MP-12 E2E: 6/6 PASS. Testen fant en reell tvetydig `ON CONFLICT`-feil i Event Week-konfigurasjonen; den er rettet med eksplisitt unique-constraint-target og verifisert på nytt.
 - **MP-07.7 rundehistorikk er snapshot-first.** `get_my_fantasy_round_history_v1` starter fra snapshots og snapshotspillere; dagens lag brukes aldri til historisk rekonstruksjon. UI viser rekke 1/2, C/VC, priser, lagverdi, boost/event, poeng/multiplikatorer og relevante transfers.
 - **MP-07.8 personlig statistikkdashboard er ferdigstilt.** `/fantasy/stats` ligger under Poeng-seksjonen og viser poeng per runde, kumulative poeng, sammenlagtrank/rankutvikling, runderank, rankendring, lagverdi over tid, poeng per posisjon, C/VC-bidrag og transfers.
 - **MP-07.9 sikre sesonginnsikter er ferdigstilt.** Beste/verste runde, snitt, median, rundeseire, topp 10 %/1 %, kapteinsandel, beste Bonus/Event Week, mest brukt/lengst beholdt spiller, beste C/VC-valg, klubbfordeling og sammenligning mot feltets snitt er implementert. Historisk transfergevinst, xFP-over/underprestasjon og availability-tapte poeng vises ikke uten sikkert datagrunnlag.
@@ -55,11 +56,36 @@ Sist kontrollert mot GitHub `main`: 2026-08-23
 - MP-09 availability-kjernen er produksjonsverifisert med konservativ matching/adminreview og kun godkjent availability inn i analyse/optimizer.
 - **MP-10 lagoptimalisator er ferdigstilt som adminverktøy.** Ingen offentlig optimizer-side/API; availability-, transfer- og Event Week-reglene beholdes.
 
+## MP-12 – pre-launch regresjon ferdigstilt
+
+**MP-12.3 + MP-12.7 er ferdig og produksjonsverifisert 2026-08-24.** Behavioral sluttkontroller mot faktiske produksjonsfunksjoner ga:
+
+- lagscoring / kaptein / visekaptein: 5/5 PASS
+- snapshot/freeze: 4/4 PASS
+- double gameweek / blank-week: 4/4 PASS
+- round automation: 5/5 PASS
+- egen rundedetalj og brukerisolasjon: 5/5 PASS
+- leaderboard/tie-break/rundehistorikk: 5/5 PASS
+- achievements/statistikk: 5/5 PASS
+- Bonus/Event Weeks: 6/6 PASS
+- transfers/Bytteboost/ledger: 6/6 PASS
+
+Pre-launch-testingen fant og rettet to reelle produksjonsfeil før sesongstart: lagscoringen refererte til schema-relasjoner som ikke lenger fantes, og Event Week-konfigurasjonen hadde et tvetydig `ON CONFLICT`-target. Begge er nå regresjonsbeskyttet.
+
+Sikkerhets-/isolasjonssluttkontroll:
+
+- 0 Fantasy `SECURITY DEFINER`-funksjoner er kjørbare av `anon`.
+- Prisrevisjonsfunksjonen `audit_fantasy_price_publication(uuid)` er nå `SECURITY INVOKER` og respekterer eksisterende admin-RLS.
+- De usikre legacy transfer-/captain-E2E-helperne er fjernet.
+- Nye behavioral E2E-RPC-er er service-only.
+- Syntetisk transferkanal krever både `service_role` og `__e2e_*`; ordinary authenticated-brukere blir eksplisitt avvist og er fortsatt låst til `2026/27`.
+- Sluttkontrollen viste 45 runder, 225 kamper, 239/239 kjøpbare spillere med 2026/27-pris og 0 rester i kontrollerte `__e2e_*` lag/runder/kamper/transferbatcher/boostere/priser/regler.
+
 ## Aktivt område / neste kobling
 
-**MP-11.3–MP-11.5 er ferdigstilt og Vercel-verifisert på `main` 2026-08-23.** UX-passet endret presentasjon, responsive layouts og read-only spilleroppsummering, men ikke scoring, fantasy-runder, deadlines, snapshots, transferregler, Bonus/Event Week-regler, budsjett, C/VC-multiplikatorer eller leaderboard/tie-break.
+**MP-12.3 + MP-12.7 er ferdigstilt på `main`.** Den brede pre-launch-regresjonen har verifisert scoring, transfers, deadlines/snapshots, round automation, RLS/sikkerhet, Bonus/Event, leaderboard/historikk og sentrale brukerdataflyter uten å endre ekte 2026/27-testdata.
 
-**Neste operative hovedpunkt er Chat 12 – MP-12.3 + MP-12.7.** Nå skal bred regresjon/pre-launch kvalitet verifisere scoring, transfers, deadlines, RLS, admin og sentrale brukerflyter før produksjons-/launch-gaten.
+**Neste operative hovedpunkt er Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7.** Nå skal produksjons-/launch-gaten verifisere endelig regelverk, alle 45 runder/deadlines, produksjonsmiljø, cron/synk/secrets, mobil/desktop smoke tests samt backup/rollback. GO LIVE (MP-14.8) tas først når alle disse kritiske gatene er PASS.
 
 MP-02 preseason-rosterkontroll er produksjonsverifisert mot EliteProspects: 239/239 spillere, 0 mangler, 0 tvetydige, 0 lagavvik, 0 ekstra og 0 posisjonsavvik. Robust identitetsgate og løpende MP-02.6-drift beholdes.
 
@@ -69,9 +95,10 @@ MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirke
 
 ## Testing
 
-- GitHub Actions kjører transfer-, Bonus Weeks-, MP-07 rundehistorikk/stats- og optimizerregresjoner før build på push/PR mot `main`.
-- MP-04 transferregresjonen er deterministisk og filbasert og skriver aldri til Supabase.
-- Bonus Weeks-regresjonen beskytter eventlag-isolasjon, 200m/70m, booster inventory/deadline, snapshotmetadata, multiplikatorer, double-GW og Event Week-transfer-sperre.
+- GitHub Actions kjører MP-12 scoring/security/test-isolation, MP-13 scoring/readiness, MP-04 transfer, Bonus Weeks, MP-07 rundehistorikk/stats og MP-10 optimizer før full build på push/PR mot `main`.
+- MP-04 transferregresjonen har både filbasert kontraktstest og service-only synthetic behavioral E2E. Behavioral testen skriver kun i `__e2e_mp12_transfers__`, kjører den faktiske `apply_fantasy_transfers_v1`, verifiserer 2/4-reglene, ledger og Bytteboost-commit, og rydder alle fixtures.
+- MP-12 test-isolation-gaten beskytter at unsafe legacy-helperne forblir fjernet og at nye scoring/snapshot/DGW/automation/Bonus/Event/transfer-E2E-er bruker syntetisk namespace.
+- Bonus Weeks-regresjonen beskytter eventlag-isolasjon, 200m/70m, booster inventory/deadline, snapshotmetadata, multiplikatorer, double-GW, Event Week-transfer-sperre og den eksplisitte Event Week conflict-constrainten.
 - MP-07 rundehistorikkregresjonen beskytter snapshot-first-kontrakten, frosset spillernavn, score som `LEFT JOIN`, transferledger som kontekst, Event Week-isolasjon og authenticated-only RPC.
 - MP-07 statsregresjonen beskytter dashboardet, spillerbaserte sesonginnsikter, feltbenchmarks og at historikk ikke rekonstrueres fra dagens lag. Usikre historiske estimater skal fortsatt holdes ute.
 - MP-10 optimizerregresjonen beskytter admin-only-kontrakten og locked-player/0-2-4/Bytteboost/Event Week/availability/strategireglene.
@@ -79,7 +106,6 @@ MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirke
 - MP-07.9 spiller-/benchmark-RPC-er er eksplisitt hardened til `authenticated=true`, `anon=false`.
 - MP-04.7 produksjonsdata viser 45 autoritative fantasy-runder; det finnes både runder med lag uten kamp og runder med dobbeltkamper.
 - MP-11 spilleroppsummerings-RPC er verifisert med `authenticated_execute=true` og `anon_execute=false`. UX-passet skrev ikke testdata til ekte 2026/27-lag/runder.
-- Samlet MP-11 frontend-head gjennom Regler er Vercel `SUCCESS`; siste empty-state-commit ble også Vercel-verifisert før dokumentasjonshandoff.
 - Produksjonsregelen står fast: isolerte tester skal ikke endre ekte 2026/27-data og skal rydde opp egne testdata.
 
 ## Kjente dokumentasjonsforhold
