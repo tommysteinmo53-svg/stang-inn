@@ -7,6 +7,7 @@ import "./awards.css";
 import "./leaderboard.css";
 import "./tips-polish.css";
 import "./tabletips-polish.css";
+import "./player-profile-polish.css";
 import "./game-mode-switch.css";
 import AuthGate from "../components/AuthGate";
 import AuthReturnRedirect from "../components/AuthReturnRedirect";
