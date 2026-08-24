@@ -11,6 +11,7 @@ const safeTeamScoring = read("supabase/mp12-team-scoring-schema-bridge-v1.sql");
 const safeSnapshot = read("supabase/mp12-snapshot-freeze-e2e-v1.sql");
 const safeDgwBlank = read("supabase/mp12-dgw-blank-week-e2e-v1.sql");
 const safeBonusEvent = read("supabase/mp12-bonus-event-e2e-v1.sql");
+const safeTransfers = read("supabase/mp12-isolated-transfer-e2e-v1.sql");
 
 const unsafeSignatures = [
   "public.create_fantasy_snapshot_test_round(text)",
@@ -49,5 +50,9 @@ console.log("PASS DGW/blank-week E2E synthetic-season isolation");
 assert.ok(safeBonusEvent.includes("__e2e_mp12_bonus_event__"), "Bonus/Event E2E must use synthetic season");
 assert.ok(!safeBonusEvent.includes("v_season constant text:='2026/27'"), "Bonus/Event E2E must never use production season as its namespace");
 console.log("PASS Bonus/Event E2E synthetic-season isolation");
+assert.ok(safeTransfers.includes("__e2e_mp12_transfers__"), "Transfer E2E must use synthetic season");
+assert.ok(safeTransfers.includes("v_role='service_role' and p_season like '__e2e_%'"), "Synthetic transfer path must require service_role");
+assert.ok(safeTransfers.includes("p_season<>'2026/27'"), "Ordinary transfer path must remain locked to production season");
+console.log("PASS transfer E2E synthetic-season/service-role isolation");
 
 console.log("\nPASS MP-12 test-isolation gate.");
