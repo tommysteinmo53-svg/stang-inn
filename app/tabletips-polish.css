@@ -1,0 +1,63 @@
+.tableTipsStack { gap: 13px; }
+.tableTipsHero.open { border-color: rgba(97,196,255,.28); }
+.tableTipsHero.locked { border-color: rgba(99,157,218,.16); background: linear-gradient(135deg, rgba(15,29,47,.9), rgba(7,20,35,.9)); }
+.tableTipsSummary { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.tableTipsSummary .miniCard strong { font-size: 19px; }
+.tableTipsStatus.success { border-color: rgba(84,222,168,.28); background: rgba(22,65,55,.36); }
+.tableTipsMainGrid { grid-template-columns: 1.12fr .88fr; align-items: start; }
+.tableTipHelp { margin-bottom: 13px; }
+.tableTipRanking { gap: 6px; }
+.tableTipRankingItem { grid-template-columns: 38px minmax(0,1fr) auto; padding: 10px 11px; min-height: 56px; transition: border-color .16s ease, transform .16s ease, background .16s ease; }
+.tableTipRankingItem:hover { transform: translateY(-1px); border-color: rgba(97,196,255,.3); }
+.tableTipRankingItem.podium1 { border-color: rgba(246,202,97,.34); background: linear-gradient(90deg, rgba(246,202,97,.08), rgba(6,19,34,.72)); }
+.tableTipRankingItem.podium2, .tableTipRankingItem.podium3 { border-color: rgba(97,196,255,.23); }
+.tableTipTeam { min-width: 0; }
+.tableTipTeam strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tableTipTeam small { display: block; margin-top: 2px; color: var(--gold); font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+.tableTipMoveButtons { display: flex; gap: 5px; }
+.tableTipMoveButtons button { width: 38px; height: 38px; border: 1px solid rgba(99,157,218,.2); border-radius: 11px; background: rgba(17,38,65,.72); color: var(--text); font-size: 18px; font-weight: 950; }
+.tableTipMoveButtons button:hover:not(:disabled) { border-color: var(--ice); background: rgba(97,196,255,.1); }
+.tableTipMoveButtons button:disabled { opacity: .28; }
+.tableTipSave { min-height: 48px; }
+.tableTipSaveHint { text-align: center; margin: 8px 0 0; font-size: 10px; }
+.ehlStandingList { display: grid; }
+.ehlStandingRow { display: grid; grid-template-columns: 32px minmax(0,1fr) 48px 52px; gap: 8px; align-items: center; padding: 11px 5px; border-top: 1px solid rgba(99,157,218,.13); }
+.ehlStandingRow:first-child { border-top: 0; }
+.ehlStandingRow > span:nth-last-child(2), .ehlStandingRow > b { text-align: right; }
+.ehlStandingRow > span:nth-last-child(2) { color: var(--muted); font-size: 11px; }
+.tableSync { margin: 12px 0 8px; font-size: 10px; }
+.deviationList, .tableTipsScoreList { display: grid; }
+.deviationRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 4px; border-top: 1px solid rgba(99,157,218,.13); }
+.deviationRow:first-child { border-top: 0; }
+.deviationRow > span:last-child { color: var(--muted); text-align: right; }
+.deviationRow.exact > span:last-child b { color: var(--good); }
+.tableTipsScoreRow { display: grid; grid-template-columns: 32px minmax(0,1fr) 52px; gap: 9px; align-items: center; padding: 11px 6px; border-top: 1px solid rgba(99,157,218,.13); border-radius: 10px; }
+.tableTipsScoreRow:first-child { border-top: 0; }
+.tableTipsScoreRow small { display: block; color: var(--muted); margin-top: 2px; font-size: 10px; }
+.tableTipsScoreRow > strong { text-align: right; font-size: 19px; }
+.tableTipsScoreRow.isMe { background: rgba(97,196,255,.07); box-shadow: inset 3px 0 var(--ice); }
+.tableTipPrivacy { margin-top: 12px; }
+.tableTipsPrivacy { overflow: hidden; }
+
+@media (max-width: 820px) {
+  .tableTipsSummary { grid-template-columns: 1fr 1fr 1fr; }
+  .tableTipsMainGrid, .tableTipsCompareGrid { grid-template-columns: 1fr; }
+  .currentEhlTable { order: 2; }
+}
+
+@media (max-width: 580px) {
+  .tableTipsPage .topbar .textButton { display: none; }
+  .tableTipsHero { margin-top: 8px; }
+  .tableTipsHero h2 { font-size: 27px; }
+  .tableTipsSummary { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tableTipsSummary .miniCard:last-child { grid-column: 1 / -1; }
+  .tableTipsSummary .miniCard strong { font-size: 17px; }
+  .tableTipEditor { padding: 14px; }
+  .tableTipRankingItem { min-height: 58px; padding: 9px; grid-template-columns: 31px minmax(0,1fr) auto; }
+  .tableTipMoveButtons button { width: 42px; height: 42px; }
+  .tableTipSave { position: sticky; bottom: 116px; z-index: 7; box-shadow: 0 12px 34px rgba(0,0,0,.38); }
+  .ehlStandingRow { grid-template-columns: 28px minmax(0,1fr) 42px 48px; padding: 10px 2px; }
+  .deviationRow { align-items: flex-start; font-size: 12px; }
+  .tableTipsScoreRow { grid-template-columns: 27px minmax(0,1fr) 44px; }
+  .tableTipsPrivacy .panelHeading { align-items: flex-start; }
+}
