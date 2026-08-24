@@ -106,84 +106,44 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 **Status: ✅ kjerne, historikk, stats og konkurransepresentasjon ferdigstilt / 🔵 sesongdata fylles løpende**
 
-- MP-07.1 ✅ Sesong-leaderboard implementert.
-- MP-07.2 ✅ Isolert leaderboard E2E-test og testkontroller implementert.
-- MP-07.3 ✅ Rundering/rank, bevegelse og egen-lag-markering implementert.
-- MP-07.4 ✅ **Rundevisning og konkurransepresentasjon:** `/fantasy/rounds` er produksjonspolert med neste runde automatisk åpnet, kampvindu/deadline, kampoversikt og eksplisitt visning av lag med 0 eller flere kamper i runden. Mobilvisningen er tilpasset uten å endre autoritativ runde-/deadline-logikk. Vercel-verifisert grønn 2026-08-23.
-- MP-07.5 ✅ **Konkurranse-/tie-break-regelverk:** endelig sammenlagtrangering er 1) totalpoeng, 2) flest rundeseire, 3) høyeste enkelt-rundescore. Dersom alt fortsatt er likt deles plasseringen. Teamnavn brukes kun til stabil visningsrekkefølge og er ikke sportslig tie-break. Samme kriterier brukes ved previous-rank/movement, og reglene er publisert på Regler-siden. Premieoppsett kan fastsettes separat uten å endre rankingmotoren.
-- MP-07.6 ✅ **Bonus Weeks / fantasy-boostere:** komplett regel-, data-, scoring-, transfer-, snapshot-, UI- og historikksystem er implementert. Hvert lag har én Kapteinsboost (C ×2,5), én Rekkeboost (rekke 2 = 100 %) og én Bytteboost (opptil 4 bytter) per sesong, maks ett personlig kort per runde og eksisterende deadline som aktiverings-/låsegrense. Felles Event Weeks er **Rik Onkel** med separat 200m-lag og **Fattig Onkel** med separat 70m-lag; eventlag påvirker aldri permanent 100m-lag eller ordinær transferhistorikk. Personlige kort er sperret i Event Weeks. Booster/eventmetadata fryses i snapshot og brukes av autoritativ scoring/historikk. Double gameweeks støttes ved at alle kamp-poeng i runden summeres før multiplikatorer. MP-12 behavioral E2E 2026-08-24 verifiserte Kapteinsboost ×2,5, Rekkeboost ×1,0 på rekke 2, én booster per runde, kansellering før commit, Event Week-kollisjon og cleanup 6/6. En reell tvetydig `ON CONFLICT`-feil i Event Week-konfigurasjon ble funnet av testen, reparert med eksplisitt unique-constraint-target og verifisert på nytt.
-- MP-07.7 ✅ **Rundehistorikk / historisk lagvisning:** komplett snapshot-first historikk er implementert og produksjonsverifisert 2026-08-23. `/fantasy/my-rounds` starter fra autoritative `fantasy_team_round_snapshots` + snapshotspillere, aldri fra dagens lag eller transferrekonstruksjon. Spillernavn, klubb, posisjon, pris, rekke, kaptein og visekaptein fryses i snapshotet; score og spillermultiplikatorer kobles kun på via `LEFT JOIN`, slik at et låst lag kan vises før runden er ferdigscoret. Rekke 1/2, C/VC, lagverdi, Bonus/Event Week-metadata, rundepoeng og relevante permanente transfers vises i historikken; Event Weeks skjuler ordinær transferkontekst. Personlig RPC er authenticated-only (`anon` uten EXECUTE), filbasert regresjon er koblet til CI, og Vercel-deploy er grønn. Produksjonen hadde 0 ekte 2026/27-snapshots ved verifikasjon, så ingen falske eller eksisterende historiske lagdata ble skrevet eller endret.
-- MP-07.8 ✅ **Personlig statistikkdashboard:** `/fantasy/stats` er implementert som del av Poeng-seksjonen med poeng per runde, kumulative poeng, sammenlagtrank/rankutvikling, runderank, rankendring, lagverdi over tid, poeng per posisjon, C/VC-bidrag og benyttede transfers. Statistikken bygger på autoritative snapshots/scoring og rekonstruerer aldri historikk fra dagens lag. Usikre kontrafaktiske tall som transfergevinst/-tap vises ikke uten sikkert historisk grunnlag.
-- MP-07.9 ✅ **Utvidede fantasy-stats og sesonginnsikt:** sikre, forklarbare sesongmål er implementert: beste/verste runde, snitt, median, rundeseire, topp-10 %- og topp-1 %-runder, kapteinsandel, beste Bonus/Event Week, mest brukte spiller, lengst beholdte spiller, beste C/VC-valg, klubbfordeling og sammenligning mot feltets faktiske snitt. Personlige stats-RPC-er er authenticated-only og `anon` har ikke EXECUTE. Beste/verste transfer, historisk xFP-over/underprestasjon, availability-tapte poeng og lignende holdes bevisst ute inntil sikkert historisk/kontrafaktisk datagrunnlag finnes; de skal ikke gjettes fra dagens data.
+- MP-07.1–MP-07.9 ✅ Leaderboard, runder, tie-break, Bonus/Event Weeks, rundehistorikk og personlig statistikkdashboard er implementert og verifisert. Detaljert status og testspor finnes i tidligere masterplanversjoner og relevante docs/CI-gater.
 
 # MP-08 – Analyse, xFP og anbefalinger
 
-**Status: ✅ – analyseinput og fixture-rating er produksjonsverifisert og stabilt for videre Fantasy-analyse**
+**Status: ✅ – analyseinput og fixture-rating er produksjonsverifisert og stabilt grunnlag for anbefalinger/optimizer**
 
-- MP-08.1 ✅ Samlet admin-kommandosenter for analyse er implementert og produksjonsbrukt.
-- MP-08.2 ✅ **Preseason-FP er avviklet.** Treningskampstatistikk skal ikke brukes til å beregne xFP, spillerform, anbefalinger eller annen Fantasy-beslutningsstøtte. Datagrunnlaget fra treningskamper er for ufullstendig og inkonsistent til å gi et pålitelig signal. Aktiv preseason-FP-kode/adminflate er fjernet fra `main`; historiske migrasjoner/data kan beholdes inert for sporbarhet.
-- MP-08.3 ✅ **Preseason-statistikkpipeline er avviklet.** Manuell registrering, ekstern kildeimport, parser-preview og debug/diagnostikk som kun eksisterte for treningskamp-FP skal ikke videreutvikles eller inngå i ordinær arbeidsflyt. Dette påvirker ikke vanlig roster-, terminliste- eller prisarbeid før sesongstart.
-- MP-08.4 ✅ Kanonisk analyse-featurelag `get_fantasy_analysis_features_admin_v1` samler sesong-FP/kamp, form 3/5/10, hjemme/borte, sample counts, pris og observert FP/kamp per million før modellberegning. Den raske `get_fantasy_xfp_round_horizons_admin_v2` bruker featurelaget direkte, og anbefalingene arver samme grunnlag via horisont-RPC-en. Form 5 beholdes som modellens form-input; scoringregler og xFP-vekter er uendret. Produksjonsverifisert 2026-08-21 med 234 feature-rader, 234 xFP-horisont-rader og 234 anbefalingsrader samt grønn Vercel-build.
-- MP-08.5 ✅ Dynamisk fixture-/motstanderrating er produksjonskalibrert uten treningskampdata. Autoritativ startbaseline kommer fra ordinær EHL 2025/26: F/D vurderes mot motstanders GA relativt til ligasnitt, G mot motstanders GF relativt til ligasnitt. Live-kurven bruker eksponent 0,80 med sikkerhetsgrenser 0,70–1,35. 2026/27-data fases lineært inn over lagets første 12 ferdigspilte seriekamper: kamp 0 = 100 % historisk baseline, kamp 6 = 50/50 og kamp 12+ = 100 % live. Ringerike bruker nøytral 1,000-baseline fordi ordinært 2025/26-EHL-grunnlag mangler. Produksjonskontroll bekrefter 0 ferdigspilte 2026/27-kamper ved kalibrering, korrekt historisk baseline og ingen avhengighet til preseason-/treningskampstatistikk. Adminflaten eksponerer historisk baseline, live, blended factor, datagrunnlag og 1–5-rating. Vercel-build er grønn.
-- MP-08.6 ✅ Kjøp / hold / selg-score med forklarbare komponenter er implementert og produksjonsbrukt.
-- MP-08.7 ✅ Kapteinscore/anbefaling er implementert og produksjonsbrukt.
-- MP-08.8 ✅ Forventede poeng for neste kamp, neste fantasy-runde og tre fantasy-runder er implementert på den raske horisontmotoren, med tydelig skille mellom base-xFP, availability-justert xFP og lineup-kontekst.
+- MP-08.1–MP-08.8 ✅ Analyse-command-center, xFP, form/verdi, fixture-rating, kjøp/hold/selg, kapteinscore og horisonter er implementert og produksjonsverifisert. Preseason-FP-modellen er bevisst avviklet fordi datagrunnlaget var for ustabilt; ordinære EHL-data er autoritativt grunnlag videre.
 
 # MP-09 – Skader, fravær og tilgjengelighet
 
 **Status: ✅ kjerne produksjonsverifisert / 🔵 reelle funn overvåkes gjennom sesongen**
 
-- MP-09.1 ✅ Datamodell for spiller-tilgjengelighet etablert.
-- MP-09.2 ✅ Admin-API og admin-side for tilgjengelighet etablert.
-- MP-09.3 ✅ Status for «ikke i kamptropp» støttes.
-- MP-09.4 ✅ Dokumentert kildeinnhenting etablert: allowlistede EHL-klubbsider og nitten.no med freshness-gate/deduplisering, samt HockeyLive MatchTeamMembers-kontroll for preseason og ordinære 2026/27-kamper. Eksterne funn legges kun i review-kø og publiseres aldri automatisk. nitten.no-parseren er historisk backtestet mot to golden-artikler med 45/45 korrekte klassifiseringer og 0 writes.
-- MP-09.5 ✅ Sikker roster-matching og adminverifisering etablert og produksjonsverifisert. Usikre/tvetydige funn krever manuell kontroll; godkjenning verifiserer aktiv roster-spiller og oppdaterer availability + historikk + funnstatus atomisk.
-- MP-09.6 ✅ Kun admin-godkjent availability påvirker xFP, anbefalinger og optimalisator. Produksjonsverifisert policy: `available` 100 %, `returning` 85 %, `questionable` 60 %, `out`/`long_term`/`not_in_lineup` 0 %. Blokkerte spillere kan ikke foreslås av optimizeren. Availability-effekt-siden bruker en lett, sikker server-side datavei uten full-xFP-timeout.
-- MP-09.7 ✅ Varslingskjeden er implementert og teknisk produksjonsverifisert: preview av berørte fantasy-eiere, RLS-beskyttet delivery-ledger, unik deduplisering/idempotens, atomisk delivery-RPC og faktisk produksjonsvarsel til korrekt fantasy-eier er testet. Testdata/varsel ble ryddet etter verifisering. Godkjenning av nye reelle review-funn er nå koblet til varslingssenteret; første naturlige E2E via et reelt nytt funn verifiseres når et slikt funn oppstår, uten å opprette falske skadefunn.
+- MP-09.1–MP-09.7 ✅ Availability-datamodell, admin/review, dokumentert kildeinnhenting, sikker roster-matching, xFP/optimizer-effekt og varsling er implementert og verifisert. Reelle funn følges løpende.
 
 # MP-10 – Lagoptimalisator
 
 **Status: ✅ – komplett adminverktøy implementert og produksjonsverifisert 2026-08-23**
 
-- MP-10.1 ✅ Komplett input er koblet til adminens faktiske lag, gjeldende budsjett og autoritative transferstatus. Admin kan låse spillere som ikke skal foreslås UT; låsene valideres mot nåværende lag og låste spillere ekskluderes fra outgoing-poolen.
-- MP-10.2 ✅ Output i `Admin → Analyse → Optimalisator` viser tydelige `UT → INN`-forslag, ny lagverdi, forventet xFP-gevinst, risiko, availability, datatillit og forklarbar base-/availability-/effektiv Fantasy-xFP. Optimalisatoren er ikke tilgjengelig i ordinær Fantasy-navigasjon og har ingen offentlig `/fantasy/optimizer`-flate eller offentlig optimizer-API.
-- MP-10.3 ✅ Forventet poenggevinst, risikoscore, risiko per foreslått INN-spiller, datatillit, availability-justert xFP og effektiv Fantasy-xFP etter rekke/C/VC er implementert og produksjonsverifisert.
-- MP-10.4 ✅ Balansert, konservativ og offensiv strategi er modellberegnet med ulike risiko-/oppsideobjektiver. Forventet gevinst, risiko, modellert oppside og avvikende UT → INN-bytter vises. Produksjonsverifisert 2026-08-21 og beholdt gjennom sluttføringen.
-- MP-10.5 ✅ Optimizeren bruker autoritativ `get_fantasy_transfer_status_v1` og de endelige MP-04-reglene: maks 2 permanente bytter per ordinær runde, ingen byttebank, ingen poengtrekk, opptil 4 med Bytteboost og 0 permanente transfers i Rik/Fattig Onkel. Bytteboost-søket bruker en begrenset flerfaktor-kandidatpool for å holde 4-byttesøk produksjonsforsvarlig, mens endelig budsjett-, posisjons-, klubb-, lineup- og availability-validering fortsatt skjer på hvert forslag. Compatibility-RPC-ene som ble introdusert under sluttbrukerforsøket er nå eksplisitt admin-only og `anon` har ikke EXECUTE. Availability-gaten er uendret og blokkerte spillere kan ikke foreslås.
+- MP-10.1–MP-10.5 ✅ Komplett optimizer med lag/budsjett/transferstatus/låste spillere, UT→INN, xFP-gevinst/risiko, tre strategier, availability/fixture og autoritative transferregler er implementert og produksjonsverifisert.
 
 # MP-11 – UI/UX og mobilopplevelse
 
-**Status: ✅ samlet Fantasy UX-/mobilpass ferdigstilt 2026-08-23 / ✅ tipping-UX preseasonpolert 2026-08-24**
+**Status: ✅ samlet Fantasy UX-/mobilpass ferdigstilt 2026-08-23 / ✅ tipping-UX preseasonpolert 2026-08-24 / ⬜ visuell merkevareimplementasjon gjenstår**
 
-- MP-11.1 ✅ **Navigasjon og felles Fantasy-layout:** Fantasy-hovedmenyen samler Mitt lag/Eventlag/Bytter og Poeng/Rundehistorikk/Min statistikk i interne seksjoner; Achievements er integrert i Leaderboard. Mobilfeilen der Fantasy ble markert som «Profil» i globalmenyen er fjernet, 8/7-gridavviket er rettet, og Fantasy-menyen bruker en eksplisitt mobilgrid uten nødvendig horisontal scrolling.
-- MP-11.2 ✅ **Leaderboard og konkurransepresentasjon:** desktop-/mobilpresentasjon, egen-lag-markering, achievements, historikk og redusert kolonnevisning på små skjermer er kontrollert. Eksisterende løsning ble beholdt der den allerede var god.
-- MP-11.3 ✅ **Lagbygger, spillerflater, runder og statistikk:** Mitt lag, Eventlag og Bytter er harmonisert med større touch targets og konsistent panel-/kontrollspråk. `/fantasy/players` er bygget om til en beslutningstabell med faktiske FP, FP/kamp, Form 5, eierandel, pris og neste gameweek/motstander(e), med sortering og mobilkort uten horisontal scrolling. FP-tallene kommer fra authenticated-only read-RPC `get_fantasy_player_market_summary_v1`, som bruker samme siste-beregning-per-kamp-semantikk som spillerprofilen; `anon` har ikke EXECUTE. Spillerprofil, runder, DGW/BGW-visning, Stats og Regler er mobilpolert; Stats' 820px runde-tabell og Regler-tabellene blir kortvisning på telefon.
-- MP-11.4 ✅ **Samlet UX-pass:** Fantasy-forsiden er justert til den forenklede informasjonsarkitekturen, Eventlag/Bytter er visuelt samlet med resten av Fantasy, sidebredder/spacings/touchflater er harmonisert og eksisterende fungerende forretningslogikk er beholdt uendret.
-- MP-11.5 ✅ **Readability/loading/error/empty states:** tydeligere states er lagt inn på sentrale flater, blant annet Spillere, spillerprofil, Bonus Weeks og Rundehistorikk. Bonus Weeks har eksplisitt loading/error/retry, og Rundehistorikk forklarer at historikken blir tilgjengelig når laget først låses ved deadline. Ingen scoring-, snapshot-, deadline-, transfer-, Event Week-, Booster-, budsjett-, C/VC- eller leaderboardregel ble endret i UX-passet.
-- MP-11.6 ✅ **Tipping-forside – kampfokus og informasjonsrekkefølge:** «Kamper i runden»-karusellen er flyttet inn under Stang Inn-headeren og hovednavigasjonen i stedet for å ligge globalt over innholdet. «Toppen akkurat nå»-live-tabellen er fjernet fra hjemmesiden for å redusere visuell støy og prioritere kamp/tipping først. Kampkarusellens tipsfordeling, sveiping, kampnavigasjon og tippinglogikk er beholdt uendret. Implementert på `main` i commit `d6a7c28` 2026-08-24.
-- MP-11.7 ✅ **Tipping sluttpolering:** Tabell, Kamptips, Tabelltips, Awards og spillerprofil er mobil-/desktop-polert med tydeligere hierarki, status, touchflater, navn, historikk og konkurransepresentasjon. Forretningslogikk/scoring/deadlines er beholdt uendret. Vercel og MP-13 readiness-gate er grønne 2026-08-24.
+- MP-11.1–MP-11.7 ✅ Navigasjon, leaderboard, Fantasy-flater, samlet UX-pass, states og tipping-polering er implementert og verifisert.
+- MP-11.8 ⬜ **Stang Inn-logo og visuell merkevareimplementasjon:** implementer den godkjente logo-retningen med en full hovedlogo og en forenklet ikonvariant. Hovedlogoen skal kommunisere Stang Inn som hockey-, fantasy- og tippingprodukt og fungere på både lys og mørk bakgrunn. Den forenklede varianten skal være tydelig og gjenkjennelig i svært små størrelser og brukes som favicon/nettleserfane, app-/PWA-ikon og andre kompakte flater. Lever/implementer nødvendige webvennlige varianter med transparent bakgrunn der det er hensiktsmessig, skalerbare assets der mulig og riktige favicon/app-icon-størrelser. Oppdater metadata/favicon slik at dagens generiske ChatGPT/standardikon erstattes av Stang Inn-identiteten. Logoen skal også integreres konsistent i Stang Inn-header/navigasjon uten å forringe mobilplass, lesbarhet eller eksisterende funksjonalitet. Kontroller både mobil og desktop, lys/mørk kontekst, favicon i nettleserfane og produksjonsbuild. Endelig implementerte assets skal lagres i repoet med tydelig filstruktur; ikke baser produksjonen på en midlertidig chat-/preview-fil. Den godkjente konseptretningen er mørk marine/hvit/gull, hockeypuck/skjold for hovedlogo og en kompakt `SI`-identitet for ikonvarianten.
 
 # MP-12 – Testing, sikkerhet og datakvalitet
 
 **Status: ✅ pre-launch regresjon ferdigstilt 2026-08-24 / 🔵 kontinuerlig kvalitetsgate**
 
-- MP-12.1 ✅ Build-CI på push/PR til `main`. CI kjører MP-12 scoring-, security- og test-isolation-gater, MP-13 scoring/readiness, MP-04 transfers, Bonus Weeks, MP-07 rundehistorikk/stats, MP-10 optimizer og full Next/TypeScript-build.
-- MP-12.2 ✅ Isolerte service-only E2E-verktøy dekker sentrale produksjonsflyter med syntetiske `__e2e_*`-sesonger: scoring/C/VC, snapshots/freeze, DGW/BGW, round automation, Bonus/Event Weeks og transfers. I tillegg er rundedetaljer, leaderboard/tie-break/rundehistorikk og achievements kjørt på egne isolerte test-sesonger.
-- MP-12.3 ✅ Bred regresjonsdekning er etablert og produksjonsverifisert for scoring, transfers, deadlines/snapshots, round automation, RLS/sikkerhet, Bonus/Event Weeks, leaderboard/rundehistorikk og sentrale brukerdataflyter. Behavioral kontrollresultater ved sluttføring: lagscoring 5/5, snapshot/freeze 4/4, DGW/BGW 4/4, round automation 5/5, rundedetaljer 5/5, leaderboard 5/5, achievements 5/5, Bonus/Event 6/6 og transfers 6/6.
-- MP-12.4 🔵 Ingen test skal endre ekte 2026/27-data. Legacy-testhelperne som kunne skrive i ekte sesongnamespace er fjernet; syntetisk transfersti krever eksplisitt `service_role` + `__e2e_*`, mens ordinære authenticated-brukere fortsatt er hardlåst til `2026/27`.
-- MP-12.5 🔵 Nye tester skal rydde opp egne data. Sluttkontrollen 2026-08-24 viste 0 rester i kontrollerte `__e2e_*` lag, runder, kamper, transferbatcher, boostere, sesongpriser og sesongregler.
-- MP-12.6 🔵 Ikke svekk auth/RLS/sikkerhet for testbarhet. Sluttauditen viste 0 anon-kjørbare Fantasy `SECURITY DEFINER`-funksjoner; `audit_fantasy_price_publication` ble endret til `SECURITY INVOKER` slik at eksisterende admin-RLS gjelder. Nye behavioral E2E-RPC-er er service-only.
-- MP-12.7 ✅ Full pre-launch regresjonstest er gjennomført mot faktisk `main` og produksjonsskjema. Produksjon sto etter testene fortsatt på 45 autoritative fantasy-runder, 225 kamper, 239/239 current-roster/kjøpbare spillere med 2026/27-pris og 0 testrester. Testarbeidet oppdaget og reparerte to reelle pre-launch-feil: manglende schema-kontrakt for lagscoring (`fantasy_round_games`/`fantasy_game_player_points`) og tvetydig Event Week-upsert. Begge er regresjonsbeskyttet og produksjonsverifisert.
+- MP-12.1–MP-12.7 ✅/🔵 CI, isolerte E2E-gater, bred regresjon, testisolasjon, sikkerhet og full pre-launch-regresjon er etablert. Ingen test skal endre ekte 2026/27-data, testdata skal ryddes og auth/RLS skal ikke svekkes.
 
 # MP-13 – Stang Inn tipping
 
 **Status: ✅ preseasonklar kjerne og brukerflyt / 🔵 live-verifisering gjennom sesongen**
 
-- MP-13.1 ✅ **Kamptips og EHL-synk:** kamptips, automatisk kamp-/resultatgrunnlag, filtrering, deadline/lås og admin-synk er etablert. Server-side deadline feiler lukket og klienten kan ikke skrive scoringfelt. EHL-data/infrastruktur deles der det er naturlig, mens tippinglogikken er separat fra Fantasy XI.
-- MP-13.2 ✅ **Tabelltips:** komplett 10-lags rangering med deadline, authenticated-only hardnet `save_table_tip_rankings`, EHL-lagvalidering, skjult innsyn før frist, faktisk EHL-tabell, avvik og tabelltips-stilling. Preseason → første kamp → aktiv konkurranse er eksplisitt håndtert i brukerflyt/readiness-kontrakt.
-- MP-13.3 ✅ **Automatisk poengberegning:** autoritativ 5/3/0-motor er idempotent, støtter konfigurerbare poengregler og re-scoring ved korrigert/gjenåpnet kamp. `points` er server-eid; authenticated klienter kan ikke skrive feltet. Egen MP-13 scoring-regresjon kjører i CI.
-- MP-13.4 ✅ **Awards og statistikk:** Rundevinner, Månedsvinner, Eksperttittel, Sniper, Beste streak, Ukens bom og Sesongens bom er implementert. Spillerprofil viser poeng-/rankutvikling, siste fem, rundeseire, treff/eksakte og tipshistorikk. Awards bruker autoritative lagrede tippingpoeng og regner ikke egen fallback-score.
-- MP-13.5 ✅ **Mobil-/brukerflyt og preseason readiness:** forsiden, Tabell, Kamptips, Tabelltips, Awards og Profil er sluttpolert for mobil/desktop. Faktiske navn brukes som offentlig tippingnavn der auth-data har navn, med trygg fallback. `test:mp13:readiness` er read-only, koblet i CI og beskytter kamptips, deadline, server-eid scoring, tabelltips-RPC/innsyn, preseason→sesongstart-overgang, awards og profilutvikling. Siste readiness-commit `9a19a91` er Vercel SUCCESS 2026-08-24. Første reelle ferdigspilte runde og første avsluttede måned skal følges som naturlig live-verifisering, ikke med falske 2026/27-data.
+- MP-13.1–MP-13.5 ✅ Kamptips/EHL-synk, tabelltips, automatisk scoring, awards/statistikk og sesongklar mobil-/brukerflyt er implementert. Live-verifisering fortsetter på reelle sesongdata.
 
 # MP-14 – Lansering EHL 2026/27
 
@@ -194,7 +154,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 - MP-14.3 ⬜ Verifiser alle 45 runder/deadlines mot terminlisten.
 - MP-14.4 ⬜ Full scoring-/snapshot-/leaderboard-regresjon.
 - MP-14.5 ⬜ Verifiser produksjonsmiljø, cron/synk og secrets.
-- MP-14.6 ⬜ Mobil/desktop smoke test.
+- MP-14.6 ⬜ Mobil/desktop smoke test, inkludert MP-11.8 logo/favicon/brand assets når dette er ferdig.
 - MP-14.7 ⬜ Backup/rollback/admin-rutiner.
 - MP-14.8 ⬜ GO LIVE.
 
@@ -204,10 +164,11 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når et steg er ferdig, blokkert eller når ny informasjon endrer avhengighetene. Arbeidschatten som fullfører et steg skal lese siste versjon av denne køen på `main` før den sender brukeren videre.
 
-1. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** MP-12.3 + MP-12.7 og MP-13 preseason readiness er ferdig; neste effektive steg er å verifisere endelig regelverk, 45 runder/deadlines, produksjonsmiljø, cron/synk/secrets, mobil/desktop smoke tests samt backup/rollback før GO LIVE.
-2. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske launch-gates er PASS.
+1. **Chat 11 – MP-11.8: implementer Stang Inn-logo og merkevareassets.** Gjør den godkjente hovedlogo-/SI-ikonretningen produksjonsklar, legg assets i repoet, oppdater header, favicon/metadata og app-/PWA-ikoner, og verifiser mobil/desktop + produksjonsbuild. Dette gjøres før launch-gaten slik at den endelige smoke-testen kontrollerer faktisk lanseringsidentitet.
+2. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** MP-12.3 + MP-12.7 og MP-13 preseason readiness er ferdig; verifiser endelig regelverk, 45 runder/deadlines, produksjonsmiljø, cron/synk/secrets, mobil/desktop smoke tests samt backup/rollback før GO LIVE.
+3. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske launch-gates er PASS.
 
-**Sesongavhengig:** MP-06.6 full produksjonsvalidering mot faktiske 2026/27-kamper gjennomføres i **Chat 06** så snart representative seriekamper finnes. MP-02.6 og øvrig synk/datadrift fortsetter løpende. MP-09 følger nye reelle availability-funn gjennom sesongen og første naturlige E2E via review-køen verifiseres ved første faktiske funn. **MP-13** følges videre som 🔵 live-verifisering ved første ferdigspilte tippingrunde, første tabelltips-avvik og første avsluttede kalendermåned; dette skal skje på reelle sesongdata og ikke med falske 2026/27-data.
+**Sesongavhengig:** MP-06.6 full produksjonsvalidering mot faktiske 2026/27-kamper gjennomføres i **Chat 06** så snart representative seriekamper finnes. MP-02.6 og øvrig synk/datadrift fortsetter løpende. MP-09 følger nye reelle availability-funn gjennom sesongen. MP-13 følges videre som 🔵 live-verifisering på reelle sesongdata.
 
 ## Fast handoff mellom arbeidschatter
 
@@ -217,37 +178,3 @@ Når et steg faktisk er ferdig skal arbeidschatten avslutte omtrent slik:
 - **Verifisert:** finnes på `main` + relevante tester/kontroller bestått.
 - **➡️ Neste prioritet:** `Chat NN – navn`, `MP-XX.YY – konkret neste oppgave`.
 - **Hvorfor nå:** én kort forklaring på avhengigheten/prioriteringen.
-
-Hvis arbeidet **ikke** er på `main`, relevante tester ikke er bestått, eller nødvendig manuell SQL/verifisering gjenstår, skal chatten ikke skrive «ferdig» og ikke sende videre som om punktet er ✅.
-
-Hvis et steg blir blokkert, skal arbeidschatten identifisere hvilken chat/MP som må løse blokkeringen først, og masterplanens prioriteringskø skal oppdateres dersom dette endrer den mest effektive rekkefølgen.
-
-## Foreslått ChatGPT-prosjektstruktur
-
-- `00 – MASTERPLAN` – kun roadmap/status/prioritering
-- `01 – Plattform, Supabase & sikkerhet` – MP-01 + relevante deler av MP-12
-- `02 – EHL-data & spilleridentitet` – MP-02
-- `03 – Prismodell & spillerøkonomi` – MP-03
-- `04 – Lagbygger & transfers` – MP-04
-- `05 – Runder, deadlines & snapshots` – MP-05
-- `06 – Scoring & kampstatistikk` – MP-06
-- `07 – Leaderboard & konkurranse` – MP-07
-- `08 – Analyse, xFP & anbefalinger` – MP-08
-- `09 – Skader & tilgjengelighet` – MP-09
-- `10 – Lagoptimalisator` – MP-10
-- `11 – UI/UX & mobil` – MP-11
-- `12 – Testing & kvalitet` – MP-12
-- `13 – Stang Inn tipping` – MP-13
-- `14 – Lansering 2026/27` – MP-14
-
-## Synk mellom chat og GitHub
-
-Ved avslutning av et hovedsteg:
-
-1. Verifiser at endringen faktisk finnes på `main`.
-2. Verifiser relevante tester/kontroller.
-3. Oppdater status i denne masterplanen.
-4. Oppdater `docs/PROJECT_STATUS.md` med kort teknisk status dersom arkitektur, drift eller produksjonsstatus er endret.
-5. Les den oppdaterte **Prioritert arbeidskø** på `main`.
-6. Gi brukeren eksplisitt handoff til neste chat og MP-punkt.
-7. Gå først deretter videre til neste MP-punkt.
