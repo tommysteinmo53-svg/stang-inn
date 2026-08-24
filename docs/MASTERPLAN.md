@@ -153,13 +153,14 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-11 – UI/UX og mobilopplevelse
 
-**Status: ✅ samlet Fantasy UX-/mobilpass ferdigstilt 2026-08-23**
+**Status: ✅ samlet Fantasy UX-/mobilpass ferdigstilt 2026-08-23 / 🟡 tipping-UX videreføres**
 
 - MP-11.1 ✅ **Navigasjon og felles Fantasy-layout:** Fantasy-hovedmenyen samler Mitt lag/Eventlag/Bytter og Poeng/Rundehistorikk/Min statistikk i interne seksjoner; Achievements er integrert i Leaderboard. Mobilfeilen der Fantasy ble markert som «Profil» i globalmenyen er fjernet, 8/7-gridavviket er rettet, og Fantasy-menyen bruker en eksplisitt mobilgrid uten nødvendig horisontal scrolling.
 - MP-11.2 ✅ **Leaderboard og konkurransepresentasjon:** desktop-/mobilpresentasjon, egen-lag-markering, achievements, historikk og redusert kolonnevisning på små skjermer er kontrollert. Eksisterende løsning ble beholdt der den allerede var god.
 - MP-11.3 ✅ **Lagbygger, spillerflater, runder og statistikk:** Mitt lag, Eventlag og Bytter er harmonisert med større touch targets og konsistent panel-/kontrollspråk. `/fantasy/players` er bygget om til en beslutningstabell med faktiske FP, FP/kamp, Form 5, eierandel, pris og neste gameweek/motstander(e), med sortering og mobilkort uten horisontal scrolling. FP-tallene kommer fra authenticated-only read-RPC `get_fantasy_player_market_summary_v1`, som bruker samme siste-beregning-per-kamp-semantikk som spillerprofilen; `anon` har ikke EXECUTE. Spillerprofil, runder, DGW/BGW-visning, Stats og Regler er mobilpolert; Stats' 820px runde-tabell og Regler-tabellene blir kortvisning på telefon.
 - MP-11.4 ✅ **Samlet UX-pass:** Fantasy-forsiden er justert til den forenklede informasjonsarkitekturen, Eventlag/Bytter er visuelt samlet med resten av Fantasy, sidebredder/spacings/touchflater er harmonisert og eksisterende fungerende forretningslogikk er beholdt uendret.
 - MP-11.5 ✅ **Readability/loading/error/empty states:** tydeligere states er lagt inn på sentrale flater, blant annet Spillere, spillerprofil, Bonus Weeks og Rundehistorikk. Bonus Weeks har eksplisitt loading/error/retry, og Rundehistorikk forklarer at historikken blir tilgjengelig når laget først låses ved deadline. Ingen scoring-, snapshot-, deadline-, transfer-, Event Week-, Booster-, budsjett-, C/VC- eller leaderboardregel ble endret i UX-passet.
+- MP-11.6 ✅ **Tipping-forside – kampfokus og informasjonsrekkefølge:** «Kamper i runden»-karusellen er flyttet inn under Stang Inn-headeren og hovednavigasjonen i stedet for å ligge globalt over innholdet. «Toppen akkurat nå»-live-tabellen er fjernet fra hjemmesiden for å redusere visuell støy og prioritere kamp/tipping først. Kampkarusellens tipsfordeling, sveiping, kampnavigasjon og tippinglogikk er beholdt uendret. Implementert på `main` i commit `d6a7c28` 2026-08-24.
 
 # MP-12 – Testing, sikkerhet og datakvalitet
 
@@ -181,7 +182,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 - MP-13.2 🟡 Tabelltips.
 - MP-13.3 ⬜ Automatisk poengberegning ferdigstilles og produksjonsverifiseres.
 - MP-13.4 ⬜ Månedsvinner, streak, poenggrafer, Ukens bom, Eksperttittel og øvrige awards ferdigstilles.
-- MP-13.5 ⬜ Mobil-/brukerflyt og sesongklar testing.
+- MP-13.5 🟡 Mobil-/brukerflyt og sesongklar testing. Første tipping-forsidepass er gjennomført: kampkarusellen er prioritert rett under Stang Inn-navet og den tidligere «Toppen akkurat nå»-tabellen er fjernet fra forsiden. Full sluttpolering og sesongklar test gjenstår.
 
 # MP-14 – Lansering EHL 2026/27
 
