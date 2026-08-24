@@ -5,9 +5,9 @@ Sist kontrollert mot GitHub `main`: 2026-08-24
 ## Source of truth
 
 - Teknisk sannhet: GitHub `main`.
-- Prosjektplan/prioritering: `docs/MASTERPLAN.md`.
+- Prosjektplan/prioritering: `docs/MASTERPLAN.md` + gjeldende masterplan-addendum.
 - Denne filen: kort teknisk kontrollpunkt for nye arbeidsøkter/chatter.
-- Eldre roadmap-filer er historisk/tematisk dokumentasjon og skal ikke overstyre `MASTERPLAN.md` eller faktisk kode på `main`.
+- Eldre roadmap-filer er historisk/tematisk dokumentasjon og skal ikke overstyre `MASTERPLAN.md`, gjeldende addendum eller faktisk kode på `main`.
 
 ## Stack
 
@@ -17,6 +17,16 @@ Sist kontrollert mot GitHub `main`: 2026-08-24
 - Supabase
 - Vercel
 - GitHub Actions build-CI med MP-12 scoring/security/test-isolation, MP-13 scoring/readiness, MP-04 transfer, Bonus Weeks, MP-07 rundehistorikk/stats og MP-10 optimizer før full build.
+
+## Felles brukeridentitet / MP-01.7
+
+- **MP-01.7 er ferdigstilt og produksjonsverifisert 2026-08-24.** `public.players` er den generelle Stang Inn-profilen for Tipping, Fantasy, leaderboard og kommende felles miniligaer.
+- Google-auth beholdes, men Google-navn er kun et forslag. Ny/ufullstendig bruker må eksplisitt bekrefte et Stang Inn-profilnavn i `/onboarding` før konkurranseflater åpnes.
+- `profile_name_confirmed_at` er eksplisitt completion-state. Global `AuthGate` sjekker den før appinnhold rendres og sender ufullstendig profil til onboarding også ved direkte URL-navigering.
+- `complete_stanginn_profile_v1(text)` er authenticated-only, normaliserer whitespace, krever 2–60 tegn og avviser kontrolltegn. Hotfix bruker eksplisitt `players_pkey` som conflict-target.
+- Authenticated-klienter har ikke direkte INSERT/UPDATE/DELETE på `players`, og `players.email` er ikke lesbar for vanlige konkurranseklienter. `anon` har ikke EXECUTE på profil-RPC-en.
+- Reell ny Google-bruker er testet end-to-end. Etter testen hadde produksjonen 3/3 bekreftede profiler, 0 ufullstendige og 0 ugyldige bekreftede navn.
+- `test:mp01:onboarding` dekker completion-state, bypass-gate, eksplisitt lagring, Google-forslag, servervalidering og profilprivilegier. Separat CI-probe bestod 8/8 kontroller.
 
 ## EHL 2026/27
 
@@ -66,7 +76,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-24
 - Tabelltips bruker authenticated-only `save_table_tip_rankings`, krever 10 gyldige EHL-lag, håndhever deadline og skjuler andres tips frem til fristen. Faktisk EHL-tabell, avvik og konkurransestilling aktiveres når serien starter.
 - Awards er implementert: Rundevinner, Månedsvinner, Eksperttittel, Sniper, Beste streak, Ukens bom og Sesongens bom. Awards bruker lagrede autoritative tippingpoeng.
 - Spillerprofil viser sammenlagtplassering, poeng, treff, eksakte, streak, rundeseire, siste fem, poeng-/rankutvikling og synlig tipshistorikk.
-- Offentlig tippingnavn bruker faktisk navn fra auth der det finnes, med eksisterende offentlig navn som fallback.
+- Offentlig tippingnavn skal nå bruke den bekreftede Stang Inn-profilidentiteten som grunnlag; senere konkurranseflater skal ikke eksponere e-post.
 - Forside, Tabell, Kamptips, Tabelltips, Awards og Profil er mobil-/desktop-polert. Navigasjonsnavnet «Statistikk» er endret til «Tabell».
 - `test:mp13:readiness` er read-only og dekker kamptips, deadline, server-eid scoring, tabelltips-RPC/innsyn, preseason→første kamp-overgang, awards og profilutvikling. Commit `9a19a91` er Vercel SUCCESS 2026-08-24.
 - Første reelle ferdigspilte tippingrunde, første aktive tabelltips-avvik og første avsluttede kalendermåned skal verifiseres naturlig på reelle 2026/27-data. Ingen falske 2026/27-data skal opprettes for dette.
@@ -98,9 +108,11 @@ Sikkerhets-/isolasjonssluttkontroll:
 
 ## Aktivt område / neste kobling
 
-**MP-13 preseason readiness er ferdigstilt på `main`.** Tippingproduktet går nå over i løpende live-verifisering når reelle EHL-resultater, fullførte runder og første avsluttede kalendermåned foreligger.
+**MP-01.7 obligatorisk profilnavn/onboarding er ferdigstilt på `main` og produksjonsverifisert.** Identitetsgrunnlaget er dermed klart for Fantasy-lagnavn, eiernavn i tabeller og senere felles miniligaer.
 
-**Neste operative hovedpunkt er Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7.** Nå skal produksjons-/launch-gaten verifisere endelig regelverk, alle 45 runder/deadlines, produksjonsmiljø, cron/synk/secrets, mobil/desktop smoke tests samt backup/rollback. GO LIVE (MP-14.8) tas først når alle disse kritiske gatene er PASS.
+**Neste operative hovedpunkt er Chat 04 – MP-04.8 obligatorisk Fantasy-lagnavn.** Nye Fantasy-lag skal ikke kunne lagres med tomt navn, `Mitt lag` eller tilsvarende placeholder, og eksisterende generiske lag skal få kontrollert kompletteringsflyt uten å miste spillere, snapshots, transfers eller historikk.
+
+Deretter følger MP-07.10 lagnavn + eiernavn i Fantasy-tabeller og MP-13.6 felles miniligaer, i henhold til `MASTERPLAN_ADDENDUM_IDENTITY_MINILEAGUES.md`.
 
 MP-02 preseason-rosterkontroll er produksjonsverifisert mot EliteProspects: 239/239 spillere, 0 mangler, 0 tvetydige, 0 lagavvik, 0 ekstra og 0 posisjonsavvik. Robust identitetsgate og løpende MP-02.6-drift beholdes.
 
@@ -110,6 +122,7 @@ MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirke
 
 ## Testing
 
+- `test:mp01:onboarding` beskytter den globale profilcompletion-/bypass-kontrakten, eksplisitt profilbekreftelse, server-side navnevalidering og profilprivilegier. Separat CI-probe bestod 8/8 2026-08-24 uten å skrive 2026/27-data.
 - GitHub Actions kjører MP-12 scoring/security/test-isolation, MP-13 scoring/readiness, MP-04 transfer, Bonus Weeks, MP-07 rundehistorikk/stats og MP-10 optimizer før full build på push/PR mot `main`.
 - MP-13 readiness er read-only og skal aldri opprette eller endre 2026/27-data. Den beskytter kamptipsflyt, server-side deadline, server-eid poeng, tabelltips-kontrakt/innsyn, sesongstart-overgang, awards og spillerprofilens poeng-/rankutvikling.
 - MP-04 transferregresjonen har både filbasert kontraktstest og service-only synthetic behavioral E2E. Behavioral testen skriver kun i `__e2e_mp12_transfers__`, kjører den faktiske `apply_fantasy_transfers_v1`, verifiserer 2/4-reglene, ledger og Bytteboost-commit, og rydder alle fixtures.
@@ -126,7 +139,7 @@ MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirke
 
 ## Kjente dokumentasjonsforhold
 
-`README.md` beskriver fortsatt eldre prosjektstatus og er ikke oppdatert til dagens fantasyimplementasjon. Bruk `MASTERPLAN.md` og denne filen som operativ oversikt inntil README er modernisert.
+`README.md` beskriver fortsatt eldre prosjektstatus og er ikke oppdatert til dagens fantasyimplementasjon. Bruk `MASTERPLAN.md`, gjeldende addendum og denne filen som operativ oversikt inntil README er modernisert.
 
 `docs/fantasy-roadmap.md` inneholder den opprinnelige fantasyretningen og er fortsatt nyttig for mål/prinsipper, men flere punkter er allerede implementert utover statusen som fremgår der.
 
@@ -134,7 +147,7 @@ MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirke
 
 Ved ny arbeidschat:
 
-1. Les `docs/MASTERPLAN.md`.
+1. Les `docs/MASTERPLAN.md` og relevante addendum.
 2. Les `docs/PROJECT_STATUS.md`.
 3. Kontroller siste commits og relevante filer på `main` for MP-punktet som skal arbeides med.
 4. Ikke anta at chat-historikk er nyere enn GitHub.
