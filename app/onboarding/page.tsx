@@ -1,7 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../../lib/supabase";
 import styles from "./page.module.css";
 
@@ -32,14 +31,16 @@ function suggestedAuthName(metadata: Record<string, unknown> | undefined) {
 }
 
 export default function OnboardingPage() {
-  const params = useSearchParams();
-  const next = useMemo(() => safeNext(params.get("next")), [params]);
+  const [next, setNext] = useState("/");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
+    const requestedNext = safeNext(new URLSearchParams(window.location.search).get("next"));
+    setNext(requestedNext);
+
     if (!isSupabaseConfigured) {
       setLoading(false);
       setMessage("Supabase er ikke koblet til.");
@@ -55,7 +56,8 @@ export default function OnboardingPage() {
       if (cancelled) return;
       const user = sessionData.session?.user;
       if (!user) {
-        window.location.replace(`/login?next=${encodeURIComponent(`/onboarding?next=${encodeURIComponent(next)}`)}`);
+        const onboardingTarget = `/onboarding?next=${encodeURIComponent(requestedNext)}`;
+        window.location.replace(`/login?next=${encodeURIComponent(onboardingTarget)}`);
         return;
       }
 
@@ -68,7 +70,7 @@ export default function OnboardingPage() {
       const profile = profileData as StoredProfile | null;
 
       if (profile?.profile_name_confirmed_at && normalizeName(profile.display_name).length >= 2) {
-        window.location.replace(next);
+        window.location.replace(requestedNext);
         return;
       }
 
@@ -88,7 +90,7 @@ export default function OnboardingPage() {
     return () => {
       cancelled = true;
     };
-  }, [next]);
+  }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
