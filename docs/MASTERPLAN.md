@@ -2,7 +2,7 @@
 
 > Prosjektets operative kontrollsenter. GitHub `main` er teknisk source of truth. Denne filen gir oversikt, prioritering og sporbarhet.
 
-Sist oppdatert: 2026-08-23
+Sist oppdatert: 2026-08-24
 
 ## Arbeidsregler
 
@@ -39,9 +39,9 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 - MP-01.1 ✅ Next.js / React / TypeScript-applikasjon etablert.
 - MP-01.2 ✅ Supabase og innlogging etablert.
-- MP-01.3 🟡 RLS og sikkerhetsmodell finnes og skal regresjonstestes ved nye funksjoner.
+- MP-01.3 🟡 RLS og sikkerhetsmodell finnes og skal regresjonstestes ved nye funksjoner. MP-12 pre-launch-audit har verifisert 0 anon-kjørbare Fantasy `SECURITY DEFINER`-funksjoner og hardnet identifiserte bypass-/diagnostikkflater.
 - MP-01.4 ✅ Vercel/produksjonsoppsett etablert.
-- MP-01.5 🟡 GitHub Actions build-CI finnes; Bonus Weeks-, MP-04 transfer-, MP-07.7 rundehistorikk-, MP-07 stats- og MP-10 optimizerregresjon kjører før build og videre testdekning utvides etter behov.
+- MP-01.5 ✅ GitHub Actions build-CI inkluderer MP-12 scoring-, security- og test-isolation-gater, MP-13 scoring/readiness, MP-04 transfer, Bonus Weeks, MP-07 rundehistorikk/stats og MP-10 optimizer før full build.
 - MP-01.6 ⬜ Samlet produksjons-/driftschecklist før sesongstart.
 
 # MP-02 – EHL-data, terminliste og spilleridentitet
@@ -111,7 +111,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 - MP-07.3 ✅ Rundering/rank, bevegelse og egen-lag-markering implementert.
 - MP-07.4 ✅ **Rundevisning og konkurransepresentasjon:** `/fantasy/rounds` er produksjonspolert med neste runde automatisk åpnet, kampvindu/deadline, kampoversikt og eksplisitt visning av lag med 0 eller flere kamper i runden. Mobilvisningen er tilpasset uten å endre autoritativ runde-/deadline-logikk. Vercel-verifisert grønn 2026-08-23.
 - MP-07.5 ✅ **Konkurranse-/tie-break-regelverk:** endelig sammenlagtrangering er 1) totalpoeng, 2) flest rundeseire, 3) høyeste enkelt-rundescore. Dersom alt fortsatt er likt deles plasseringen. Teamnavn brukes kun til stabil visningsrekkefølge og er ikke sportslig tie-break. Samme kriterier brukes ved previous-rank/movement, og reglene er publisert på Regler-siden. Premieoppsett kan fastsettes separat uten å endre rankingmotoren.
-- MP-07.6 ✅ **Bonus Weeks / fantasy-boostere:** komplett regel-, data-, scoring-, transfer-, snapshot-, UI- og historikksystem er implementert og produksjonsverifisert 2026-08-23. Hvert lag har én Kapteinsboost (C ×2,5), én Rekkeboost (rekke 2 = 100 %) og én Bytteboost (opptil 4 bytter) per sesong, maks ett personlig kort per runde og eksisterende deadline som aktiverings-/låsegrense. Felles Event Weeks er **Rik Onkel** med separat 200m-lag og **Fattig Onkel** med separat 70m-lag; eventlag påvirker aldri permanent 100m-lag eller ordinær transferhistorikk. Personlige kort er sperret i Event Weeks. Booster/eventmetadata fryses i snapshot og brukes av autoritativ scoring/historikk. Double gameweeks støttes ved at alle kamp-poeng i runden summeres før multiplikatorer. Leaderboardets utfoldbare rundehistorikk viser booster/eventmarkører. Schema-mismatch oppdaget under verifikasjon ble reparert mot faktisk produksjonsskjema og read-only kontroll ga `PASS`. Filbasert Bonus Weeks-regresjon kjører i CI før build, og siste Vercel-deploy er grønn.
+- MP-07.6 ✅ **Bonus Weeks / fantasy-boostere:** komplett regel-, data-, scoring-, transfer-, snapshot-, UI- og historikksystem er implementert. Hvert lag har én Kapteinsboost (C ×2,5), én Rekkeboost (rekke 2 = 100 %) og én Bytteboost (opptil 4 bytter) per sesong, maks ett personlig kort per runde og eksisterende deadline som aktiverings-/låsegrense. Felles Event Weeks er **Rik Onkel** med separat 200m-lag og **Fattig Onkel** med separat 70m-lag; eventlag påvirker aldri permanent 100m-lag eller ordinær transferhistorikk. Personlige kort er sperret i Event Weeks. Booster/eventmetadata fryses i snapshot og brukes av autoritativ scoring/historikk. Double gameweeks støttes ved at alle kamp-poeng i runden summeres før multiplikatorer. MP-12 behavioral E2E 2026-08-24 verifiserte Kapteinsboost ×2,5, Rekkeboost ×1,0 på rekke 2, én booster per runde, kansellering før commit, Event Week-kollisjon og cleanup 6/6. En reell tvetydig `ON CONFLICT`-feil i Event Week-konfigurasjon ble funnet av testen, reparert med eksplisitt unique-constraint-target og verifisert på nytt.
 - MP-07.7 ✅ **Rundehistorikk / historisk lagvisning:** komplett snapshot-first historikk er implementert og produksjonsverifisert 2026-08-23. `/fantasy/my-rounds` starter fra autoritative `fantasy_team_round_snapshots` + snapshotspillere, aldri fra dagens lag eller transferrekonstruksjon. Spillernavn, klubb, posisjon, pris, rekke, kaptein og visekaptein fryses i snapshotet; score og spillermultiplikatorer kobles kun på via `LEFT JOIN`, slik at et låst lag kan vises før runden er ferdigscoret. Rekke 1/2, C/VC, lagverdi, Bonus/Event Week-metadata, rundepoeng og relevante permanente transfers vises i historikken; Event Weeks skjuler ordinær transferkontekst. Personlig RPC er authenticated-only (`anon` uten EXECUTE), filbasert regresjon er koblet til CI, og Vercel-deploy er grønn. Produksjonen hadde 0 ekte 2026/27-snapshots ved verifikasjon, så ingen falske eller eksisterende historiske lagdata ble skrevet eller endret.
 - MP-07.8 ✅ **Personlig statistikkdashboard:** `/fantasy/stats` er implementert som del av Poeng-seksjonen med poeng per runde, kumulative poeng, sammenlagtrank/rankutvikling, runderank, rankendring, lagverdi over tid, poeng per posisjon, C/VC-bidrag og benyttede transfers. Statistikken bygger på autoritative snapshots/scoring og rekonstruerer aldri historikk fra dagens lag. Usikre kontrafaktiske tall som transfergevinst/-tap vises ikke uten sikkert historisk grunnlag.
 - MP-07.9 ✅ **Utvidede fantasy-stats og sesonginnsikt:** sikre, forklarbare sesongmål er implementert: beste/verste runde, snitt, median, rundeseire, topp-10 %- og topp-1 %-runder, kapteinsandel, beste Bonus/Event Week, mest brukte spiller, lengst beholdte spiller, beste C/VC-valg, klubbfordeling og sammenligning mot feltets faktiske snitt. Personlige stats-RPC-er er authenticated-only og `anon` har ikke EXECUTE. Beste/verste transfer, historisk xFP-over/underprestasjon, availability-tapte poeng og lignende holdes bevisst ute inntil sikkert historisk/kontrafaktisk datagrunnlag finnes; de skal ikke gjettes fra dagens data.
@@ -163,15 +163,15 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-12 – Testing, sikkerhet og datakvalitet
 
-**Status: 🟡 / kontinuerlig**
+**Status: ✅ pre-launch regresjon ferdigstilt 2026-08-24 / 🔵 kontinuerlig kvalitetsgate**
 
-- MP-12.1 ✅ Build-CI på push/PR til main.
-- MP-12.2 ✅ Isolerte E2E-verktøy finnes for sentrale snapshot- og leaderboard-flyter.
-- MP-12.3 🟡 Utvid regresjonsdekning for scoring, transfers, deadlines, RLS og admin. Bonus Weeks-, MP-04 transfer-, MP-07 rundehistorikk/stats- og MP-10 optimizerkontrakter kjøres automatisk i CI uten produksjonswrites.
-- MP-12.4 🔵 Ingen test skal endre ekte 2026/27-data.
-- MP-12.5 🔵 Nye tester skal rydde opp egne data.
-- MP-12.6 🔵 Ikke svekk auth/RLS/sikkerhet for testbarhet.
-- MP-12.7 ⬜ Pre-launch full regresjonstest.
+- MP-12.1 ✅ Build-CI på push/PR til `main`. CI kjører MP-12 scoring-, security- og test-isolation-gater, MP-13 scoring/readiness, MP-04 transfers, Bonus Weeks, MP-07 rundehistorikk/stats, MP-10 optimizer og full Next/TypeScript-build.
+- MP-12.2 ✅ Isolerte service-only E2E-verktøy dekker sentrale produksjonsflyter med syntetiske `__e2e_*`-sesonger: scoring/C/VC, snapshots/freeze, DGW/BGW, round automation, Bonus/Event Weeks og transfers. I tillegg er rundedetaljer, leaderboard/tie-break/rundehistorikk og achievements kjørt på egne isolerte test-sesonger.
+- MP-12.3 ✅ Bred regresjonsdekning er etablert og produksjonsverifisert for scoring, transfers, deadlines/snapshots, round automation, RLS/sikkerhet, Bonus/Event Weeks, leaderboard/rundehistorikk og sentrale brukerdataflyter. Behavioral kontrollresultater ved sluttføring: lagscoring 5/5, snapshot/freeze 4/4, DGW/BGW 4/4, round automation 5/5, rundedetaljer 5/5, leaderboard 5/5, achievements 5/5, Bonus/Event 6/6 og transfers 6/6.
+- MP-12.4 🔵 Ingen test skal endre ekte 2026/27-data. Legacy-testhelperne som kunne skrive i ekte sesongnamespace er fjernet; syntetisk transfersti krever eksplisitt `service_role` + `__e2e_*`, mens ordinære authenticated-brukere fortsatt er hardlåst til `2026/27`.
+- MP-12.5 🔵 Nye tester skal rydde opp egne data. Sluttkontrollen 2026-08-24 viste 0 rester i kontrollerte `__e2e_*` lag, runder, kamper, transferbatcher, boostere, sesongpriser og sesongregler.
+- MP-12.6 🔵 Ikke svekk auth/RLS/sikkerhet for testbarhet. Sluttauditen viste 0 anon-kjørbare Fantasy `SECURITY DEFINER`-funksjoner; `audit_fantasy_price_publication` ble endret til `SECURITY INVOKER` slik at eksisterende admin-RLS gjelder. Nye behavioral E2E-RPC-er er service-only.
+- MP-12.7 ✅ Full pre-launch regresjonstest er gjennomført mot faktisk `main` og produksjonsskjema. Produksjon sto etter testene fortsatt på 45 autoritative fantasy-runder, 225 kamper, 239/239 current-roster/kjøpbare spillere med 2026/27-pris og 0 testrester. Testarbeidet oppdaget og reparerte to reelle pre-launch-feil: manglende schema-kontrakt for lagscoring (`fantasy_round_games`/`fantasy_game_player_points`) og tvetydig Event Week-upsert. Begge er regresjonsbeskyttet og produksjonsverifisert.
 
 # MP-13 – Stang Inn tipping
 
@@ -202,9 +202,8 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når et steg er ferdig, blokkert eller når ny informasjon endrer avhengighetene. Arbeidschatten som fullfører et steg skal lese siste versjon av denne køen på `main` før den sender brukeren videre.
 
-1. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Scoring, transfers, deadlines, RLS, admin og sentrale brukerflyter. MP-11 UX-/mobilpasset er ferdig, så neste effektive steg er å bevise at den samlede løsningen er regresjonssikker før launch-gate.
-2. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** Regelverk, 45 runder/deadlines, produksjon, cron/secrets, smoke tests, backup og rollback.
-3. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske launch-gates er PASS.
+1. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** MP-12.3 + MP-12.7 er ferdig; neste effektive steg er å verifisere endelig regelverk, 45 runder/deadlines, produksjonsmiljø, cron/synk/secrets, mobil/desktop smoke tests samt backup/rollback før GO LIVE.
+2. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske launch-gates er PASS.
 
 **Sesongavhengig:** MP-06.6 full produksjonsvalidering mot faktiske 2026/27-kamper gjennomføres i **Chat 06** så snart representative seriekamper finnes. MP-02.6 og øvrig synk/datadrift fortsetter løpende. MP-09 følger nye reelle availability-funn gjennom sesongen og første naturlige E2E via review-køen verifiseres ved første faktiske funn. **Chat 13 / MP-13** er et separat tipping-spor som kan utvikles parallelt så lenge det ikke blokkerer Fantasy XI-kritisk arbeid.
 
