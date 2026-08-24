@@ -8,6 +8,7 @@ const adminMutatorHardening = read("supabase/mp12-service-only-admin-mutators-v1
 const noAnonFantasy = read("supabase/mp12-no-anon-fantasy-security-definer-v1.sql");
 const dataIntegrityHardening = read("supabase/mp12-data-integrity-view-hardening-v1.sql");
 const lineMultiplierHardening = read("supabase/mp12-fantasy-line-multiplier-search-path-v1.sql");
+const priceAuditHardening = read("supabase/mp12-price-audit-security-invoker-v1.sql");
 
 const signatures = [
   "public.select_fantasy_booster_v1(text,text,uuid)",
@@ -71,6 +72,7 @@ check("Data-integrity diagnostics run as SECURITY INVOKER", dataIntegrityHardeni
 check("Data-integrity diagnostics are unavailable to direct client roles", dataIntegrityHardening.includes("revoke all on public.data_integrity_report from public, anon, authenticated;"));
 check("Data-integrity diagnostics remain readable by service role", dataIntegrityHardening.includes("grant select on public.data_integrity_report to service_role;"));
 check("Fantasy line multiplier has a pinned empty search_path", lineMultiplierHardening.includes("alter function public.fantasy_line_multiplier(smallint) set search_path = '';"));
+check("Price publication audit respects admin RLS as SECURITY INVOKER", priceAuditHardening.includes("alter function public.audit_fantasy_price_publication(uuid) security invoker;"));
 
 let failed = 0;
 for (const [name, pass] of checks) {
