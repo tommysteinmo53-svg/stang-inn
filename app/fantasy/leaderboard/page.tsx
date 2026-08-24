@@ -12,7 +12,7 @@ const SEASON="2026/27";
 const pts=(v:unknown)=>Number(v||0).toFixed(1).replace(".0","");
 const monthLabel=(v:string)=>new Intl.DateTimeFormat("nb-NO",{month:"long",year:"numeric",timeZone:"Europe/Oslo"}).format(new Date(`${v}T12:00:00Z`));
 const movement=(r:Standing)=>r.previous_standings_position==null?"Ny":r.position_change>0?`↑ ${r.position_change}`:r.position_change<0?`↓ ${Math.abs(r.position_change)}`:"→";
-const roundTag=(h:HistoryRow)=>h.event_type==="rich_uncle"?"💰 Rik Onkel":h.event_type==="poor_uncle"?"🪙 Fattig Onkel":h.booster_type==="captain_boost"?"⭐ Kapteinsboost":h.booster_type==="line_boost"?"🔥 Rekkeboost":h.booster_type==="transfer_boost"?"🔄 Bytteboost":null;
+const roundTag=(h:HistoryRow)=>h.event_type==="rich_uncle"?"💰 Rik Onkel":h.event_type==="poor_uncle"?"🪙 Fattig Onkel":h.event_type==="christmas_party"?"🎄 Julebord · Alle skal med!":h.booster_type==="captain_boost"?"⭐ Kapteinsboost":h.booster_type==="line_boost"?"🔥 Rekkeboost":h.booster_type==="transfer_boost"?"🔄 Bytteboost":null;
 
 export default function FantasyLeaderboard(){
  const[auth,setAuth]=useState<boolean|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
