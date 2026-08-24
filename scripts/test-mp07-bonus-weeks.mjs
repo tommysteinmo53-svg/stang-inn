@@ -16,6 +16,7 @@ const eventTeam = read('supabase/mp07-event-team-rpcs-v1.sql');
 const snapshot = read('supabase/mp07-snapshot-bonus-event-v1.sql');
 const scoring = read('supabase/mp07-scoring-and-history-schema-repair-v1.sql');
 const transfer = read('supabase/mp07-transfer-boost-v1.sql');
+const eventConflictFix = read('supabase/mp12-fix-event-week-conflict-v1.sql');
 const rules = read('docs/FANTASY_BONUS_WEEKS_RULES.md');
 const bonusUi = read('app/fantasy/team/BonusCards.tsx');
 const eventUi = read('app/fantasy/event-team/page.tsx');
@@ -34,6 +35,7 @@ ok('One booster inventory slot per team-season-type', has(dataModel, 'unique(tea
 ok('Only one live booster per team/round', has(dataModel, 'fantasy_bonus_activations_team_round_live_uidx'));
 ok('Activation RPC checks deadline', has(activation, 'deadline_at'));
 ok('Activation RPC blocks Event Weeks', has(activation, 'fantasy_event_weeks'));
+ok('Event Week upsert targets unique constraint without PL/pgSQL ambiguity', has(eventConflictFix, 'on conflict on constraint fantasy_event_weeks_season_event_type_key'));
 ok('Booster UI communicates one card per round and event exclusion', has(bonusUi, 'Maks ett personlig boosterkort per fantasy-runde', 'Rik Onkel', 'Fattig Onkel'));
 
 // Event teams / validation
