@@ -120,17 +120,17 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-11 – UI/UX og mobilopplevelse
 
-**Status: ✅ samlet UX-pass / ⬜ merkevareimplementasjon gjenstår**
+**Status: ✅ samlet UX-pass / ⬜ redesigndesignvalg og merkevareimplementasjon gjenstår**
 
 - MP-11.1–MP-11.7 ✅ Navigasjon, Fantasy-/tippingflater, mobil, states og samlet UX-polering er implementert.
-- MP-11.8 ⬜ **Stang Inn-logo og visuell merkevare:** produksjonsklare hovedlogo-/SI-ikonassets, header, favicon/metadata og app-/PWA-ikoner; verifiser mobil/desktop og produksjonsbuild.
+- MP-11.8 ⬜ **Stang Inn-redesign, logo og visuell merkevare:** Før kodeimplementasjon skal Chat 11 lage **tre konkrete, tydelig forskjellige forslag til en komplett redesignet Stang Inn-side/design**, alle med den nye Stang Inn-logoen integrert. Forslagene skal visualisere en realistisk helhetlig desktopside og beskrive hvordan samme designsystem tilpasses mobil. De tre retningene skal sammenlignes på navigasjon, informasjonsarkitektur, Fantasy/Tipping/miniliga-presentasjon, Event Weeks, leaderboard, typografi, farger, kort/panelstil, tetthet, hockeyidentitet og brukervennlighet. Minst ett forslag skal være en videreutvikling av dagens løsning, minst ett skal være et tydelig sports-dashboard, og minst ett kan være en mer særpreget/premium redaksjonell hockeyretning. **Ingen full redesign skal implementeres før brukeren eksplisitt har valgt/godkjent én retning eller en kombinasjon av elementer fra forslagene.** Etter designvalget skal valgt retning gjøres produksjonsklar med hovedlogo-/SI-ikonassets, header/navigasjon, favicon/metadata og app-/PWA-ikoner, og implementeres konsistent på relevante Stang Inn-flater uten å miste eksisterende funksjonalitet. Verifiser mobil/desktop, lesbarhet, responsive states og produksjonsbuild. Endelige assets skal ligge i repoet; produksjonen skal ikke avhenge av midlertidige chat-/preview-filer.
 
 # MP-12 – Testing, sikkerhet og datakvalitet
 
 **Status: ✅ pre-launch-regresjon gjennomført / 🔵 må kjøres igjen etter nye identitets/Event Week-endringer**
 
 - MP-12.1–MP-12.7 ✅/🔵 CI, isolerte E2E-gater, sikkerhet og bred pre-launch-regresjon er etablert. Ingen test skal endre ekte 2026/27-data.
-- Ny sluttpass skal inkludere MP-01.7, MP-04.8, MP-07.10–07.12 og MP-13.6 før launch-gate.
+- Ny sluttpass skal inkludere MP-01.7, MP-04.8, MP-07.10–07.12, MP-11.8 og MP-13.6 før launch-gate.
 
 # MP-13 – Stang Inn tipping
 
@@ -148,7 +148,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 - MP-14.3 ⬜ Verifiser alle 45 runder/deadlines mot terminlisten.
 - MP-14.4 ⬜ Full scoring-/snapshot-/leaderboard-regresjon.
 - MP-14.5 ⬜ Verifiser produksjonsmiljø, cron/synk og secrets.
-- MP-14.6 ⬜ Mobil/desktop smoke test inkludert endelig branding.
+- MP-14.6 ⬜ Mobil/desktop smoke test inkludert endelig branding/redesign.
 - MP-14.7 ⬜ Backup/rollback/admin-rutiner.
 - MP-14.8 ⬜ GO LIVE.
 
@@ -161,8 +161,8 @@ Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når e
 1. **Chat 07 – MP-07.10: lagnavn + eiernavn i Fantasy-tabeller.** MP-01.7 og MP-04.8 gir nå stabile bruker- og lagidentiteter. Oppdater leaderboard/runder/relevante miniligaflater og avklar historisk navnevisning.
 2. **Chat 13 – MP-13.6: felles miniligaer.** Bygg ett medlemskap som brukes av både Tipping og Fantasy, med separate produkttabeller/rangeringer.
 3. **Chat 07 – MP-07.11 + MP-07.12: produksjonskonfigurer Event Weeks.** GW15 Rik Onkel, GW22 Julebord og GW38 Fattig Onkel skal verifiseres samlet mot kalender, deadlines, transfers, scoring, snapshots, UI og historikk.
-4. **Chat 11 – MP-11.8: implementer Stang Inn-logo og merkevareassets.** Gjør godkjent hovedlogo-/SI-ikonretning produksjonsklar før endelig launch-smoke.
-5. **Chat 12 – MP-12.3 + MP-12.7: ny bred sluttregresjon etter identitets-/miniliga-/Event Week-endringene.** Ta med profilnavn, lagnavn, tabellvisning, felles miniliga-RLS og alle Event Weeks.
+4. **Chat 11 – MP-11.8: tre redesignforslag → designvalg → implementer Stang Inn-logo og valgt merkevareretning.** Chat 11 skal først levere tre konkrete, tydelig forskjellige komplette designforslag med logo inkludert og sammenligne styrker/svakheter. Ingen full redesign implementeres før brukeren velger/godkjenner retning. Deretter gjøres valgt designsystem, logo, SI-ikon, header, favicon/metadata og app-/PWA-assets produksjonsklare og implementeres før endelig launch-smoke.
+5. **Chat 12 – MP-12.3 + MP-12.7: ny bred sluttregresjon etter identitets-/miniliga-/Event Week-/redesignendringene.** Ta med profilnavn, lagnavn, tabellvisning, felles miniliga-RLS, alle Event Weeks og valgt MP-11.8-design/branding.
 6. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.**
 7. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske gates er PASS.
 
