@@ -3,6 +3,7 @@ import fs from "node:fs";
 const read=p=>fs.readFileSync(p,"utf8");
 const rules=read("docs/FANTASY_TRANSFER_RULES.md");
 const transferSql=read("supabase/mp07-transfer-boost-v1.sql");
+const isolatedTransfer=read("supabase/mp12-isolated-transfer-e2e-v1.sql");
 const historySql=read("supabase/mp04-transfer-history-v1.sql");
 const historyPage=read("app/fantasy/transfers/page.tsx");
 const nav=read("app/fantasy/FantasyNav.tsx");
@@ -18,6 +19,13 @@ const checks=[
  ["server: bytteboost commits after 2",/v_new_used>2/.test(transferSql)&&/status='committed'/.test(transferSql)],
  ["server: deadline uses next open round",/deadline_at>now\(\)/.test(transferSql)],
  ["server: snapshot gate",/fantasy_team_round_snapshots/.test(transferSql)],
+ ["isolated E2E: ordinary clients remain hard-locked to 2026/27",/p_season<>'2026\/27'/.test(isolatedTransfer)],
+ ["isolated E2E: synthetic season requires service role",/v_role='service_role'/.test(isolatedTransfer)&&/p_season like '__e2e_%'/.test(isolatedTransfer)],
+ ["isolated E2E: test namespace is synthetic",/__e2e_mp12_transfers__/.test(isolatedTransfer)],
+ ["isolated E2E: exercises real transfer RPC",/apply_fantasy_transfers_v1\(v_season/.test(isolatedTransfer)],
+ ["isolated E2E: validates ordinary and boosted limits",/Three transfers are blocked without Bytteboost/.test(isolatedTransfer)&&/Bytteboost allows cumulative four/.test(isolatedTransfer)],
+ ["isolated E2E: validates transfer ledger",/fantasy_transfer_items/.test(isolatedTransfer)&&/direction='in'/.test(isolatedTransfer)&&/direction='out'/.test(isolatedTransfer)],
+ ["isolated E2E: cleans synthetic season",/Synthetic transfer fixtures cleaned/.test(isolatedTransfer)],
  ["history RPC authenticated",/auth\.uid\(\)/.test(historySql)&&/security definer/.test(historySql)],
  ["history contains IN and OUT",/direction='out'/.test(historySql)&&/direction='in'/.test(historySql)],
  ["history excludes event-team tables",!/fantasy_event_team_players/.test(historySql)],
