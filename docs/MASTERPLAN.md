@@ -40,7 +40,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 - MP-01.2 ✅ Supabase og innlogging etablert.
 - MP-01.3 🟡 RLS og sikkerhetsmodell finnes og regresjonstestes ved nye funksjoner. MP-12 pre-launch-audit har verifisert sentrale Fantasy-sikkerhetsgater.
 - MP-01.4 ✅ Vercel/produksjonsoppsett etablert.
-- MP-01.5 ✅ GitHub Actions build-CI inkluderer MP-12 scoring/security/test-isolation, MP-13 scoring/readiness, MP-04 transfer, Bonus Weeks, MP-07 historikk/stats/identitet og MP-10 optimizer før build.
+- MP-01.5 ✅ GitHub Actions build-CI inkluderer MP-12 scoring/security/test-isolation, MP-13 scoring/readiness/felles miniligaer, MP-04 transfer, Bonus Weeks, MP-07 historikk/stats/identitet og MP-10 optimizer før build.
 - MP-01.6 ⬜ Samlet produksjons-/driftschecklist før sesongstart.
 - MP-01.7 ✅ **Obligatorisk brukerprofilnavn:** eksplisitt Stang Inn-profilnavn med onboarding/completion-state, servervalidering og hardened tilgang er implementert og produksjonsverifisert 2026-08-24.
 
@@ -134,10 +134,10 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-13 – Stang Inn tipping
 
-**Status: ✅ preseasonklar kjerne / ⬜ felles miniliga-medlemskap gjenstår**
+**Status: ✅ preseasonklar kjerne + felles miniligaer / 🔵 live-verifisering gjennom sesongen**
 
 - MP-13.1–MP-13.5 ✅ Kamptips, tabelltips, automatisk scoring, awards/statistikk og sesongklar brukerflyt er implementert; live-verifisering fortsetter på reelle sesongdata.
-- MP-13.6 ⬜ **Felles miniligaer på tvers av Tipping og Fantasy:** ett liga-/medlemskap for brukeren, men separate produktpoeng/rangeringer. Migrering, RLS, admin, join/leave og identitetsvisning skal verifiseres uten å miste historikk.
+- MP-13.6 ✅ **Felles miniligaer på tvers av Tipping og Fantasy:** én kanonisk `stang_inn_private_leagues` + `stang_inn_private_league_members`-modell er produksjonsmigrert fra begge legacy-produktene uten tap av liga-ID, invitasjonskode, eier, medlemskap eller `joined_at`. Legacy-tabellene beholdes som immutable migreringshistorikk, mens gamle Fantasy-/Tipping-RPC-er er kompatibilitetswrappere mot den kanoniske modellen. Create/join/list/leave og medlemskontroll er authenticated-only; `anon` har ikke EXECUTE, og vanlige klientroller har ingen direkte tabelltilgang. Ligaeier er ligadmin og kan ikke forlate ligaen; ordinær utmelding fjerner medlemskapet fra begge produkter og rejoin via samme invitasjonskode gjenoppretter begge. `/leagues` er felles brukerflate med Tipping-/Fantasy-faner; gamle `/fantasy/leagues`-ruter redirecter dit. Fantasy-tabellen filtrerer den autoritative `get_fantasy_competition_table_v2` og beholder tie-break totalpoeng → rundeseire → beste runde, med Fantasy-lagnavn + bekreftet profilnavn. Tipping-tabellen beholder eksisterende 5/3/0- og poeng → eksakte → riktige utfall-logikk med Stang Inn-profilnavn. Ingen e-post/private profilfelt eksponeres. Rollback-only behavioral produksjonstest verifiserte Fantasy-create → Tipping-synlighet, Tipping-join → Fantasy-synlighet, separate standings med samme medlemmer, leave/rejoin, owner-sperre og 0 testrester. MP-13.6-regresjon er koblet til CI og Vercel-build er grønn 2026-08-24.
 
 # MP-14 – Lansering EHL 2026/27
 
@@ -158,12 +158,11 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når et steg er ferdig eller når nye avhengigheter oppstår.
 
-1. **Chat 13 – MP-13.6: felles miniligaer.** MP-07.10 har låst identitetsvisningen for Fantasy; bygg nå ett medlemskap som brukes av både Tipping og Fantasy, med separate produktpoeng/rangeringer og uten å miste historikk.
-2. **Chat 07 – MP-07.11 + MP-07.12: produksjonskonfigurer Event Weeks.** GW15 Rik Onkel, GW22 Julebord og GW38 Fattig Onkel skal verifiseres samlet mot kalender, deadlines, transfers, scoring, snapshots, UI og historikk.
-3. **Chat 11 – MP-11.8: tre redesignforslag → designvalg → implementer Stang Inn-logo og valgt merkevareretning.** Chat 11 skal først levere tre konkrete, tydelig forskjellige komplette designforslag med logo inkludert og sammenligne styrker/svakheter. Ingen full redesign implementeres før brukeren velger/godkjenner retning. Deretter gjøres valgt designsystem, logo, SI-ikon, header, favicon/metadata og app-/PWA-assets produksjonsklare og implementeres før endelig launch-smoke.
-4. **Chat 12 – MP-12.3 + MP-12.7: ny bred sluttregresjon etter identitets-/miniliga-/Event Week-/redesignendringene.** Ta med profilnavn, lagnavn, tabellvisning, felles miniliga-RLS, alle Event Weeks og valgt MP-11.8-design/branding.
-5. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.**
-6. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske gates er PASS.
+1. **Chat 07 – MP-07.11 + MP-07.12: produksjonskonfigurer Event Weeks.** GW15 Rik Onkel, GW22 Julebord og GW38 Fattig Onkel skal verifiseres samlet mot kalender, deadlines, transfers, scoring, snapshots, UI og historikk.
+2. **Chat 11 – MP-11.8: tre redesignforslag → designvalg → implementer Stang Inn-logo og valgt merkevareretning.** Chat 11 skal først levere tre konkrete, tydelig forskjellige komplette designforslag med logo inkludert og sammenligne styrker/svakheter. Ingen full redesign implementeres før brukeren velger/godkjenner retning. Deretter gjøres valgt designsystem, logo, SI-ikon, header, favicon/metadata og app-/PWA-assets produksjonsklare og implementeres før endelig launch-smoke.
+3. **Chat 12 – MP-12.3 + MP-12.7: ny bred sluttregresjon etter identitets-/miniliga-/Event Week-/redesignendringene.** Ta med profilnavn, lagnavn, tabellvisning, felles miniliga-RLS, alle Event Weeks og valgt MP-11.8-design/branding.
+4. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.**
+5. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske gates er PASS.
 
 **Sesongavhengig:** MP-06.6 gjennomføres i Chat 06 når representative 2026/27-seriekamper finnes. MP-02.6 og MP-09 fortsetter løpende. MP-13 live-verifiseres på reelle sesongdata.
 
