@@ -153,7 +153,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-11 – UI/UX og mobilopplevelse
 
-**Status: ✅ samlet Fantasy UX-/mobilpass ferdigstilt 2026-08-23 / 🟡 tipping-UX videreføres**
+**Status: ✅ samlet Fantasy UX-/mobilpass ferdigstilt 2026-08-23 / ✅ tipping-UX preseasonpolert 2026-08-24**
 
 - MP-11.1 ✅ **Navigasjon og felles Fantasy-layout:** Fantasy-hovedmenyen samler Mitt lag/Eventlag/Bytter og Poeng/Rundehistorikk/Min statistikk i interne seksjoner; Achievements er integrert i Leaderboard. Mobilfeilen der Fantasy ble markert som «Profil» i globalmenyen er fjernet, 8/7-gridavviket er rettet, og Fantasy-menyen bruker en eksplisitt mobilgrid uten nødvendig horisontal scrolling.
 - MP-11.2 ✅ **Leaderboard og konkurransepresentasjon:** desktop-/mobilpresentasjon, egen-lag-markering, achievements, historikk og redusert kolonnevisning på små skjermer er kontrollert. Eksisterende løsning ble beholdt der den allerede var god.
@@ -161,6 +161,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 - MP-11.4 ✅ **Samlet UX-pass:** Fantasy-forsiden er justert til den forenklede informasjonsarkitekturen, Eventlag/Bytter er visuelt samlet med resten av Fantasy, sidebredder/spacings/touchflater er harmonisert og eksisterende fungerende forretningslogikk er beholdt uendret.
 - MP-11.5 ✅ **Readability/loading/error/empty states:** tydeligere states er lagt inn på sentrale flater, blant annet Spillere, spillerprofil, Bonus Weeks og Rundehistorikk. Bonus Weeks har eksplisitt loading/error/retry, og Rundehistorikk forklarer at historikken blir tilgjengelig når laget først låses ved deadline. Ingen scoring-, snapshot-, deadline-, transfer-, Event Week-, Booster-, budsjett-, C/VC- eller leaderboardregel ble endret i UX-passet.
 - MP-11.6 ✅ **Tipping-forside – kampfokus og informasjonsrekkefølge:** «Kamper i runden»-karusellen er flyttet inn under Stang Inn-headeren og hovednavigasjonen i stedet for å ligge globalt over innholdet. «Toppen akkurat nå»-live-tabellen er fjernet fra hjemmesiden for å redusere visuell støy og prioritere kamp/tipping først. Kampkarusellens tipsfordeling, sveiping, kampnavigasjon og tippinglogikk er beholdt uendret. Implementert på `main` i commit `d6a7c28` 2026-08-24.
+- MP-11.7 ✅ **Tipping sluttpolering:** Tabell, Kamptips, Tabelltips, Awards og spillerprofil er mobil-/desktop-polert med tydeligere hierarki, status, touchflater, navn, historikk og konkurransepresentasjon. Forretningslogikk/scoring/deadlines er beholdt uendret. Vercel og MP-13 readiness-gate er grønne 2026-08-24.
 
 # MP-12 – Testing, sikkerhet og datakvalitet
 
@@ -176,13 +177,13 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-13 – Stang Inn tipping
 
-**Status: 🟡 separat produktspor**
+**Status: ✅ preseasonklar kjerne og brukerflyt / 🔵 live-verifisering gjennom sesongen**
 
-- MP-13.1 🟡 Kamptips og EHL-synk er under utvikling/etablert i deler.
-- MP-13.2 🟡 Tabelltips.
-- MP-13.3 ⬜ Automatisk poengberegning ferdigstilles og produksjonsverifiseres.
-- MP-13.4 ⬜ Månedsvinner, streak, poenggrafer, Ukens bom, Eksperttittel og øvrige awards ferdigstilles.
-- MP-13.5 🟡 Mobil-/brukerflyt og sesongklar testing. Første tipping-forsidepass er gjennomført: kampkarusellen er prioritert rett under Stang Inn-navet og den tidligere «Toppen akkurat nå»-tabellen er fjernet fra forsiden. Full sluttpolering og sesongklar test gjenstår.
+- MP-13.1 ✅ **Kamptips og EHL-synk:** kamptips, automatisk kamp-/resultatgrunnlag, filtrering, deadline/lås og admin-synk er etablert. Server-side deadline feiler lukket og klienten kan ikke skrive scoringfelt. EHL-data/infrastruktur deles der det er naturlig, mens tippinglogikken er separat fra Fantasy XI.
+- MP-13.2 ✅ **Tabelltips:** komplett 10-lags rangering med deadline, authenticated-only hardnet `save_table_tip_rankings`, EHL-lagvalidering, skjult innsyn før frist, faktisk EHL-tabell, avvik og tabelltips-stilling. Preseason → første kamp → aktiv konkurranse er eksplisitt håndtert i brukerflyt/readiness-kontrakt.
+- MP-13.3 ✅ **Automatisk poengberegning:** autoritativ 5/3/0-motor er idempotent, støtter konfigurerbare poengregler og re-scoring ved korrigert/gjenåpnet kamp. `points` er server-eid; authenticated klienter kan ikke skrive feltet. Egen MP-13 scoring-regresjon kjører i CI.
+- MP-13.4 ✅ **Awards og statistikk:** Rundevinner, Månedsvinner, Eksperttittel, Sniper, Beste streak, Ukens bom og Sesongens bom er implementert. Spillerprofil viser poeng-/rankutvikling, siste fem, rundeseire, treff/eksakte og tipshistorikk. Awards bruker autoritative lagrede tippingpoeng og regner ikke egen fallback-score.
+- MP-13.5 ✅ **Mobil-/brukerflyt og preseason readiness:** forsiden, Tabell, Kamptips, Tabelltips, Awards og Profil er sluttpolert for mobil/desktop. Faktiske navn brukes som offentlig tippingnavn der auth-data har navn, med trygg fallback. `test:mp13:readiness` er read-only, koblet i CI og beskytter kamptips, deadline, server-eid scoring, tabelltips-RPC/innsyn, preseason→sesongstart-overgang, awards og profilutvikling. Siste readiness-commit `9a19a91` er Vercel SUCCESS 2026-08-24. Første reelle ferdigspilte runde og første avsluttede måned skal følges som naturlig live-verifisering, ikke med falske 2026/27-data.
 
 # MP-14 – Lansering EHL 2026/27
 
@@ -203,10 +204,10 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når et steg er ferdig, blokkert eller når ny informasjon endrer avhengighetene. Arbeidschatten som fullfører et steg skal lese siste versjon av denne køen på `main` før den sender brukeren videre.
 
-1. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** MP-12.3 + MP-12.7 er ferdig; neste effektive steg er å verifisere endelig regelverk, 45 runder/deadlines, produksjonsmiljø, cron/synk/secrets, mobil/desktop smoke tests samt backup/rollback før GO LIVE.
+1. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.** MP-12.3 + MP-12.7 og MP-13 preseason readiness er ferdig; neste effektive steg er å verifisere endelig regelverk, 45 runder/deadlines, produksjonsmiljø, cron/synk/secrets, mobil/desktop smoke tests samt backup/rollback før GO LIVE.
 2. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske launch-gates er PASS.
 
-**Sesongavhengig:** MP-06.6 full produksjonsvalidering mot faktiske 2026/27-kamper gjennomføres i **Chat 06** så snart representative seriekamper finnes. MP-02.6 og øvrig synk/datadrift fortsetter løpende. MP-09 følger nye reelle availability-funn gjennom sesongen og første naturlige E2E via review-køen verifiseres ved første faktiske funn. **Chat 13 / MP-13** er et separat tipping-spor som kan utvikles parallelt så lenge det ikke blokkerer Fantasy XI-kritisk arbeid.
+**Sesongavhengig:** MP-06.6 full produksjonsvalidering mot faktiske 2026/27-kamper gjennomføres i **Chat 06** så snart representative seriekamper finnes. MP-02.6 og øvrig synk/datadrift fortsetter løpende. MP-09 følger nye reelle availability-funn gjennom sesongen og første naturlige E2E via review-køen verifiseres ved første faktiske funn. **MP-13** følges videre som 🔵 live-verifisering ved første ferdigspilte tippingrunde, første tabelltips-avvik og første avsluttede kalendermåned; dette skal skje på reelle sesongdata og ikke med falske 2026/27-data.
 
 ## Fast handoff mellom arbeidschatter
 
