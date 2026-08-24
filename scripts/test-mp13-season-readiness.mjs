@@ -82,7 +82,8 @@ check("Poeng- og rankutvikling finnes på spillerprofil", () => {
 
 check("Readiness-gaten er produksjonssikker", () => {
   const own = read("scripts/test-mp13-season-readiness.mjs");
-  assert.doesNotMatch(own, /SUPABASE_SERVICE_ROLE_KEY/);
+  const serviceRoleEnv = ["SUPABASE", "SERVICE", "ROLE", "KEY"].join("_");
+  assert.equal(own.includes(serviceRoleEnv), false);
   assert.doesNotMatch(own, /createClient\(/);
   assert.doesNotMatch(own, /\.insert\(/);
   assert.doesNotMatch(own, /\.update\(/);
