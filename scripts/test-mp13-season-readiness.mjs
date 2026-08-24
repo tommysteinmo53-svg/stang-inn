@@ -23,6 +23,8 @@ check("Kamptips har komplett brukerflyt og klientlås", () => {
   assert.match(tips, /filter==="untipped"/);
   assert.match(tips, /NESTE FRIST/);
   assert.match(tips, /type="number" min="0"/);
+  assert.match(tips, /Ikke tippet/);
+  assert.match(tips, /Ditt tips/);
   assert.doesNotMatch(tips, /points\s*:/);
 });
 
@@ -58,9 +60,17 @@ check("Tabelltips lagres bare gjennom hardnet RPC", () => {
 check("Tabelltips deadline og innsyn er eksplisitt i brukerflyten", () => {
   assert.match(tableTips, /setLocked\(Boolean\(nextDeadline/);
   assert.match(tableTips, /Tabelltipset er låst/);
-  assert.match(tableTips, /Skjult frem til fristen/);
+  assert.match(tableTips, /Tipsene er hemmelige/);
+  assert.match(tableTips, /Før fristen ser hver spiller bare sitt eget tabelltips/);
   assert.match(tableContract, /return true;/);
   assert.match(tableContract, /now\(\) >= deadline_value/);
+});
+
+check("Tabelltips går fra pre-season til aktiv konkurranse", () => {
+  assert.match(tableTips, /const seasonStarted = useMemo\(\(\) => standings\.some\(s => s\.played > 0\)/);
+  assert.match(tableTips, /Avvik aktiveres etter første kamp/);
+  assert.match(tableTips, /Konkurransen starter med serien/);
+  assert.match(tableTips, /aktiveres avvik og tabelltips-stillingen automatisk/);
 });
 
 check("MP-13.4 awards er samlet og bruker autoritative poeng", () => {
@@ -75,9 +85,11 @@ check("MP-13.4 awards er samlet og bruker autoritative poeng", () => {
 check("Poeng- og rankutvikling finnes på spillerprofil", () => {
   assert.match(profile, /type TrendPoint = \{ round:number; cumulative:number; position:number \}/);
   assert.match(profile, /Sesongutvikling/);
-  assert.match(profile, /Poeng og plassering per runde/);
+  assert.match(profile, /Poeng og plassering/);
   assert.match(profile, /cumulative/);
   assert.match(profile, /position/);
+  assert.match(profile, /Siste 5 runder/);
+  assert.match(profile, /Historikk/);
 });
 
 check("Readiness-gaten er produksjonssikker", () => {
