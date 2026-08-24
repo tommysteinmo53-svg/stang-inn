@@ -1,0 +1,143 @@
+.shell {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px 18px 96px;
+  background:
+    radial-gradient(circle at top, rgba(30, 78, 120, 0.2), transparent 38%),
+    #07111f;
+  color: #f4f8ff;
+}
+
+.card {
+  width: min(100%, 560px);
+  padding: 34px;
+  border: 1px solid #24405f;
+  border-radius: 22px;
+  background: rgba(8, 20, 37, 0.96);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.34);
+}
+
+.mark {
+  font-size: 34px;
+  line-height: 1;
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #79b6ee;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(28px, 5vw, 38px);
+  line-height: 1.05;
+}
+
+.intro {
+  margin: 18px 0 24px;
+  color: #b9c8dc;
+  line-height: 1.65;
+}
+
+.form {
+  display: grid;
+  gap: 10px;
+}
+
+.form label {
+  font-weight: 800;
+}
+
+.form input {
+  width: 100%;
+  min-height: 50px;
+  box-sizing: border-box;
+  border: 1px solid #365576;
+  border-radius: 12px;
+  padding: 0 14px;
+  background: #0c1c30;
+  color: #f4f8ff;
+  font: inherit;
+  outline: none;
+}
+
+.form input:focus {
+  border-color: #73b9f2;
+  box-shadow: 0 0 0 3px rgba(115, 185, 242, 0.14);
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #8298b4;
+  font-size: 12px;
+}
+
+.form button {
+  min-height: 50px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 12px;
+  padding: 0 18px;
+  background: #1e5b46;
+  color: #effff8;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.form button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.status,
+.message {
+  margin: 20px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #10243d;
+  color: #d7e6f8;
+  line-height: 1.5;
+}
+
+.message {
+  border: 1px solid #5a3a36;
+  background: #2a1919;
+  color: #ffd7d2;
+}
+
+.helper {
+  margin: 18px 0 0;
+  color: #8298b4;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+@media (max-width: 640px) {
+  .shell {
+    place-items: start center;
+    padding: 18px 12px 92px;
+  }
+
+  .card {
+    padding: 24px 18px;
+    border-radius: 18px;
+  }
+
+  .intro {
+    margin-bottom: 20px;
+  }
+
+  .form input,
+  .form button {
+    min-height: 52px;
+  }
+}
