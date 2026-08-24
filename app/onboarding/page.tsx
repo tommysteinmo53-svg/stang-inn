@@ -59,12 +59,13 @@ export default function OnboardingPage() {
         return;
       }
 
-      const { data: profile } = await supabase
+      const { data: profileData } = await supabase
         .from("players")
         .select("display_name,profile_name_confirmed_at")
         .eq("id", user.id)
-        .maybeSingle<StoredProfile>();
+        .maybeSingle();
       if (cancelled) return;
+      const profile = profileData as StoredProfile | null;
 
       if (profile?.profile_name_confirmed_at && normalizeName(profile.display_name).length >= 2) {
         window.location.replace(next);
