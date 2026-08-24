@@ -19,14 +19,19 @@ Alle brukere har nå et eksplisitt navn i Stang Inn-profilen som kan brukes vide
 - Ny Google-bruker er produksjonstestet gjennom hele onboardingflyten. Produksjonsstatus etter testen var 3/3 profiler bekreftet, 0 ufullstendige og 0 ugyldige bekreftede navn.
 - `test:mp01:onboarding` regresjonsbeskytter completion-state, bypass-gate, eksplisitt lagring, servervalidering og profilprivilegier. Separat CI-probe bestod 8/8 kontroller 2026-08-24.
 
-### MP-04.8 ⬜ Obligatorisk lagnavn før Fantasy-lag kan lagres
+### MP-04.8 ✅ Obligatorisk lagnavn før Fantasy-lag kan lagres
 
-Et Fantasy-lag skal ikke kunne lagres første gang uten at brukeren aktivt har registrert et gyldig lagnavn.
+Fantasy-lagnavn er nå en eksplisitt og serverhåndhevet del av lagidentiteten.
 
-- Standard-/placeholder-navn som `Mitt lag`, tom streng eller tilsvarende skal ikke kunne passere som ferdig registrert lagnavn.
-- Valideringen skal ligge både i UI og server-side slik at kravet ikke kan omgås via direkte kall.
-- Eksisterende lag som fortsatt har generisk/ugyldig standardnavn skal få en kontrollert flyt for å velge nytt navn uten å miste spillere, snapshots, transfers eller historikk.
-- Lagnavn skal ha rimelige lengde-/tegnregler og kunne endres uten at det teller som transfer.
+- Nye Fantasy-lag kan ikke lagres med tomt navn, whitespace-only, `Mitt lag`, `My team` eller generisk `Lag`.
+- Kanonisk servervalidering normaliserer whitespace, krever 3–40 tegn, minst én bokstav eller ett tall og avviser kontrolltegn.
+- `fantasy_user_teams` har en `BEFORE INSERT/UPDATE OF name`-trigger som bruker samme validator, slik at direkte RPC-/tabellskriving ikke kan omgå navnekravet.
+- `rename_fantasy_team_v1(text,text)` er authenticated-only og endrer kun `fantasy_user_teams.name`/`updated_at`; roster, kaptein/visekaptein, transfers, snapshots, boostere og poeng berøres ikke.
+- Lagbyggeren starter ikke lenger med `Mitt lag`. Nytt lag må ha gyldig navn før hovedlagring aktiveres.
+- Eksisterende lag med placeholder-navn får en kontrollert kompletteringsflyt der kun navnet oppdateres. Eksisterende team-ID og alle relasjoner beholdes.
+- Navneendring teller ikke som transfer og kan lagres separat fra spillerbytter.
+- Produksjon hadde ett eksisterende 2026/27-lag med `Mitt lag`; dette laget ble bevisst ikke omskrevet automatisk. Read-only smoke bekreftet at laget fortsatt hadde 12 spillere og samme team-ID etter migrasjonen, og UI vil kreve eksplisitt nytt navn ved neste besøk.
+- `test:mp04:transfers` er utvidet med MP-04.8-kontrakter for servervalidering, placeholder-sperre, authenticated rename, safe completion og ingen transferkobling. Vercel-build er grønn.
 
 ### MP-07.10 ⬜ Vis både lagnavn og eiernavn i Fantasy-tabeller
 
@@ -80,18 +85,17 @@ Miniliga-medlemskap skal være produktuavhengig: er en bruker medlem av en minil
 
 ## Avhengigheter
 
-Identitetsgrunnlaget MP-01.7 er nå ferdig. Neste avhengighet er MP-04.8 obligatorisk Fantasy-lagnavn, deretter MP-07.10 lagnavn + eiernavn og til slutt MP-13.6 felles miniligaer.
+Identitetsgrunnlaget MP-01.7 og obligatorisk Fantasy-lagnavn MP-04.8 er nå ferdige. Neste avhengighet er MP-07.10 lagnavn + eiernavn, deretter MP-13.6 felles miniligaer.
 
 Event Weeks må være produksjonskonfigurert og verifisert før full pre-launch regresjon og før regelverket låses i MP-14. Rik Onkel/Fattig Onkel og Julebord skal behandles samlet i Chat 07 slik at kalender, UI, scoring, boosterkonflikter og snapshots verifiseres i én sammenhengende Event Week-pass.
 
 ## Oppdatert prioritert arbeidskø
 
-1. **Chat 04 – MP-04.8: obligatorisk lagnavn.** Ingen nye Fantasy-lag skal kunne lagres med `Mitt lag`/tomt standardnavn. MP-01.7 er ferdig og gir nå stabil eieridentitet.
-2. **Chat 07 – MP-07.10: lagnavn + eiernavn i tabeller.** Oppdater Fantasy leaderboard/runder/miniligavisning med begge identiteter.
-3. **Chat 13 – MP-13.6: felles miniligaer.** Bygg ett medlemskap som brukes av både Tipping og Fantasy, med separate produkttabeller.
-4. **Chat 07 – MP-07.11 + MP-07.12: produksjonskonfigurer Event Weeks.** Konfigurer og verifiser GW15 Rik Onkel, GW22 Julebord og GW38 Fattig Onkel. Julebord skal gi 100 % poeng fra begge rekker og blokkere personlige boostere. Verifiser alle tre mot kalender, deadlines, transfers, scoring, snapshots, UI og historikk.
-5. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Ta med profilnavn, lagnavn, leaderboardvisning, alle Event Weeks og felles miniliga-RLS i regresjonsmatrisen.
-6. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.**
-7. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske gates er PASS.
+1. **Chat 07 – MP-07.10: lagnavn + eiernavn i tabeller.** MP-01.7 og MP-04.8 gir nå stabile bruker- og lagidentiteter. Oppdater Fantasy leaderboard/runder/miniligavisning med begge identiteter og avklar historisk navnevisning eksplisitt.
+2. **Chat 13 – MP-13.6: felles miniligaer.** Bygg ett medlemskap som brukes av både Tipping og Fantasy, med separate produkttabeller.
+3. **Chat 07 – MP-07.11 + MP-07.12: produksjonskonfigurer Event Weeks.** Konfigurer og verifiser GW15 Rik Onkel, GW22 Julebord og GW38 Fattig Onkel. Julebord skal gi 100 % poeng fra begge rekker og blokkere personlige boostere. Verifiser alle tre mot kalender, deadlines, transfers, scoring, snapshots, UI og historikk.
+4. **Chat 12 – MP-12.3 + MP-12.7: bred regresjon og pre-launch kvalitet.** Ta med profilnavn, lagnavn, leaderboardvisning, alle Event Weeks og felles miniliga-RLS i regresjonsmatrisen.
+5. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.**
+6. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske gates er PASS.
 
 **Sesongavhengig:** MP-06.6 gjennomføres i Chat 06 når representative 2026/27-seriekamper finnes. MP-02.6 og MP-09 fortsetter løpende gjennom sesongen.
