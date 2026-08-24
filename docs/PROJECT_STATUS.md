@@ -56,6 +56,21 @@ Sist kontrollert mot GitHub `main`: 2026-08-24
 - MP-09 availability-kjernen er produksjonsverifisert med konservativ matching/adminreview og kun godkjent availability inn i analyse/optimizer.
 - **MP-10 lagoptimalisator er ferdigstilt som adminverktøy.** Ingen offentlig optimizer-side/API; availability-, transfer- og Event Week-reglene beholdes.
 
+## Stang Inn tipping – preseasonklar
+
+**MP-13.1–MP-13.5 er ferdigstilt på `main` for preseason, med live-verifisering som løpende sesongoppgave.**
+
+- Kamptips bruker automatisk EHL-kampgrunnlag, kampvis deadline/lås, filtrering og tydelig mobilflyt. Server-side deadline feiler lukket.
+- Tippingens `points` er server-eid. Authenticated klienter kan kun skrive spiller/kamp/resultattips, og negative tips stoppes i databasen.
+- Automatisk tipping-scoring bruker autoritativ 5/3/0-motor, er idempotent og håndterer korrigert/gjenåpnet kamp. Egen scoring-regresjon er koblet i CI.
+- Tabelltips bruker authenticated-only `save_table_tip_rankings`, krever 10 gyldige EHL-lag, håndhever deadline og skjuler andres tips frem til fristen. Faktisk EHL-tabell, avvik og konkurransestilling aktiveres når serien starter.
+- Awards er implementert: Rundevinner, Månedsvinner, Eksperttittel, Sniper, Beste streak, Ukens bom og Sesongens bom. Awards bruker lagrede autoritative tippingpoeng.
+- Spillerprofil viser sammenlagtplassering, poeng, treff, eksakte, streak, rundeseire, siste fem, poeng-/rankutvikling og synlig tipshistorikk.
+- Offentlig tippingnavn bruker faktisk navn fra auth der det finnes, med eksisterende offentlig navn som fallback.
+- Forside, Tabell, Kamptips, Tabelltips, Awards og Profil er mobil-/desktop-polert. Navigasjonsnavnet «Statistikk» er endret til «Tabell».
+- `test:mp13:readiness` er read-only og dekker kamptips, deadline, server-eid scoring, tabelltips-RPC/innsyn, preseason→første kamp-overgang, awards og profilutvikling. Commit `9a19a91` er Vercel SUCCESS 2026-08-24.
+- Første reelle ferdigspilte tippingrunde, første aktive tabelltips-avvik og første avsluttede kalendermåned skal verifiseres naturlig på reelle 2026/27-data. Ingen falske 2026/27-data skal opprettes for dette.
+
 ## MP-12 – pre-launch regresjon ferdigstilt
 
 **MP-12.3 + MP-12.7 er ferdig og produksjonsverifisert 2026-08-24.** Behavioral sluttkontroller mot faktiske produksjonsfunksjoner ga:
@@ -83,7 +98,7 @@ Sikkerhets-/isolasjonssluttkontroll:
 
 ## Aktivt område / neste kobling
 
-**MP-12.3 + MP-12.7 er ferdigstilt på `main`.** Den brede pre-launch-regresjonen har verifisert scoring, transfers, deadlines/snapshots, round automation, RLS/sikkerhet, Bonus/Event, leaderboard/historikk og sentrale brukerdataflyter uten å endre ekte 2026/27-testdata.
+**MP-13 preseason readiness er ferdigstilt på `main`.** Tippingproduktet går nå over i løpende live-verifisering når reelle EHL-resultater, fullførte runder og første avsluttede kalendermåned foreligger.
 
 **Neste operative hovedpunkt er Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7.** Nå skal produksjons-/launch-gaten verifisere endelig regelverk, alle 45 runder/deadlines, produksjonsmiljø, cron/synk/secrets, mobil/desktop smoke tests samt backup/rollback. GO LIVE (MP-14.8) tas først når alle disse kritiske gatene er PASS.
 
@@ -96,6 +111,7 @@ MP-09-kjernen er produksjonsverifisert. Kun admin-godkjent availability påvirke
 ## Testing
 
 - GitHub Actions kjører MP-12 scoring/security/test-isolation, MP-13 scoring/readiness, MP-04 transfer, Bonus Weeks, MP-07 rundehistorikk/stats og MP-10 optimizer før full build på push/PR mot `main`.
+- MP-13 readiness er read-only og skal aldri opprette eller endre 2026/27-data. Den beskytter kamptipsflyt, server-side deadline, server-eid poeng, tabelltips-kontrakt/innsyn, sesongstart-overgang, awards og spillerprofilens poeng-/rankutvikling.
 - MP-04 transferregresjonen har både filbasert kontraktstest og service-only synthetic behavioral E2E. Behavioral testen skriver kun i `__e2e_mp12_transfers__`, kjører den faktiske `apply_fantasy_transfers_v1`, verifiserer 2/4-reglene, ledger og Bytteboost-commit, og rydder alle fixtures.
 - MP-12 test-isolation-gaten beskytter at unsafe legacy-helperne forblir fjernet og at nye scoring/snapshot/DGW/automation/Bonus/Event/transfer-E2E-er bruker syntetisk namespace.
 - Bonus Weeks-regresjonen beskytter eventlag-isolasjon, 200m/70m, booster inventory/deadline, snapshotmetadata, multiplikatorer, double-GW, Event Week-transfer-sperre og den eksplisitte Event Week conflict-constrainten.
