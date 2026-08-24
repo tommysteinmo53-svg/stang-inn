@@ -49,10 +49,11 @@ export default function OnboardingPage() {
 
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
+    const client = supabase;
     let cancelled = false;
 
     async function load() {
-      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: sessionData } = await client.auth.getSession();
       if (cancelled) return;
       const user = sessionData.session?.user;
       if (!user) {
@@ -61,7 +62,7 @@ export default function OnboardingPage() {
         return;
       }
 
-      const { data: profileData } = await supabase
+      const { data: profileData } = await client
         .from("players")
         .select("display_name,profile_name_confirmed_at")
         .eq("id", user.id)
