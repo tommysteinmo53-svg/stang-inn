@@ -5,6 +5,7 @@ create or replace function normalize_fantasy_team_name_v1(p_name text)
 returns text
 language plpgsql
 immutable
+set search_path=public
 as $$
 declare
   v_name text;
