@@ -1,6 +1,7 @@
 import fs from "node:fs";
 
 const migration=fs.readFileSync("supabase/mp07-10-fantasy-team-owner-identity.sql","utf8");
+const hardening=fs.readFileSync("supabase/mp07-10-identity-rpc-anon-hardening.sql","utf8");
 const page=fs.readFileSync("app/fantasy/leaderboard/page.tsx","utf8");
 const css=fs.readFileSync("app/fantasy/leaderboard/leaderboard.css","utf8");
 
@@ -12,7 +13,7 @@ const checks=[
  [migration.includes("dense_rank() over(order by trp.total_points desc)"),"round ranking expression must remain unchanged"],
  [migration.includes("snap.team_name")&&migration.includes("snap.owner_name"),"monthly historical identity must come from snapshots"],
  [!migration.includes("p.email")&&!migration.includes("players.email"),"competition identity must never expose email"],
- [migration.includes("revoke all on function public.get_fantasy_competition_table_v2")&&migration.includes("to authenticated"),"new identity RPCs must be authenticated-only"],
+ [hardening.includes("get_fantasy_competition_table_v2(text) from anon")&&hardening.includes("get_fantasy_round_leaderboard_v2(uuid) from anon")&&hardening.includes("get_fantasy_monthly_leaderboard_v2(text) from anon")&&hardening.includes("get_fantasy_team_season_history_v3(uuid,text) from anon")&&hardening.includes("to authenticated"),"new identity RPCs must be explicitly authenticated-only"],
  [page.includes('get_fantasy_competition_table_v2')&&page.includes('get_fantasy_monthly_leaderboard_v2')&&page.includes('get_fantasy_team_season_history_v3'),"leaderboard UI must consume identity-aware RPCs"],
  [page.includes("owner_name")&&page.includes("Lag / eier"),"leaderboard UI must show both team and owner names"],
  [page.includes("leaderboard-history-identity"),"historical round UI must show snapshot identity"],
