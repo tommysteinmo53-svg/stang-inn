@@ -61,32 +61,32 @@ export default function MatchPage() {
   if (loading) return <main className="appShell"><p className="muted">Laster kampen …</p></main>;
   if (!match) return <main className="appShell"><article className="panel"><h2>Kampen ble ikke funnet</h2><a className="textButton" href="/tips">← Tilbake til tips</a></article></main>;
 
-  const statusTitle = match.finished ? "Ferdigspilt" : live ? "🟢 LIVE" : started ? "Avventer sluttstatus" : "Kommende kamp";
+  const statusTitle = match.finished ? "Ferdigspilt" : live ? "LIVE" : started ? "Avventer sluttstatus" : "Kommende kamp";
   const statusShort = match.finished ? "Slutt" : live ? "LIVE" : started ? "Låst" : "Åpen";
-  const scoreText = match.home_score !== null && match.away_score !== null ? `${match.home_score}–${match.away_score}` : started ? "🔒" : "–";
+  const scoreText = match.home_score !== null && match.away_score !== null ? `${match.home_score}–${match.away_score}` : started ? "Låst" : "–";
   const myPoints = myTip ? resolvedPoints(match, myTip) : 0;
 
-  return <main className="appShell">
-    <header className="topbar"><a href="/round" className="brand brandButton" style={{ textDecoration: "none" }}><div className="brandMark">🏒</div><div><p className="eyebrow">{match.round ? `Runde ${match.round}` : "EHL 2026/27"}</p><h1>Kampside</h1></div></a><a href="/round" className="textButton" style={{ textDecoration: "none" }}>← Runde</a></header>
-    <section className="pageStack" style={{ marginTop: 24 }}>
-      <article className="heroCard"><div><p className="eyebrow">{statusTitle}</p><h2>{match.home_team} <span>vs</span> {match.away_team}</h2><p className="muted">{fmt(match.match_time)}{updatedAt ? ` · oppdatert ${updatedAt.toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : ""}</p></div><div className="countdown"><strong>{scoreText}</strong><span>{match.finished ? "slutt" : live ? "live score" : started ? "tips låst" : "kamp"}</span></div></article>
+  return <main className={`appShell matchDetailPage ${live ? "isLive" : ""}`}>
+    <header className="topbar matchDetailTopbar"><div className="matchDetailTitle"><div className="tipsPageTitleMark">SI</div><div><p className="eyebrow">{match.round ? `Runde ${match.round}` : "EHL 2026/27"}</p><h1>Kampside</h1></div></div><a href="/tips" className="textButton" style={{ textDecoration: "none" }}>← Kamptips</a></header>
+    <section className="pageStack matchDetailStack">
+      <article className="heroCard matchDetailHero"><div><p className="eyebrow">{statusTitle}</p><h2>{match.home_team} <span>vs</span> {match.away_team}</h2><p className="muted">{fmt(match.match_time)}{updatedAt ? ` · oppdatert ${updatedAt.toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : ""}</p></div><div className="countdown matchDetailScore"><strong>{scoreText}</strong><span>{match.finished ? "slutt" : live ? "live score" : started ? "tips låst" : "kamp"}</span></div></article>
 
-      <section className="statsGrid">
+      <section className="statsGrid matchDetailStats">
         <article className="miniCard"><span>Ditt tips</span><strong>{myTip ? `${myTip.home_tip}–${myTip.away_tip}` : "–"}</strong><small>{myTip ? "Levert" : "Ikke levert"}</small></article>
         <article className="miniCard"><span>Levert</span><strong>{tips.length}/{players.length}</strong><small>spillere</small></article>
         <article className="miniCard"><span>Dine poeng</span><strong>{myPoints}</strong><small>{match.finished ? (myTip?.points===null ? "beregnet sluttpoeng" : "endelig") : live ? "live-estimat" : started ? "foreløpig" : "ikke startet"}</small></article>
         <article className="miniCard"><span>Status</span><strong>{statusShort}</strong><small>{started ? "tips kan ikke endres" : "tips kan endres"}</small></article>
       </section>
 
-      <article className="panel"><div className="panelHeading"><div><p className="eyebrow">Kampen</p><h3>Spillernes tips</h3></div><span className="statusPill">{started ? (live ? "Live-poeng" : "Synlig for alle") : "Skjult til kampstart"}</span></div>
-        {!started && <div className="quoteCard" style={{ marginTop: 0 }}><span>🔒 Før kampstart</span><p>Andre spilleres tips er skjult. Du ser kun ditt eget tips frem til kampen starter.</p></div>}
-        {live && <div className="quoteCard" style={{ marginTop: 0 }}><span>🟢 LIVE</span><p>Poengene under er foreløpige og beregnes mot gjeldende HockeyLive-score. De blir endelige når kampen markeres som ferdig.</p></div>}
-        {match.finished && tips.some(t=>t.points===null) && <div className="quoteCard" style={{ marginTop: 0 }}><span>✓ Sluttresultat</span><p>Noen lagrede poeng mangler fortsatt, så siden viser beregnede sluttpoeng fra resultatet inntil scorer-jobben har lagret dem.</p></div>}
-        <div className="pageStack" style={{ marginTop: 12 }}>{rows.map(({ player, tip, points }) => {
+      <article className="panel matchDetailPanel"><div className="panelHeading"><div><p className="eyebrow">Kampen</p><h3>Spillernes tips</h3></div><span className="statusPill">{started ? (live ? "Live-poeng" : "Synlig for alle") : "Skjult til kampstart"}</span></div>
+        {!started && <div className="quoteCard matchInfoCard"><span>Før kampstart</span><p>Andre spilleres tips er skjult. Du ser kun ditt eget tips frem til kampen starter.</p></div>}
+        {live && <div className="quoteCard matchInfoCard live"><span>LIVE</span><p>Poengene under er foreløpige og beregnes mot gjeldende HockeyLive-score. De blir endelige når kampen markeres som ferdig.</p></div>}
+        {match.finished && tips.some(t=>t.points===null) && <div className="quoteCard matchInfoCard"><span>Sluttresultat</span><p>Noen lagrede poeng mangler fortsatt, så siden viser beregnede sluttpoeng fra resultatet inntil scorer-jobben har lagret dem.</p></div>}
+        <div className="matchTipRows">{rows.map(({ player, tip, points }) => {
           const isMe = player.id === meId;
           const canShow = started || isMe;
           const pointLabel = match.finished && tip ? `${points} p` : live && tip ? `${points} p live` : "–";
-          return <div key={player.id} style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 12, alignItems: "center", padding: 14, borderRadius: 14, border: isMe ? "1px solid rgba(85,184,255,.55)" : "1px solid var(--line)", background: isMe ? "rgba(85,184,255,.08)" : "#0a1729" }}><div><a href={`/player/${player.id}`} style={{ color: "inherit", textDecoration: "none" }}><strong>{player.display_name}{isMe ? " (deg)" : ""}</strong><div className="muted" style={{ fontSize: 12, marginTop: 3 }}>{tip ? "Tips levert · profil →" : "Ikke levert · profil →"}</div></a></div><strong style={{ fontSize: 20 }}>{canShow ? (tip ? `${tip.home_tip}–${tip.away_tip}` : "–") : "🔒"}</strong><span className="statusPill">{started ? pointLabel : "–"}</span></div>;
+          return <div key={player.id} className={`matchTipRow ${isMe ? "mine" : ""}`}><div><a href={`/player/${player.id}`}><strong>{player.display_name}{isMe ? " (deg)" : ""}</strong><small>{tip ? "Tips levert · profil →" : "Ikke levert · profil →"}</small></a></div><strong>{canShow ? (tip ? `${tip.home_tip}–${tip.away_tip}` : "–") : "Skjult"}</strong><span className="statusPill">{started ? pointLabel : "–"}</span></div>;
         })}</div>
       </article>
     </section>
