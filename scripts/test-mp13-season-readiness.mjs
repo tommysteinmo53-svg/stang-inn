@@ -75,7 +75,7 @@ check("Tabelltips går fra pre-season til aktiv konkurranse", () => {
 
 check("MP-13.4 awards er samlet og bruker autoritative poeng", () => {
   for (const title of ["Rundevinner", "Månedsvinner", "Eksperttittel", "Sniper", "Beste streak", "Ukens bom", "Sesongens bom"]) {
-    assert.match(awards, new RegExp(`title: "${title}"`));
+    assert.match(awards, new RegExp(`title\\s*:\\s*"${title}"`));
   }
   assert.match(awards, /tip\.points !== null/);
   assert.doesNotMatch(awards, /resolvedPoints/);
