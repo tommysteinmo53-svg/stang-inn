@@ -10,18 +10,26 @@ import "./tabletips-polish.css";
 import "./player-profile-polish.css";
 import "./shared-leagues.css";
 import "./game-mode-switch.css";
+import "./stang-inn-brand.css";
 import AuthGate from "../components/AuthGate";
 import AuthReturnRedirect from "../components/AuthReturnRedirect";
 import AnnouncementBanner from "../components/AnnouncementBanner";
 import GlobalMobileNav from "../components/GlobalMobileNav";
-import TopStatusBar from "../components/TopStatusBar";
 import HomeRoundPortal from "../components/HomeRoundPortal";
 import TippingNavigationPolish from "../components/TippingNavigationPolish";
-import GameModeSwitch from "../components/GameModeSwitch";
+import StangInnHeader from "../components/StangInnHeader";
 
 export const metadata = {
-  title: "Stang Inn",
-  description: "Privat tippeapp for norsk hockey",
+  title: {
+    default: "Stang Inn – Tipping & Fantasy",
+    template: "%s | Stang Inn",
+  },
+  description: "Stang Inn samler norsk hockey, tipping, EHL Fantasy, miniligaer og statistikk på ett sted.",
+  icons: {
+    icon: "/stang-inn-mark.svg",
+    shortcut: "/stang-inn-mark.svg",
+    apple: "/stang-inn-mark.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -29,9 +37,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="no">
       <body>
         <AuthReturnRedirect />
-        <TopStatusBar />
         <AuthGate>
-          <GameModeSwitch />
+          <StangInnHeader />
           <HomeRoundPortal />
           <TippingNavigationPolish />
           {children}
