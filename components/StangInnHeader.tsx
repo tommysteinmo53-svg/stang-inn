@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 const nav = [
@@ -13,6 +14,15 @@ const nav = [
 
 export default function StangInnHeader() {
   const pathname = usePathname();
+  const [commit, setCommit] = useState("…");
+
+  useEffect(() => {
+    fetch("/api/system-status", { cache: "no-store" })
+      .then(r => r.json())
+      .then(data => setCommit(data?.commit || "…"))
+      .catch(() => setCommit("…"));
+  }, []);
+
   if (pathname === "/login") return null;
 
   return (
@@ -29,6 +39,7 @@ export default function StangInnHeader() {
           })}
         </nav>
         <div className="siHeaderActions">
+          <span className="siBuildCommit" title="Aktiv commit">main · {commit}</span>
           <a href="/notifications" className="siIconAction" aria-label="Varsler">♢</a>
           <a href="/profile" className="siProfileAction" aria-label="Profil"><span>Profil</span></a>
         </div>
