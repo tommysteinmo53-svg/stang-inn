@@ -19,6 +19,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: MP-01 production operations regression
+        run: npm run test:mp01:operations
       - name: MP-12 scoring regression
         run: npm run test:mp12:scoring
       - name: MP-12 security contract regression
