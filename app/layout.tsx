@@ -19,6 +19,7 @@ import "./tipping-premium.css";
 import "./tipping-layout.css";
 import "./tipping-layout-fixes.css";
 import "./tipping-final-polish.css";
+import "./tipping-coupon-polish.css";
 import "./match-detail-premium.css";
 import "./account-premium.css";
 import "./account-final-polish.css";
