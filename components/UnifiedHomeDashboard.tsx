@@ -3,6 +3,7 @@
 import {useEffect,useMemo,useState} from "react";
 import {usePathname} from "next/navigation";
 import {getSupabaseBrowserClient} from "../lib/supabase";
+import SIIcon from "./SIIcon";
 
 const SEASON="2026/27";
 type Match={id:number;home_team:string;away_team:string;match_time:string|null;finished:boolean;home_score:number|null;away_score:number|null};
@@ -59,8 +60,8 @@ export default function UnifiedHomeDashboard(){
   </section>
 
   <section className="unifiedSecondaryGrid">
-   <article className="unifiedPanel"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">EVENT WEEKS</p><h2>Sesongens spesialrunder</h2></div><a href="/fantasy/rounds">Se kalender →</a></div><div className="unifiedEvents"><a href="/fantasy/rounds"><span>👑</span><b>Rik Onkel</b><small>GW15 · 200m</small></a><a href="/fantasy/rounds"><span>🎄</span><b>Julebord</b><small>GW22 · Alle skal med!</small></a><a href="/fantasy/rounds"><span>🐷</span><b>Fattig Onkel</b><small>GW38 · 70m</small></a><a href="/fantasy/team"><span>⭐</span><b>Bonus Weeks</b><small>Dine personlige boostere</small></a></div></article>
-   <article className="unifiedPanel"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">SNARVEIER</p><h2>Rett til handling</h2></div></div><div className="unifiedShortcuts"><a href="/fantasy/team">👕<span>Mitt lag</span></a><a href="/tips">🎟️<span>Tippekupong</span></a><a href="/leagues">🤝<span>Miniligaer</span></a><a href="/fantasy/players">🧍<span>Spillere</span></a><a href="/fantasy/stats">📈<span>Fantasy-stats</span></a><a href="/leaderboard">🏆<span>Tipping-tabell</span></a></div></article>
+   <article className="unifiedPanel"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">EVENT WEEKS</p><h2>Sesongens spesialrunder</h2></div><a href="/fantasy/rounds">Se kalender →</a></div><div className="unifiedEvents"><a href="/fantasy/rounds"><span className="unifiedIconTile"><SIIcon name="event" size={25}/></span><b>Rik Onkel</b><small>GW15 · 200m</small></a><a href="/fantasy/rounds"><span className="unifiedIconTile"><SIIcon name="event" size={25}/></span><b>Julebord</b><small>GW22 · Alle skal med!</small></a><a href="/fantasy/rounds"><span className="unifiedIconTile"><SIIcon name="event" size={25}/></span><b>Fattig Onkel</b><small>GW38 · 70m</small></a><a href="/fantasy/team"><span className="unifiedIconTile"><SIIcon name="booster" size={25}/></span><b>Bonus Weeks</b><small>Dine personlige boostere</small></a></div></article>
+   <article className="unifiedPanel"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">SNARVEIER</p><h2>Rett til handling</h2></div></div><div className="unifiedShortcuts"><a href="/fantasy/team"><SIIcon name="team" size={24}/><span>Mitt lag</span></a><a href="/tips"><SIIcon name="tips" size={24}/><span>Tippekupong</span></a><a href="/leagues"><SIIcon name="leagues" size={24}/><span>Miniligaer</span></a><a href="/fantasy/players"><SIIcon name="player" size={24}/><span>Spillere</span></a><a href="/fantasy/stats"><SIIcon name="stats" size={24}/><span>Fantasy-stats</span></a><a href="/leaderboard"><SIIcon name="trophy" size={24}/><span>Tipping-tabell</span></a></div></article>
   </section>
   {message&&<div className="unifiedHomeState error"><strong>Noe kunne ikke lastes.</strong><span>{message}</span></div>}
  </main>;
