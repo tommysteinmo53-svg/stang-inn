@@ -34,14 +34,14 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-01 – Plattform, auth, database og drift
 
-**Status: 🟡 / identitetsgrunnlag ferdig**
+**Status: ✅ produksjons-/driftsgrunnlag verifisert / 🔵 løpende sikkerhets- og sesongdrift**
 
 - MP-01.1 ✅ Next.js / React / TypeScript-applikasjon etablert.
 - MP-01.2 ✅ Supabase og innlogging etablert.
-- MP-01.3 🟡 RLS og sikkerhetsmodell finnes og regresjonstestes ved nye funksjoner. MP-12 pre-launch-audit har verifisert sentrale Fantasy-sikkerhetsgater.
+- MP-01.3 ✅ RLS/RPC-/rollegrenser er produksjonskontrollert og ytterligere hardnet i MP-01.6; sikkerhetsregresjon fortsetter løpende ved nye funksjoner.
 - MP-01.4 ✅ Vercel/produksjonsoppsett etablert.
-- MP-01.5 ✅ GitHub Actions build-CI inkluderer MP-12 scoring/security/test-isolation, MP-13 scoring/readiness/felles miniligaer, MP-04 transfer, Bonus Weeks, MP-07 historikk/stats/identitet/Event Weeks og MP-10 optimizer før build.
-- MP-01.6 ⬜ Samlet produksjons-/driftschecklist før sesongstart.
+- MP-01.5 ✅ GitHub Actions build-CI inkluderer MP-01 produksjonsdrift, MP-12 scoring/security/test-isolation, MP-13 scoring/readiness/felles miniligaer, MP-04 transfer, Bonus Weeks, MP-07 historikk/stats/identitet/Event Weeks og MP-10 optimizer før build.
+- MP-01.6 ✅ **Samlet produksjons-/driftschecklist før sesongstart:** Vercel/CI, Supabase-produksjon, auth/onboarding, RLS/RPC-grenser, migrations/schema, cron/EHL-HockeyLive-synk, fail-closed feil/retry, Fantasy/Tipping-produksjonsdata, testisolasjon, adminrutiner, observability og rollback er kontrollert mot produksjonen. HockeyLive har intern timeout og delvise synkfeil gir `ok=false`/HTTP 500 slik at cron kan retry-e. Service-only flater er hardnet uten å svekke auth/RLS. Supabase-organisasjonen `Hockeytips` er verifisert på **Pro** 2026-08-25, slik at managed-backup-forutsetningen er etablert. Operativ runbook ligger i `docs/MP01_PRODUCTION_RUNBOOK.md`. Handoff: **Chat 14 – MP-14.1–14.7 endelig launch-gate**.
 - MP-01.7 ✅ **Obligatorisk brukerprofilnavn:** eksplisitt Stang Inn-profilnavn med onboarding/completion-state, servervalidering og hardened tilgang er implementert og produksjonsverifisert 2026-08-24.
 
 # MP-02 – EHL-data, terminliste og spilleridentitet
@@ -120,17 +120,17 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-11 – UI/UX og mobilopplevelse
 
-**Status: ✅ samlet UX-pass / ⬜ redesigndesignvalg og merkevareimplementasjon gjenstår**
+**Status: ✅ redesign/branding og samlet mobil-/desktop-pass ferdigstilt**
 
 - MP-11.1–MP-11.7 ✅ Navigasjon, Fantasy-/tippingflater, mobil, states og samlet UX-polering er implementert.
-- MP-11.8 ⬜ **Stang Inn-redesign, logo og visuell merkevare:** Før kodeimplementasjon skal Chat 11 lage **tre konkrete, tydelig forskjellige forslag til en komplett redesignet Stang Inn-side/design**, alle med den nye Stang Inn-logoen integrert. Forslagene skal visualisere en realistisk helhetlig desktopside og beskrive hvordan samme designsystem tilpasses mobil. De tre retningene skal sammenlignes på navigasjon, informasjonsarkitektur, Fantasy/Tipping/miniliga-presentasjon, Event Weeks, leaderboard, typografi, farger, kort/panelstil, tetthet, hockeyidentitet og brukervennlighet. Minst ett forslag skal være en videreutvikling av dagens løsning, minst ett skal være et tydelig sports-dashboard, og minst ett kan være en mer særpreget/premium redaksjonell hockeyretning. **Ingen full redesign skal implementeres før brukeren eksplisitt har valgt/godkjent én retning eller en kombinasjon av elementer fra forslagene.** Etter designvalget skal valgt retning gjøres produksjonsklar med hovedlogo-/SI-ikonassets, header/navigasjon, favicon/metadata og app-/PWA-ikoner, og implementeres konsistent på relevante Stang Inn-flater uten å miste eksisterende funksjonalitet. Verifiser mobil/desktop, lesbarhet, responsive states og produksjonsbuild. Endelige assets skal ligge i repoet; produksjonen skal ikke avhenge av midlertidige chat-/preview-filer.
+- MP-11.8 ✅ **Stang Inn-redesign, logo og visuell merkevare:** valgt premium sportsretning er implementert på `main` med Stang Inn-logo/SI-mark, samlet shell/header/navigasjon, svart/gull merkevare, metadata/favicon/app-assets og konsistent Fantasy/Tipping/admin-presentasjon. Mobil og desktop er sluttverifisert, og produksjonsbuild/Vercel er grønn.
 
 # MP-12 – Testing, sikkerhet og datakvalitet
 
-**Status: ✅ pre-launch-regresjon gjennomført / 🔵 må kjøres igjen etter nye identitets/Event Week-endringer**
+**Status: ✅ endelig bred pre-launch-regresjon ferdigstilt / 🔵 regresjonsvedlikehold**
 
-- MP-12.1–MP-12.7 ✅/🔵 CI, isolerte E2E-gater, sikkerhet og bred pre-launch-regresjon er etablert. Ingen test skal endre ekte 2026/27-data.
-- Ny sluttpass skal inkludere MP-01.7, MP-04.8, MP-07.10–07.12, MP-11.8 og MP-13.6 før launch-gate.
+- MP-12.1–MP-12.7 ✅ CI, isolerte E2E-gater, sikkerhet og bred sluttregresjon er etablert og bestått etter identitets-, lagnavn-, miniliga-, Event Week- og MP-11.8-endringene. Ingen test skal endre ekte 2026/27-data.
+- MP-01.6 har i tillegg lagt produksjonsdriftskontrakter inn i CI for cron-secret/retry, HockeyLive-timeout, partial-sync failure og service-only hardening.
 
 # MP-13 – Stang Inn tipping
 
@@ -141,7 +141,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-14 – Lansering EHL 2026/27
 
-**Status: ⬜**
+**Status: ⬜ endelig launch-gate gjenstår**
 
 - MP-14.1 ⬜ Lås og publiser endelig fantasyregelverk.
 - MP-14.2 ⬜ Verifiser spillerpool, lag, posisjoner og priser.
@@ -158,10 +158,8 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når et steg er ferdig eller når nye avhengigheter oppstår.
 
-1. **Chat 11 – MP-11.8: tre redesignforslag → designvalg → implementer Stang Inn-logo og valgt merkevareretning.** Chat 11 skal først levere tre konkrete, tydelig forskjellige komplette designforslag med logo inkludert og sammenligne styrker/svakheter. Ingen full redesign implementeres før brukeren velger/godkjenner retning. Deretter gjøres valgt designsystem, logo, SI-ikon, header, favicon/metadata og app-/PWA-assets produksjonsklare og implementeres før endelig launch-smoke.
-2. **Chat 12 – MP-12.3 + MP-12.7: ny bred sluttregresjon etter identitets-/miniliga-/Event Week-/redesignendringene.** Ta med profilnavn, lagnavn, tabellvisning, felles miniliga-RLS, alle Event Weeks og valgt MP-11.8-design/branding.
-3. **Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7: produksjons- og launch-gate.**
-4. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske gates er PASS.
+1. **Chat 14 – MP-14.1–14.7: endelig launch-gate.** Bruk `docs/MP01_PRODUCTION_RUNBOOK.md` og siste produksjonsstatus til en eksplisitt PASS/FAIL-kontroll av regler, spillerpool/priser, 45 runder/deadlines, scoring/snapshots/leaderboard, produksjonsmiljø/secrets/cron, mobil/desktop smoke og backup/rollback/adminrutiner.
+2. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske gates i MP-14.1–14.7 er PASS.
 
 **Sesongavhengig:** MP-06.6 gjennomføres i Chat 06 når representative 2026/27-seriekamper finnes. MP-02.6 og MP-09 fortsetter løpende. MP-13 live-verifiseres på reelle sesongdata.
 
