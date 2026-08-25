@@ -4,6 +4,7 @@ import {useEffect,useMemo,useState} from "react";
 import {usePathname} from "next/navigation";
 import {getSupabaseBrowserClient} from "../lib/supabase";
 import SIIcon from "./SIIcon";
+import HomeFantasyLineup from "./HomeFantasyLineup";
 
 const SEASON="2026/27";
 type Match={id:number;home_team:string;away_team:string;match_time:string|null;finished:boolean;home_score:number|null;away_score:number|null};
@@ -56,7 +57,7 @@ export default function UnifiedHomeDashboard(){
   </section>
 
   <section className="unifiedPrimaryGrid">
-   <article className="unifiedPanel unifiedFantasyCard"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">FANTASY</p><h2>{fantasy.teamId?fantasy.teamName:"Mitt Fantasy-lag"}</h2></div><a href="/fantasy/team">Åpne lagbygger →</a></div><div className="unifiedFantasyPitch"><div className="unifiedPitchMark">SI</div><p>{fantasy.teamId?`${fantasy.players}/12 spillere valgt`:`Opprett ditt EHL Fantasy-lag`}</p><strong>{fantasy.teamCost?`${fantasy.teamCost.toFixed(1)}m lagverdi`:"100m budsjett"}</strong></div><div className="unifiedQuickRow"><a href="/fantasy/team">Mitt lag</a><a href="/fantasy/players">Spillermarked</a><a href="/fantasy/transfers">Bytter</a></div></article>
+   <article className="unifiedPanel unifiedFantasyCard"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">FANTASY</p><h2>{fantasy.teamId?fantasy.teamName:"Mitt Fantasy-lag"}</h2></div><a href="/fantasy/team">Åpne lagbygger →</a></div><HomeFantasyLineup teamId={fantasy.teamId}/><div className="unifiedQuickRow"><a href="/fantasy/team">Mitt lag</a><a href="/fantasy/players">Spillermarked</a><a href="/fantasy/transfers">Bytter</a></div></article>
 
    <article className="unifiedPanel"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">TIPPING</p><h2>Tippekupongen min</h2></div><a href="/tips">Alle kamper →</a></div><div className="unifiedMatches">{upcoming.length?upcoming.map(m=><div key={m.id} className="unifiedMatch"><span>{m.match_time?fmt(m.match_time):"Tid ikke satt"}</span><b>{m.home_team} <i>–</i> {m.away_team}</b><em className={tipMap.has(m.id)?"done":""}>{tipMap.has(m.id)?"Levert":"Ikke tippet"}</em></div>):<div className="unifiedEmpty">Ingen kommende kamper akkurat nå.</div>}</div><a className="unifiedPrimaryButton" href="/tips">Åpne tippekupongen</a></article>
 
