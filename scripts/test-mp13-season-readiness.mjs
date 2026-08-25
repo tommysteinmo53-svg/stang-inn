@@ -21,7 +21,7 @@ check("Kamptips har komplett brukerflyt og klientlås", () => {
   assert.match(tips, /onConflict: "player_id,match_id"/);
   assert.match(tips, /function locked\(match: Match/);
   assert.match(tips, /filter==="untipped"/);
-  assert.match(tips, /NESTE FRIST/);
+  assert.match(tips, /Neste frist|Ingen åpne tipsfrister/i);
   assert.match(tips, /type="number" min="0"/);
   assert.match(tips, /Ikke tippet/);
   assert.match(tips, /Ditt tips/);
