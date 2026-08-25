@@ -1,8 +1,8 @@
-import type {SVGProps} from "react";
+import type {ReactNode,SVGProps} from "react";
 
 export type SIIconName="home"|"fantasy"|"tips"|"live"|"leagues"|"menu"|"overview"|"team"|"player"|"stats"|"trophy"|"calendar"|"rules"|"bell";
 
-const paths:Record<SIIconName,React.ReactNode>={
+const paths:Record<SIIconName,ReactNode>={
  home:<><path d="M4 11.5 12 5l8 6.5"/><path d="M6.5 10.5V20h11v-9.5"/><path d="M9.5 20v-5h5v5"/></>,
  fantasy:<><path d="M5 14.5 15.5 4l4.5 4.5L9.5 19H5v-4.5Z"/><path d="m13.5 6 4.5 4.5"/><path d="M4 20h7"/></>,
  tips:<><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 4v3M20 12h-3M12 20v-3M4 12h3"/></>,
