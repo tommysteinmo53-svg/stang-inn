@@ -16,6 +16,7 @@ import "./unified-home.css";
 import "./tipping-premium.css";
 import "./tipping-layout.css";
 import "./tipping-layout-fixes.css";
+import "./match-detail-premium.css";
 import AuthGate from "../components/AuthGate";
 import AuthReturnRedirect from "../components/AuthReturnRedirect";
 import AnnouncementBanner from "../components/AnnouncementBanner";
