@@ -7,6 +7,7 @@ const nav = [
   { href: "/", label: "Hjem", active: (p: string) => p === "/" },
   { href: "/fantasy", label: "Fantasy", active: (p: string) => p === "/fantasy" || p.startsWith("/fantasy/") },
   { href: "/tips", label: "Tipping", active: (p: string) => p.startsWith("/tips") || p.startsWith("/round") || p.startsWith("/tabletips") || p.startsWith("/match/") || p.startsWith("/leaderboard") || p.startsWith("/awards") || p.startsWith("/player/") },
+  { href: "/live", label: "Live", active: (p: string) => p.startsWith("/live") },
   { href: "/leagues", label: "Miniligaer", active: (p: string) => p.startsWith("/leagues") },
   { href: "/fantasy/rules", label: "Regler", active: (p: string) => p.startsWith("/fantasy/rules") },
 ];
@@ -34,7 +35,7 @@ export default function StangInnHeader() {
         <nav className="siDesktopNav" aria-label="Stang Inn hovedmeny">
           {nav.map(item => {
             const active = item.active(pathname);
-            return <a key={item.href} href={item.href} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>{item.label}</a>;
+            return <a key={item.href} href={item.href} className={`${active ? "active" : ""} ${item.href === "/live" ? "siLiveNavLink" : ""}`.trim()} aria-current={active ? "page" : undefined}>{item.href === "/live" && <span className="siLiveNavDot" aria-hidden />}{item.label}</a>;
           })}
         </nav>
         <div className="siHeaderActions">
