@@ -66,14 +66,7 @@ Ved kode-/deploy-regresjon:
 
 Databaseendringer skal normalt repareres med en fremoverrettet migrasjon. Databaserestore brukes ved reelt datatap/korrupsjon, ikke som standard kode-rollback.
 
-**Launch-forutsetning:** produksjonen må ha en verifisert backupstrategi før MP-14 GO LIVE.
-
-Supabase-organisasjonen står per 2026-08-25 på Free-plan. Supabase dokumenterer automatiske bruker-tilgjengelige daglige backups for Pro/Team/Enterprise, mens Free-prosjekter anbefales å eksportere databasen regelmessig med `supabase db dump` og lagre backup off-site. Derfor er backup-gaten ikke PASS før én av disse er etablert og verifisert:
-
-- oppgrader produksjonsprosjektet til en plan med håndterbare daglige backups og verifiser at backup/restore er tilgjengelig, eller
-- etabler en automatisert off-site logical dump-rutine med egen hemmelig DB-tilkobling, retention og en dokumentert restore-test.
-
-Ingen backupfil, databasepassord eller access token skal committes til repoet.
+**Launch-forutsetning verifisert 2026-08-25:** Supabase-organisasjonen `Hockeytips` er kontrollert direkte og står på **Pro**. Dermed er planforutsetningen for Supabase managed backups etablert før MP-14. Backup/restore inngår fortsatt som eksplisitt operativ kontroll i MP-14 launch-gaten; ingen backupfil, databasepassord eller access token skal committes til repoet.
 
 ## Incident: Supabase/Data API
 
