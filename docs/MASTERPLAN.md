@@ -57,11 +57,11 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-03 – Fantasypriser og spillerøkonomi
 
-**Status: ✅ preseason-priser ferdigkalibrert / ⬜ post-start prispolicy gjenstår**
+**Status: ✅ preseason-priser og fast 2026/27-prispolicy ferdigstilt**
 
 - MP-03.1–MP-03.5 ✅ Historisk prisgrunnlag, v4-modellfamilie og publiseringsspor er etablert.
 - MP-03.6 ✅ V4.6.2 er publisert og produksjonsverifisert: 239/239 current-roster-spillere har låst sesongpris og er kjøpbare; 0 lag over 100m ved kontroll.
-- MP-03.7 ⬜ Definer policy for eventuelle prisendringer etter sesongstart.
+- MP-03.7 ✅ **Faste spillerpriser 2026/27:** alle kjøp, salg og lagverdier bruker den låste `fantasy_player_season_prices`-prisen. Det skal ikke forekomme automatiske markedsprisendringer eller manuell reprising etter sesongstart. Databasen blokkerer UPDATE/DELETE av eksisterende 2026/27-sesongpriser etter første ordinære kampstart, også via admin/service-role, og hindrer `fantasy_players.price` i å divergere fra en eksisterende låst sesongpris. En helt ny spiller som kommer inn etter sesongstart kan få én førstegangspris; deretter er prisen låst resten av sesongen. Produksjonsverifisert 2026-08-25 med 239/239 current-roster-priser, 0 prisavvik og 0 stale `purchase_price`-rader.
 
 # MP-04 – Lagbygger, regler og brukerlag
 
