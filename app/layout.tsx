@@ -19,6 +19,7 @@ import "./tipping-layout.css";
 import "./tipping-layout-fixes.css";
 import "./match-detail-premium.css";
 import "./account-premium.css";
+import "./admin-surface.css";
 import AuthGate from "../components/AuthGate";
 import AuthReturnRedirect from "../components/AuthReturnRedirect";
 import AnnouncementBanner from "../components/AnnouncementBanner";
@@ -27,6 +28,7 @@ import HomeRoundPortal from "../components/HomeRoundPortal";
 import TippingNavigationPolish from "../components/TippingNavigationPolish";
 import StangInnHeader from "../components/StangInnHeader";
 import UnifiedHomeDashboard from "../components/UnifiedHomeDashboard";
+import AdminSurfaceMode from "../components/AdminSurfaceMode";
 
 export const metadata = {
   title: {
@@ -45,6 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="no">
       <body>
+        <AdminSurfaceMode />
         <AuthReturnRedirect />
         <AuthGate>
           <StangInnHeader />
