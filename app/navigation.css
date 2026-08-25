@@ -65,51 +65,43 @@
 
 @media (max-width: 580px) {
   .appShell { padding-bottom: 104px !important; }
-
-  .topNotificationBell {
-    position: fixed;
-    top: 145px;
-    right: 78px;
-    width: 40px;
-    height: 40px;
-    font-size: 17px;
-  }
+  .topNotificationBell { display: none; }
 
   .globalMobileNav {
     position: fixed;
     left: max(10px, env(safe-area-inset-left));
     right: max(10px, env(safe-area-inset-right));
     bottom: max(10px, env(safe-area-inset-bottom));
-    z-index: 88;
+    z-index: 130;
     display: grid;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    gap: 2px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 3px;
     padding: 7px;
-    border: 1px solid rgba(112,179,255,.26);
-    border-radius: 22px;
-    background: rgba(5,17,30,.94);
-    box-shadow: 0 20px 55px rgba(0,0,0,.52);
+    border: 1px solid rgba(212,175,55,.2);
+    border-radius: 20px;
+    background: rgba(4,11,19,.96);
+    box-shadow: 0 20px 55px rgba(0,0,0,.58);
     backdrop-filter: blur(22px) saturate(145%);
   }
   .globalMobileNav a {
     min-width: 0;
     min-height: 54px;
-    border-radius: 15px;
-    color: var(--muted);
+    border-radius: 13px;
+    color: #8293a8;
     text-decoration: none;
     display: grid;
     place-items: center;
     align-content: center;
-    gap: 3px;
+    gap: 4px;
     transition: background .17s ease, color .17s ease, transform .17s ease;
   }
   .globalMobileNav a:active { transform: scale(.97); }
   .globalMobileNav a span { font-size: 18px; line-height: 1; }
-  .globalMobileNav a small { font-size: 7px; font-weight: 850; white-space: nowrap; }
+  .globalMobileNav a small { font-size: 8px; font-weight: 850; white-space: nowrap; }
   .globalMobileNav a.active {
-    color: var(--ice);
-    background: linear-gradient(180deg, rgba(34,83,128,.5), rgba(18,48,80,.5));
-    box-shadow: inset 0 0 0 1px rgba(97,196,255,.13);
+    color: var(--si-gold-soft, #f0d582);
+    background: linear-gradient(180deg, rgba(212,175,55,.12), rgba(212,175,55,.035));
+    box-shadow: inset 0 0 0 1px rgba(212,175,55,.12);
   }
 
   .profileActionGrid { grid-template-columns: 1fr 1fr; gap: 8px; }
