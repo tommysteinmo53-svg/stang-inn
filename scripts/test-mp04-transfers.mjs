@@ -3,6 +3,7 @@ import fs from "node:fs";
 const read=p=>fs.readFileSync(p,"utf8");
 const rules=read("docs/FANTASY_TRANSFER_RULES.md");
 const transferSql=read("supabase/mp07-transfer-boost-v1.sql");
+const fixedPriceSql=read("supabase/mp03-fixed-season-prices-v1.sql");
 const isolatedTransfer=read("supabase/mp12-isolated-transfer-e2e-v1.sql");
 const historySql=read("supabase/mp04-transfer-history-v1.sql");
 const teamNameSql=read("supabase/mp04-required-team-name-v1.sql");
@@ -16,11 +17,18 @@ const checks=[
  ["rules: no points hits",/ingen ekstra bytter mot poengtrekk/.test(rules)],
  ["rules: save commits",/teller først når brukeren \*\*lagrer\*\*/.test(rules)],
  ["rules: lineup captain vice free",/rekke 1 \/ rekke 2/.test(rules)&&/kaptein/.test(rules)&&/visekaptein/.test(rules)],
+ ["rules: 2026/27 prices fixed",/spillerprisene faste gjennom hele sesongen/.test(rules)&&/Kjøpspris = låst sesongpris/.test(rules)&&/Salgsverdi = samme låste sesongpris/.test(rules)],
  ["server: event-week block",/Permanent transfers are disabled during an Event Week/.test(transferSql)],
  ["server: bytteboost max 4",/v_limit:=4/.test(transferSql)],
  ["server: bytteboost commits after 2",/v_new_used>2/.test(transferSql)&&/status='committed'/.test(transferSql)],
  ["server: deadline uses next open round",/deadline_at>now\(\)/.test(transferSql)],
  ["server: snapshot gate",/fantasy_team_round_snapshots/.test(transferSql)],
+ ["server: transfer valuation uses season prices",/join fantasy_player_season_prices sp on sp\.player_id=fp\.id and sp\.season=p_season/.test(transferSql)&&/join fantasy_player_season_prices sp on sp\.player_id=tp\.player_id and sp\.season=p_season/.test(transferSql)],
+ ["server: fixed-price DB trigger exists",/trg_fixed_fantasy_season_price_2026_27/.test(fixedPriceSql)&&/before update or delete on fantasy_player_season_prices/.test(fixedPriceSql)],
+ ["server: fixed-price gate uses first 2026/27 game",/fantasy_2026_27_has_started/.test(fixedPriceSql)&&/min\(g\.starts_at\)/.test(fixedPriceSql)&&/g\.season = '2026\/27'/.test(fixedPriceSql)],
+ ["server: existing season price cannot change after start",/new\.price is distinct from old\.price/.test(fixedPriceSql)&&/existing season prices cannot be changed/.test(fixedPriceSql)],
+ ["server: existing season price cannot be deleted after start",/tg_op = 'DELETE'/.test(fixedPriceSql)&&/season prices cannot be deleted/.test(fixedPriceSql)],
+ ["server: generic player price cannot diverge",/trg_fantasy_player_price_mirror_2026_27/.test(fixedPriceSql)&&/new\.price is distinct from v_locked_price/.test(fixedPriceSql)],
  ["isolated E2E: ordinary clients remain hard-locked to 2026/27",/p_season<>'2026\/27'/.test(isolatedTransfer)],
  ["isolated E2E: synthetic season requires service role",/v_role='service_role'/.test(isolatedTransfer)&&/p_season like '__e2e_%'/.test(isolatedTransfer)],
  ["isolated E2E: test namespace is synthetic",/__e2e_mp12_transfers__/.test(isolatedTransfer)],
