@@ -4,6 +4,7 @@ import "./fantasy-nav.css";
 import "./leaderboard/leaderboard.css";
 import "./rounds/rounds.css";
 import "./team/team-launch.css";
+import "./fantasy-premium.css";
 
 export default function FantasyLayout({children}:{children:React.ReactNode}){
  return <FantasyAuthGate><FantasyNav/>{children}</FantasyAuthGate>;
