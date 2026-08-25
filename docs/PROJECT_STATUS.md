@@ -13,8 +13,11 @@ Sist kontrollert mot GitHub `main`: 2026-08-25
 
 - Next.js 16.2.11 / React 19.2.0 / TypeScript 5.9.x.
 - Supabase + Vercel.
-- GitHub Actions build-CI med MP-12 scoring/security/test-isolation, MP-13 scoring/readiness/felles miniligaer, MP-04 transfer, Bonus Weeks, MP-07 rundehistorikk/stats/identitet/Event Weeks og MP-10 optimizer før build.
+- GitHub Actions build-CI med MP-01 produksjonsdrift, MP-12 scoring/security/test-isolation, MP-13 scoring/readiness/felles miniligaer, MP-04 transfer, Bonus Weeks, MP-07 rundehistorikk/stats/identitet/Event Weeks og MP-10 optimizer før build.
 - Isolerte tester skal aldri endre ekte 2026/27-data og skal rydde egne syntetiske fixtures.
+- **MP-01.6 produksjons-/driftsgaten er ferdigstilt og produksjonsverifisert 2026-08-25.** Operativ runbook: `docs/MP01_PRODUCTION_RUNBOOK.md`.
+- Supabase-organisasjonen `Hockeytips` er verifisert på **Pro**, slik at managed-backup-forutsetningen er etablert før MP-14.
+- HockeyLive-requester har intern timeout, og delvise sync-/Fantasy-livssyklusfeil gir `ok=false`/HTTP 500 slik at cron kan retry-e i stedet for å rapportere falsk suksess.
 
 ## Felles brukeridentitet
 
@@ -46,7 +49,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-25
 - Bonus Weeks: Kapteinsboost ×2,5, Rekkeboost (rekke 2 = 100 %), Bytteboost opptil 4; Rik/Fattig Onkel bruker separate eventlag.
 - MP-08 analyse/xFP/fixture-rating er produksjonsverifisert. Preseason-/treningskampstatistikk brukes ikke som Fantasy-signal.
 - MP-10 lagoptimalisator er ferdigstilt som adminverktøy.
-- MP-11.1–11.7 samlet UX-/mobilpass er ferdigstilt; MP-11.8 branding/logo gjenstår.
+- **MP-11.8 redesign/branding er ferdigstilt.** Valgt premium sportsretning med Stang Inn-logo/SI-mark, samlet shell/header/navigasjon, svart/gull merkevare, metadata/favicon/app-assets og konsistent mobil/desktop-presentasjon er implementert på `main` og produksjonsverifisert.
 
 ## Tipping og felles miniligaer
 
@@ -65,24 +68,24 @@ Sist kontrollert mot GitHub `main`: 2026-08-25
 
 ## Testing og sikkerhet
 
-- MP-12 pre-launch-regresjon er gjennomført, men skal kjøres på nytt etter de nye identitets-/miniliga-/Event Week-/brandingendringene før launch-gate.
+- **MP-12 bred sluttregresjon er ferdigstilt og grønn etter identitets-, lagnavn-, miniliga-, Event Week- og MP-11.8-endringene.** GitHub Actions og Vercel er grønne.
+- MP-01.6-produksjonsregresjonen beskytter cron-secret/retry, HockeyLive-timeout, partial-sync failure og service-only hardening.
 - MP-04 transferregresjonen inkluderer MP-04.8-kontrakter.
 - MP-07.10-regresjonen beskytter snapshot-frosset `owner_name`, bekreftet profilnavn, identitets-RPC-er, uendret ranking/tie-break, fravær av e-post og anon-hardening.
-- MP-07.11/07.12-regresjonen beskytter GW15/GW22/GW38, 200m/70m, Julebord-rekke 2 = 100 %, ordinær C/VC, booster-/transfersperrer og Event Week-identitet i UI/historikk. Den kjører i GitHub Actions og bestod sammen med full build 2026-08-25.
+- MP-07.11/07.12-regresjonen beskytter GW15/GW22/GW38, 200m/70m, Julebord-rekke 2 = 100 %, ordinær C/VC, booster-/transfersperrer og Event Week-identitet i UI/historikk.
 - MP-13.6-regresjonen beskytter den kanoniske felles liga-/medlemskapsmodellen, cross-product medlemskap, separate produktstandings, owner/leave/rejoin og auth/RLS.
-- Produksjonssmoke for identitets-, miniliga- og Event Week-konfigurasjonen er bestått uten varige syntetiske produksjonsdata.
+- Produksjonssmoke og testisolasjonskontroller viste 0 varige syntetiske testrester i ekte 2026/27-data.
 
 ## Aktivt område / neste kobling
 
-**MP-01.7, MP-04.8, MP-07.10–07.12 og MP-13.6 er ferdige.** Identitet, felles miniliga-medlemskap og de tre Event Weeks er dermed på plass.
+**MP-11.8, MP-12 sluttregresjon og MP-01.6 er nå ferdige.** Produksjonsgrunnlaget, sikkerhets-/driftsrunbooken og sluttregresjonen er dermed klare for den endelige launch-gaten.
 
-**Neste operative hovedpunkt er Chat 11 – MP-11.8: Stang Inn-redesign, logo og visuell merkevare.** Før kodeimplementasjon skal Chat 11 levere tre tydelig forskjellige komplette designforslag med logo integrert. Brukeren velger/godkjenner retning før full redesign implementeres.
+**Neste operative hovedpunkt er Chat 14 – MP-14.1–14.7 endelig launch-gate.** Bruk `docs/MASTERPLAN.md`, `docs/PROJECT_STATUS.md` og `docs/MP01_PRODUCTION_RUNBOOK.md` og sett eksplisitt PASS/FAIL for regler, spillerpool/priser, alle 45 runder/deadlines, scoring/snapshots/leaderboard, miljø/secrets/cron, mobil/desktop og backup/rollback/adminrutiner.
 
-Deretter følger, i henhold til siste `docs/MASTERPLAN.md`:
+Deretter:
 
-1. Chat 12 – MP-12.3 + MP-12.7 ny bred sluttregresjon.
-2. Chat 01 + Chat 14 – MP-01.6 og MP-14.1–14.7 produksjons-/launch-gate.
-3. Chat 14 – MP-14.8 GO LIVE når alle kritiske gates er PASS.
+1. Chat 14 – MP-14.8 GO LIVE når alle kritiske gates er PASS.
+2. MP-06.6 tas i Chat 06 når representative 2026/27-seriekamper finnes; MP-02.6/MP-09/MP-13 live-verifisering fortsetter løpende gjennom sesongen.
 
 ## Arbeidsstart i ny chat
 
