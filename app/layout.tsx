@@ -13,6 +13,7 @@ import "./shared-leagues.css";
 import "./game-mode-switch.css";
 import "./stang-inn-brand.css";
 import "./unified-home.css";
+import "./unified-home-finish.css";
 import "./tipping-premium.css";
 import "./tipping-layout.css";
 import "./tipping-layout-fixes.css";
