@@ -5,6 +5,7 @@ import "./premium-next-match.css";
 import "./round-carousel.css";
 import "./awards.css";
 import "./leaderboard.css";
+import "./leaderboard-premium.css";
 import "./tips-polish.css";
 import "./tabletips-polish.css";
 import "./player-profile-polish.css";
