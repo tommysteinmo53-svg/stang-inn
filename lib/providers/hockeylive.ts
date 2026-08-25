@@ -3,6 +3,7 @@ import type { ImportedMatch, MatchProvider } from "../../types/data-provider";
 const API_BASE = "https://sf34-terminlister-prod-app.azurewebsites.net/";
 const DEFAULT_TOURNAMENT_ID = "448981";
 const DEFAULT_SEASON_LABEL = "2026/27";
+const HOCKEYLIVE_TIMEOUT_MS = 10_000;
 
 type Row = Record<string, any>;
 
@@ -124,10 +125,19 @@ function normalizeStanding(raw: Row, season: string): ImportedStanding | null {
 }
 
 async function fetchJson(endpoint: string) {
-  const response = await fetch(endpoint, {
-    headers: { Accept: "application/json", "User-Agent": "StangInn/0.9 (+https://stang-inn-xi.vercel.app)" },
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      headers: { Accept: "application/json", "User-Agent": "StangInn/0.9 (+https://stang-inn-xi.vercel.app)" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(HOCKEYLIVE_TIMEOUT_MS),
+    });
+  } catch (error) {
+    if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
+      throw new Error(`HockeyLive API svarte ikke innen ${HOCKEYLIVE_TIMEOUT_MS / 1000} sekunder`);
+    }
+    throw error;
+  }
   if (!response.ok) {
     const body = await response.text();
     throw new Error(`HockeyLive API svarte ${response.status}: ${body.slice(0, 180)}`);
