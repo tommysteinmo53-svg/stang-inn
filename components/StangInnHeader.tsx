@@ -6,9 +6,8 @@ import { usePathname } from "next/navigation";
 const nav = [
   { href: "/", label: "Hjem", active: (p: string) => p === "/" },
   { href: "/fantasy", label: "Fantasy", active: (p: string) => p === "/fantasy" || p.startsWith("/fantasy/") },
-  { href: "/tips", label: "Tipping", active: (p: string) => p.startsWith("/tips") || p.startsWith("/round") || p.startsWith("/tabletips") || p.startsWith("/match/") },
+  { href: "/tips", label: "Tipping", active: (p: string) => p.startsWith("/tips") || p.startsWith("/round") || p.startsWith("/tabletips") || p.startsWith("/match/") || p.startsWith("/leaderboard") || p.startsWith("/awards") || p.startsWith("/player/") },
   { href: "/leagues", label: "Miniligaer", active: (p: string) => p.startsWith("/leagues") },
-  { href: "/leaderboard", label: "Statistikk", active: (p: string) => p.startsWith("/leaderboard") || p.startsWith("/awards") || p.startsWith("/player/") },
   { href: "/fantasy/rules", label: "Regler", active: (p: string) => p.startsWith("/fantasy/rules") },
 ];
 
