@@ -5,6 +5,7 @@ import {usePathname} from "next/navigation";
 import {getSupabaseBrowserClient} from "../lib/supabase";
 import SIIcon from "./SIIcon";
 import HomeFantasyLineup from "./HomeFantasyLineup";
+import HomeTippingCoupon from "./HomeTippingCoupon";
 
 const SEASON="2026/27";
 type Match={id:number;home_team:string;away_team:string;match_time:string|null;finished:boolean;home_score:number|null;away_score:number|null};
@@ -41,6 +42,7 @@ export default function UnifiedHomeDashboard(){
   ]);const status=Array.isArray(ts)?ts[0]:null;const mine=(board||[]).find((r:any)=>r.team_id===team.id);setFantasy({teamId:team.id,teamName:team.name||"Mitt Fantasy-lag",players:Number(count||0),teamCost:Number(status?.team_cost||0),totalPoints:Number(mine?.total_points||0),position:mine?.standings_position?Number(mine.standings_position):null,transfersRemaining:Number(status?.transfers_remaining??2),roundNo:status?.effective_round_no?Number(status.effective_round_no):null,deadline:status?.deadline_at||null})}
  }catch(e:any){setMessage(e?.message||String(e))}finally{setBusy(false)}})()},[pathname]);
  const upcoming=useMemo(()=>matches.filter(m=>!m.finished&&(!m.match_time||new Date(m.match_time).getTime()>Date.now())).slice(0,5),[matches]);
+ const couponMatches=useMemo(()=>matches.filter(m=>!m.finished).sort((a,b)=>(a.match_time||"").localeCompare(b.match_time||"")).slice(0,5),[matches]);
  const tipMap=useMemo(()=>new Map(tips.map(t=>[t.match_id,t])),[tips]);
  const completed=useMemo(()=>matches.filter(m=>m.finished&&m.home_score!=null&&m.away_score!=null),[matches]);
  const myTipPoints=useMemo(()=>completed.reduce((sum,m)=>sum+tipPoints(m,tipMap.get(m.id)),0),[completed,tipMap]);
@@ -59,7 +61,7 @@ export default function UnifiedHomeDashboard(){
   <section className="unifiedPrimaryGrid">
    <article className="unifiedPanel unifiedFantasyCard"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">FANTASY</p><h2>{fantasy.teamId?fantasy.teamName:"Mitt Fantasy-lag"}</h2></div><a href="/fantasy/team">Åpne lagbygger →</a></div><HomeFantasyLineup teamId={fantasy.teamId}/><div className="unifiedQuickRow"><a href="/fantasy/team">Mitt lag</a><a href="/fantasy/players">Spillermarked</a><a href="/fantasy/transfers">Bytter</a></div></article>
 
-   <article className="unifiedPanel"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">TIPPING</p><h2>Tippekupongen min</h2></div><a href="/tips">Alle kamper →</a></div><div className="unifiedMatches">{upcoming.length?upcoming.map(m=><div key={m.id} className="unifiedMatch"><span>{m.match_time?fmt(m.match_time):"Tid ikke satt"}</span><b>{m.home_team} <i>–</i> {m.away_team}</b><em className={tipMap.has(m.id)?"done":""}>{tipMap.has(m.id)?"Levert":"Ikke tippet"}</em></div>):<div className="unifiedEmpty">Ingen kommende kamper akkurat nå.</div>}</div><a className="unifiedPrimaryButton" href="/tips">Åpne tippekupongen</a></article>
+   <article className="unifiedPanel"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">TIPPING</p><h2>Tippekupongen min</h2></div><a href="/tips">Alle kamper →</a></div><HomeTippingCoupon matches={couponMatches} tips={tips}/><a className="unifiedPrimaryButton" href="/tips">Åpne tippekupongen</a></article>
 
    <article className="unifiedPanel"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">FELLES</p><h2>Miniligaer</h2></div><a href="/leagues">Se alle →</a></div><div className="unifiedLeagueList">{leagues.slice(0,4).map(l=><a key={l.league_id} href={`/leagues/${l.league_id}`}><span>{l.league_name}</span><small>{l.member_count} medlemmer · Fantasy + Tipping</small></a>)}{!leagues.length&&<div className="unifiedEmpty">Du er ikke med i noen miniliga ennå.</div>}</div></article>
   </section>
