@@ -66,16 +66,14 @@ body::before{
 .siDesktopNav a:hover { color: #fff8df; background: rgba(212,175,82,.035); }
 .siDesktopNav a.active { color: var(--si-gold-soft); }
 .siDesktopNav a.active::after { content: ""; position: absolute; left: 15px; right: 15px; bottom: 0; height: 2px; background: linear-gradient(90deg,#8c641d,var(--si-gold-soft),#8c641d); box-shadow: 0 0 16px rgba(212,175,55,.34); }
+.siLiveNavLink{gap:7px}.siLiveNavDot{width:7px;height:7px;border-radius:50%;background:#55d39e;box-shadow:0 0 0 4px rgba(85,211,158,.08),0 0 12px rgba(85,211,158,.42)}.siLiveNavLink.active{color:#8be7c0!important}.siLiveNavLink.active::after{background:linear-gradient(90deg,#2e7f62,#65d5aa,#2e7f62)!important;box-shadow:0 0 16px rgba(85,211,158,.28)!important}
 .siHeaderActions { display: flex; align-items: center; gap: 8px; }
 .siIconAction, .siProfileAction { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(212,175,82,.16); background: rgba(8,13,19,.88); color: #eee9dc; text-decoration: none; }
 .siIconAction { width: 40px; border-radius: 50%; color: var(--si-gold-soft); font-size: 20px; }
 .siProfileAction { border-radius: 999px; padding: 0 14px; font-size: 11px; font-weight: 850; }
 .siIconAction:hover,.siProfileAction:hover{border-color:rgba(212,175,82,.34);background:#0d131a}
 
-/* MP-11.8 transition: the unified brand header supersedes the old global mode/status chrome. */
 body > .topStatusBar, body > .gameModeSwitch { display: none !important; }
-
-/* Premium black/gold bridge for legacy shared controls while MP-11.8 rolls across all surfaces. */
 .primaryButton,.compactButton{background:linear-gradient(180deg,#d1aa4a,#8b6019)!important;color:#fff8df!important;box-shadow:0 9px 24px rgba(120,79,16,.22),inset 0 1px rgba(255,255,255,.2)!important}
 .textButton{color:#d9b65f!important}
 .statusPill{color:#e4c675!important;background:rgba(212,175,82,.075)!important;border-color:rgba(212,175,82,.21)!important}
@@ -101,4 +99,5 @@ body > .topStatusBar, body > .gameModeSwitch { display: none !important; }
   .globalMobileNav{border-color:rgba(212,175,82,.18)!important;background:rgba(3,7,10,.97)!important;box-shadow:0 20px 55px rgba(0,0,0,.62)!important}
   .globalMobileNav a{color:#8e949a!important}
   .globalMobileNav a.active{color:#e3bf67!important;background:linear-gradient(180deg,rgba(103,72,20,.34),rgba(41,29,12,.48))!important;box-shadow:inset 0 0 0 1px rgba(212,175,82,.16)!important}
+  .globalMobileNav a.mobileLiveNav span{color:#55d39e!important}.globalMobileNav a.mobileLiveNav.active{color:#8be7c0!important;background:linear-gradient(180deg,rgba(55,155,116,.16),rgba(23,77,57,.08))!important;box-shadow:inset 0 0 0 1px rgba(85,211,158,.18)!important}
 }
