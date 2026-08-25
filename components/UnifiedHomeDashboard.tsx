@@ -1,0 +1,67 @@
+"use client";
+
+import {useEffect,useMemo,useState} from "react";
+import {usePathname} from "next/navigation";
+import {getSupabaseBrowserClient} from "../lib/supabase";
+
+const SEASON="2026/27";
+type Match={id:number;home_team:string;away_team:string;match_time:string|null;finished:boolean;home_score:number|null;away_score:number|null};
+type Tip={match_id:number;home_tip:number;away_tip:number};
+type Player={id:string;display_name:string};
+type League={league_id:string;league_name:string;member_count:number};
+type Fantasy={teamId:string|null;teamName:string;players:number;teamCost:number;totalPoints:number;position:number|null;transfersRemaining:number;roundNo:number|null;deadline:string|null};
+const initialFantasy:Fantasy={teamId:null,teamName:"EHL Fantasy",players:0,teamCost:0,totalPoints:0,position:null,transfersRemaining:2,roundNo:null,deadline:null};
+
+function tipOutcome(h:number,a:number){return h>a?"H":h<a?"A":"D"}
+function tipPoints(m:Match,t?:Tip){if(!t||m.home_score==null||m.away_score==null)return 0;if(t.home_tip===m.home_score&&t.away_tip===m.away_score)return 5;return tipOutcome(t.home_tip,t.away_tip)===tipOutcome(m.home_score,m.away_score)?3:0}
+function fmt(value:string|null){if(!value)return "Ikke satt";return new Intl.DateTimeFormat("nb-NO",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit",timeZone:"Europe/Oslo"}).format(new Date(value))}
+function timeLeft(value:string|null){if(!value)return "Ikke startet";const ms=new Date(value).getTime()-Date.now();if(ms<=0)return "Låst";const d=Math.floor(ms/86400000),h=Math.floor(ms%86400000/3600000),m=Math.floor(ms%3600000/60000);return d>0?`${d}d ${h}t ${m}m`:`${h}t ${m}m`}
+
+export default function UnifiedHomeDashboard(){
+ const pathname=usePathname();
+ const[busy,setBusy]=useState(true),[message,setMessage]=useState("");
+ const[matches,setMatches]=useState<Match[]>([]),[tips,setTips]=useState<Tip[]>([]),[players,setPlayers]=useState<Player[]>([]),[uid,setUid]=useState<string|null>(null),[fantasy,setFantasy]=useState<Fantasy>(initialFantasy),[leagues,setLeagues]=useState<League[]>([]);
+ useEffect(()=>{if(pathname!=="/")return;document.body.classList.add("stangUnifiedHomeActive");return()=>document.body.classList.remove("stangUnifiedHomeActive")},[pathname]);
+ useEffect(()=>{if(pathname!=="/")return;(async()=>{try{const sb=getSupabaseBrowserClient();if(!sb)throw new Error("Supabase er ikke tilgjengelig");const{data:session}=await sb.auth.getSession();const user=session.session?.user;if(!user)throw new Error("Du må være logget inn");setUid(user.id);
+  const[{data:m},{data:t},{data:p},{data:l},{data:team}]=await Promise.all([
+   sb.from("matches").select("id,home_team,away_team,match_time,finished,home_score,away_score").order("match_time"),
+   sb.from("tips").select("match_id,home_tip,away_tip").eq("player_id",user.id),
+   sb.from("players").select("id,display_name"),
+   sb.rpc("get_my_stang_inn_private_leagues_v1",{p_season:SEASON}),
+   sb.from("fantasy_user_teams").select("id,name").eq("season",SEASON).eq("user_id",user.id).maybeSingle()
+  ]);
+  setMatches((m||[]) as Match[]);setTips((t||[]) as Tip[]);setPlayers((p||[]) as Player[]);setLeagues((l||[]) as League[]);
+  if(team){const[{count},{data:ts},{data:board}]=await Promise.all([
+   sb.from("fantasy_user_team_players").select("player_id",{count:"exact",head:true}).eq("team_id",team.id),
+   sb.rpc("get_fantasy_transfer_status_v1",{p_season:SEASON}),
+   sb.rpc("get_fantasy_season_leaderboard",{p_season:SEASON})
+  ]);const status=Array.isArray(ts)?ts[0]:null;const mine=(board||[]).find((r:any)=>r.team_id===team.id);setFantasy({teamId:team.id,teamName:team.name||"Mitt Fantasy-lag",players:Number(count||0),teamCost:Number(status?.team_cost||0),totalPoints:Number(mine?.total_points||0),position:mine?.standings_position?Number(mine.standings_position):null,transfersRemaining:Number(status?.transfers_remaining??2),roundNo:status?.effective_round_no?Number(status.effective_round_no):null,deadline:status?.deadline_at||null})}
+ }catch(e:any){setMessage(e?.message||String(e))}finally{setBusy(false)}})()},[pathname]);
+ const upcoming=useMemo(()=>matches.filter(m=>!m.finished&&(!m.match_time||new Date(m.match_time).getTime()>Date.now())).slice(0,5),[matches]);
+ const tipMap=useMemo(()=>new Map(tips.map(t=>[t.match_id,t])),[tips]);
+ const completed=useMemo(()=>matches.filter(m=>m.finished&&m.home_score!=null&&m.away_score!=null),[matches]);
+ const myTipPoints=useMemo(()=>completed.reduce((sum,m)=>sum+tipPoints(m,tipMap.get(m.id)),0),[completed,tipMap]);
+ const tippedUpcoming=upcoming.filter(m=>tipMap.has(m.id)).length;
+ if(pathname!=="/")return null;
+ if(busy)return <main className="unifiedHomeDashboard"><div className="unifiedHomeState"><strong>Laster Stang Inn …</strong><span>Samler Fantasy, Tipping og miniligaene dine.</span></div></main>;
+ return <main className="unifiedHomeDashboard">
+  <section className="unifiedHero">
+   <div className="unifiedHeroRound"><p className="unifiedEyebrow">NESTE FANTASYRUNDE</p><h1>{fantasy.roundNo?<>RUNDE <em>{fantasy.roundNo}</em></>:"EHL 2026/27"}</h1><p>{fantasy.deadline?`Deadline: ${fmt(fantasy.deadline)}`:"Neste Fantasy-deadline publiseres her."}</p><strong className="unifiedCountdown">{timeLeft(fantasy.deadline)}</strong><a href="/fantasy/rounds">Gå til runde →</a></div>
+   <div className="unifiedHeroStatus"><p className="unifiedEyebrow">DIN STATUS</p><div className="unifiedRank"><span>Fantasy-rank</span><strong>{fantasy.position?fantasy.position.toLocaleString("nb-NO"):"–"}</strong></div><div className="unifiedMetricRow"><div><span>Fantasy-poeng</span><b>{fantasy.totalPoints.toFixed(1).replace(".0","")}</b></div><div><span>Tipping-poeng</span><b>{myTipPoints}</b></div><div><span>Lagverdi</span><b>{fantasy.teamCost?`${fantasy.teamCost.toFixed(1)}m`:"–"}</b></div></div><div className="unifiedMetricRow"><div><span>Bytter igjen</span><b>{fantasy.transfersRemaining}</b></div><div><span>Miniligaer</span><b>{leagues.length}</b></div><div><span>Tips levert</span><b>{tippedUpcoming}/{upcoming.length}</b></div></div></div>
+  </section>
+
+  <section className="unifiedPrimaryGrid">
+   <article className="unifiedPanel unifiedFantasyCard"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">FANTASY</p><h2>{fantasy.teamId?fantasy.teamName:"Mitt Fantasy-lag"}</h2></div><a href="/fantasy/team">Åpne lagbygger →</a></div><div className="unifiedFantasyPitch"><div className="unifiedPitchMark">SI</div><p>{fantasy.teamId?`${fantasy.players}/12 spillere valgt`:`Opprett ditt EHL Fantasy-lag`}</p><strong>{fantasy.teamCost?`${fantasy.teamCost.toFixed(1)}m lagverdi`:"100m budsjett"}</strong></div><div className="unifiedQuickRow"><a href="/fantasy/team">Mitt lag</a><a href="/fantasy/players">Spillermarked</a><a href="/fantasy/transfers">Bytter</a></div></article>
+
+   <article className="unifiedPanel"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">TIPPING</p><h2>Tippekupongen min</h2></div><a href="/tips">Alle kamper →</a></div><div className="unifiedMatches">{upcoming.length?upcoming.map(m=><div key={m.id} className="unifiedMatch"><span>{m.match_time?fmt(m.match_time):"Tid ikke satt"}</span><b>{m.home_team} <i>–</i> {m.away_team}</b><em className={tipMap.has(m.id)?"done":""}>{tipMap.has(m.id)?"Levert":"Ikke tippet"}</em></div>):<div className="unifiedEmpty">Ingen kommende kamper akkurat nå.</div>}</div><a className="unifiedPrimaryButton" href="/tips">Åpne tippekupongen</a></article>
+
+   <article className="unifiedPanel"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">FELLES</p><h2>Miniligaer</h2></div><a href="/leagues">Se alle →</a></div><div className="unifiedLeagueList">{leagues.slice(0,4).map(l=><a key={l.league_id} href={`/leagues/${l.league_id}`}><span>{l.league_name}</span><small>{l.member_count} medlemmer · Fantasy + Tipping</small></a>)}{!leagues.length&&<div className="unifiedEmpty">Du er ikke med i noen miniliga ennå.</div>}</div></article>
+  </section>
+
+  <section className="unifiedSecondaryGrid">
+   <article className="unifiedPanel"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">EVENT WEEKS</p><h2>Sesongens spesialrunder</h2></div><a href="/fantasy/rounds">Se kalender →</a></div><div className="unifiedEvents"><a href="/fantasy/rounds"><span>👑</span><b>Rik Onkel</b><small>GW15 · 200m</small></a><a href="/fantasy/rounds"><span>🎄</span><b>Julebord</b><small>GW22 · Alle skal med!</small></a><a href="/fantasy/rounds"><span>🐷</span><b>Fattig Onkel</b><small>GW38 · 70m</small></a><a href="/fantasy/team"><span>⭐</span><b>Bonus Weeks</b><small>Dine personlige boostere</small></a></div></article>
+   <article className="unifiedPanel"><div className="unifiedPanelHead"><div><p className="unifiedEyebrow">SNARVEIER</p><h2>Rett til handling</h2></div></div><div className="unifiedShortcuts"><a href="/fantasy/team">👕<span>Mitt lag</span></a><a href="/tips">🎟️<span>Tippekupong</span></a><a href="/leagues">🤝<span>Miniligaer</span></a><a href="/fantasy/players">🧍<span>Spillere</span></a><a href="/fantasy/stats">📈<span>Fantasy-stats</span></a><a href="/leaderboard">🏆<span>Tipping-tabell</span></a></div></article>
+  </section>
+  {message&&<div className="unifiedHomeState error"><strong>Noe kunne ikke lastes.</strong><span>{message}</span></div>}
+ </main>;
+}
