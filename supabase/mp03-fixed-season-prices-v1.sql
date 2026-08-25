@@ -24,9 +24,6 @@ as $$
   );
 $$;
 
-revoke all on function fantasy_2026_27_has_started() from public;
-grant execute on function fantasy_2026_27_has_started() to authenticated, service_role;
-
 create or replace function guard_fixed_fantasy_season_price_2026_27()
 returns trigger
 language plpgsql
@@ -101,6 +98,11 @@ drop trigger if exists trg_fantasy_player_price_mirror_2026_27
 create trigger trg_fantasy_player_price_mirror_2026_27
 before update of price on fantasy_players
 for each row execute function guard_fantasy_player_price_mirror_2026_27();
+
+-- Internal database helpers only. Trigger execution does not require client EXECUTE.
+revoke all on function fantasy_2026_27_has_started() from public, anon, authenticated;
+revoke all on function guard_fixed_fantasy_season_price_2026_27() from public, anon, authenticated;
+revoke all on function guard_fantasy_player_price_mirror_2026_27() from public, anon, authenticated;
 
 comment on table fantasy_player_season_prices is
   'Authoritative fixed fantasy prices by season. For 2026/27, existing player prices are immutable after the first scheduled EHL game starts; transfers, sales and team value use this table.';
