@@ -248,8 +248,20 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
       }
     }
 
+    const operationalErrors: string[] = [];
+    if (standingsError) operationalErrors.push(`Tabellsynk: ${standingsError}`);
+    if (fantasyError) operationalErrors.push(`Fantasy-livssyklus: ${fantasyError}`);
+    if ((fantasyGames?.failed ?? 0) > 0) {
+      operationalErrors.push(`Fantasy-kampbehandling: ${fantasyGames!.failed} kamp(er) feilet`);
+    }
+    if ((fantasyAutomation?.snapshotErrors ?? 0) > 0) {
+      operationalErrors.push(`Fantasy-snapshots: ${fantasyAutomation!.snapshotErrors} feil`);
+    }
+    const syncOk = operationalErrors.length === 0;
+    const syncError = syncOk ? undefined : operationalErrors.join(" | ");
+
     const result: SyncResult = {
-      ok: true,
+      ok: syncOk,
       provider: provider.name,
       imported: rows.length,
       finished: rows.filter((row) => row.finished).length,
@@ -261,15 +273,17 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
       ...(fantasyGames ? { fantasyGames } : {}),
       ...(fantasyAutomation ? { fantasyAutomation } : {}),
       ...(fantasyError ? { fantasyError } : {}),
+      ...(syncError ? { error: syncError } : {}),
     };
 
     await supabase.from("sync_runs").insert({
       provider: provider.name,
       started_at: startedAt,
       finished_at: new Date().toISOString(),
-      ok: true,
+      ok: result.ok,
       imported_count: result.imported,
       finished_count: result.finished,
+      error_message: result.error ?? null,
     });
 
     return result;
