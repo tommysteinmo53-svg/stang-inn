@@ -1,6 +1,6 @@
 # Stang Inn XI – transferregler 2026/27
 
-Status: låst for MP-04.5/MP-04.6.
+Status: låst for MP-04.5/MP-04.6 og MP-03.7.
 
 ## Ordinære fantasy-runder
 
@@ -32,11 +32,20 @@ Et lags klubb kan ha 0, 1 eller flere kamper i runden uten at dette endrer trans
 
 Ved deadline er rundens snapshot historisk fasit. Senere transfers skal aldri endre historiske snapshots eller poeng.
 
-## Budsjett og priser
+## Budsjett og faste spillerpriser
 
-Ordinært lag har 100m budsjett. Serveren validerer laget mot den autoritative prisen som gjelder for kjøpet og lagrer `purchase_price` på nye spillere. Transferhistorikken lagrer prisene som ble brukt i den gjennomførte transfer-batchen.
+Ordinært lag har 100m budsjett.
 
-Eventuelle dynamiske prisendringer etter sesongstart defineres separat i MP-03.7. MP-04 skal ikke introdusere en egen prisendringsmodell.
+For **2026/27 er spillerprisene faste gjennom hele sesongen**. Det skal ikke forekomme automatiske markedsprisendringer eller manuelle reprisinger etter sesongstart. Den autoritative prisen er spillerens rad i `fantasy_player_season_prices` for `2026/27`.
+
+- Kjøpspris = låst sesongpris.
+- Salgsverdi = samme låste sesongpris.
+- Lagverdi/budsjettkontroll = summen av låste sesongpriser.
+- `purchase_price` på lag og pris i transferhistorikken skal være den samme låste sesongprisen på gjennomføringstidspunktet.
+- Endringer i `fantasy_players.price` skal ikke kunne gi en annen 2026/27-pris enn den låste sesongprisen.
+- Dersom en helt ny spiller kommer inn etter sesongstart, kan spilleren få én førstegangspris. Når sesongprisraden finnes, er den fast resten av 2026/27.
+
+Databasen håndhever dette etter første ordinære 2026/27-kampstart: eksisterende 2026/27-sesongpriser kan ikke endres eller slettes, heller ikke via admin/service-role. Pris-publiseringsløpet har i tillegg preseason `economy_lock_at` og kan ikke brukes til markedsreprising gjennom sesongen.
 
 ## Transferhistorikk
 
@@ -48,10 +57,10 @@ Hver gjennomført lagring med spillerbytter oppretter én transfer-batch med:
 - lagverdi før og etter
 - alle spillere UT
 - alle spillere INN
-- pris per spiller ved gjennomføring
+- låst sesongpris per spiller ved gjennomføring
 
 Ved flere samtidige bytter presenteres historikken som en batch (`UT: A, B` / `INN: C, D`) i stedet for å konstruere kunstige én-til-én-par.
 
 ## Serveren er fasit
 
-UI kan forhåndsvise hvor mange bytter en endring vil bruke, men transfergrenser, budsjett, posisjoner, klubbgrense, deadline, snapshot-gate, Bytteboost og Event Week-sperre skal alltid håndheves server-side.
+UI kan forhåndsvise hvor mange bytter en endring vil bruke, men transfergrenser, budsjett, posisjoner, klubbgrense, deadline, snapshot-gate, Bytteboost, Event Week-sperre og låste sesongpriser skal alltid håndheves server-side.
