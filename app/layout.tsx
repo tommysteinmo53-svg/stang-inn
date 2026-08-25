@@ -11,6 +11,7 @@ import "./player-profile-polish.css";
 import "./shared-leagues.css";
 import "./game-mode-switch.css";
 import "./stang-inn-brand.css";
+import "./unified-home.css";
 import AuthGate from "../components/AuthGate";
 import AuthReturnRedirect from "../components/AuthReturnRedirect";
 import AnnouncementBanner from "../components/AnnouncementBanner";
@@ -18,6 +19,7 @@ import GlobalMobileNav from "../components/GlobalMobileNav";
 import HomeRoundPortal from "../components/HomeRoundPortal";
 import TippingNavigationPolish from "../components/TippingNavigationPolish";
 import StangInnHeader from "../components/StangInnHeader";
+import UnifiedHomeDashboard from "../components/UnifiedHomeDashboard";
 
 export const metadata = {
   title: {
@@ -39,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthReturnRedirect />
         <AuthGate>
           <StangInnHeader />
+          <UnifiedHomeDashboard />
           <HomeRoundPortal />
           <TippingNavigationPolish />
           {children}
