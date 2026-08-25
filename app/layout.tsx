@@ -17,6 +17,7 @@ import "./unified-home-finish.css";
 import "./tipping-premium.css";
 import "./tipping-layout.css";
 import "./tipping-layout-fixes.css";
+import "./tipping-final-polish.css";
 import "./match-detail-premium.css";
 import "./account-premium.css";
 import "./admin-surface.css";
@@ -29,6 +30,7 @@ import TippingNavigationPolish from "../components/TippingNavigationPolish";
 import StangInnHeader from "../components/StangInnHeader";
 import UnifiedHomeDashboard from "../components/UnifiedHomeDashboard";
 import AdminSurfaceMode from "../components/AdminSurfaceMode";
+import TippingSurfaceMode from "../components/TippingSurfaceMode";
 
 export const metadata = {
   title: {
@@ -48,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="no">
       <body>
         <AdminSurfaceMode />
+        <TippingSurfaceMode />
         <AuthReturnRedirect />
         <AuthGate>
           <StangInnHeader />
