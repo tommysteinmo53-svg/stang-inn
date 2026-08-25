@@ -64,7 +64,7 @@ Alle tre følger samme autoritative fantasy-deadline: første kampstart i runden
 
 ## Permanent lag, deadline og snapshots
 
-Rik Onkel og Fattig Onkel bruker egne rundebundne eventlag. `fantasy_user_team_players` skal ikke overskrives, og eventvalg skal ikke registreres som permanente transfers. Julebord bruker permanentlaget direkte med snapshot-frosset rekke-2-override.
+Rik Onkel og Fattig Onkel bruker egne rundebundne eventlag. `fantasy_user_team_players` skal ikke overskrives, og eventvalg skal ikke registreres som permanente transfers. De permanente lagene bevares uendret gjennom Rik Onkel og Fattig Onkel, og brukeren går automatisk tilbake til sitt permanente lag etter Event Week. Julebord bruker permanentlaget direkte med snapshot-frosset rekke-2-override.
 
 Alle boostere og Event Weeks følger fantasy-rundens autoritative `deadline_at`, som skal være første kampstart. Snapshotet er historisk fasit og fryser relevant roster, rekker, C/VC, priser, booster og/eller Event Week-metadata.
 
