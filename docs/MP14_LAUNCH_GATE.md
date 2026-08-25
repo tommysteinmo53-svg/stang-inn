@@ -11,7 +11,7 @@ Statusverdier: **PASS / FAIL / BLOCKED / N/A**.
 | MP-punkt | Område | Resultat | Bevis/verifikasjon | Blocker |
 | --- | --- | --- | --- | --- |
 | MP-14.1 | Endelig Fantasy-regelverk | **PASS** | `main`, brukersynlig regelbok, produksjons-RPC-er og direkte produksjonsquery av `fantasy_season_rules` + `fantasy_event_weeks`, verifisert 2026-08-25 | Ingen |
-| MP-14.2 | Spillerpool, lag, posisjoner og priser | BLOCKED | Ikke sluttverifisert i MP-14 ennå | Må gjennomføres |
+| MP-14.2 | Spillerpool, lag, posisjoner og priser | **PASS** | `main`, versjonert EliteProspects-rosterfasit og direkte produksjonsquery av `fantasy_players`, `fantasy_player_season_prices`, admin-kø og aktive guards, verifisert 2026-08-25 | Ingen |
 | MP-14.3 | Alle 45 gameweeks og deadlines | BLOCKED | Ikke sluttverifisert i MP-14 ennå | Må gjennomføres |
 | MP-14.4 | Scoring, snapshots og leaderboard | BLOCKED | Ikke sluttverifisert i MP-14 ennå | Må gjennomføres |
 | MP-14.5 | Produksjonsmiljø | BLOCKED | Ikke sluttverifisert i MP-14 ennå | Må gjennomføres |
@@ -44,6 +44,32 @@ Statusverdier: **PASS / FAIL / BLOCKED / N/A**.
 ### MP-14.1 konklusjon
 
 **PASS** – kode, produksjonsdatabase, brukersynlige regler og intern regel-dokumentasjon er samstemt for launch-gaten.
+
+## MP-14.2 – Spillerpool, lag, posisjoner og priser
+
+Preseason roster-fasit i `lib/fantasy/eliteprospects-roster-2026.ts` er eksplisitt versjonert og verifisert mot EliteProspects 2026/27 den 2026-08-16. HockeyLive/NIF brukes fortsatt som viktig identitets- og kampdatakilde, men den eldre NIF-preflighten på 244 spillere er ikke lenger autoritativ for preseason-medlemskap. Den gjeldende EP-fasiten består av 239 spillere.
+
+| Kontroll | Resultat | Bevis/verifikasjon | Blocker |
+| --- | --- | --- | --- |
+| Gjeldende rosterstørrelse | PASS | 239 `on_current_roster`; samsvarer med versjonert EP-fasit | Ingen |
+| Alle 10 EHL-lag representert | PASS | Produksjon: Frisk Asker 23, Lillehammer 22, Narvik 24, Nidaros 23, Ringerike 24, Sparta 25, Stavanger 25, Stjernen 25, Storhamar 25, Vålerenga 23 | Ingen |
+| Aktive spillere | PASS | 239/239 current-roster-spillere er `active=true` | Ingen |
+| Kjøpbar spillerpool | PASS | 239/239 current-roster-spillere er `available_for_purchase=true` | Ingen |
+| External ID / identitet | PASS | 0 current-roster-spillere mangler `external_id`; 0 dupliserte external IDs i current roster | Ingen |
+| Navn og klubb | PASS | 0 mangler navn, 0 mangler klubb, 0 dupliserte navn+klubb-rader | Ingen |
+| Gyldige posisjoner | PASS | 37 C, 103 W, 78 D, 21 G; 0 posisjoner utenfor C/W/D/G | Ingen |
+| Låst 2026/27-pris for hele rosteren | PASS | 239/239 current-roster-spillere har rad i `fantasy_player_season_prices` | Ingen |
+| Prisrader låst | PASS | 0 av sesongens prisrader har `locked_at is null` | Ingen |
+| Prisverdi gyldig | PASS | 0 null/ikke-positive priser; produksjonsintervall 1.00m–19.00m | Ingen |
+| Pris-speil samsvarer | PASS | 0 avvik mellom `fantasy_players.price` og låst 2026/27-pris for current roster | Ingen |
+| Uavklart pris/admin-kø | PASS | 0 pending i `fantasy_player_admin_queue` for 2026/27 | Ingen |
+| Kjøpsguard aktiv | PASS | `fantasy_user_team_players_purchase_guard` er aktiv og avviser spillere som ikke er kjøpbare | Ingen |
+| Fastprisguard aktiv | PASS | Guards på både `fantasy_player_season_prices` og `fantasy_players.price` er aktive | Ingen |
+| Historiske/utgåtte spillere | PASS | Roster-sync sletter ikke historikk; spillere utenfor current roster gjøres ikke kjøpbare | Ingen |
+
+### MP-14.2 konklusjon
+
+**PASS** – den autoritative preseason-spillerpoolen er konsistent i produksjon, alle 239 nåværende spillere har gyldig identitet, klubb, posisjon og låst pris, ingen nåværende spiller står i pris-/admin-kø, og server-side guards hindrer kjøp av utilgjengelige spillere og endring av faste sesongpriser etter sesongstart.
 
 ## GO LIVE
 
