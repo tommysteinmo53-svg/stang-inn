@@ -20,6 +20,7 @@ import "./tipping-layout-fixes.css";
 import "./tipping-final-polish.css";
 import "./match-detail-premium.css";
 import "./account-premium.css";
+import "./account-final-polish.css";
 import "./admin-surface.css";
 import AuthGate from "../components/AuthGate";
 import AuthReturnRedirect from "../components/AuthReturnRedirect";
