@@ -3,6 +3,7 @@
 import {useEffect,useMemo,useState} from "react";
 import {getSupabaseBrowserClient} from "../../../lib/supabase";
 import {canonicalFantasyTeam} from "../../../lib/fantasy/team-normalization";
+import SIIcon from "../../../components/SIIcon";
 import "./event-team.css";
 
 type Pos="C"|"W"|"D"|"G";
@@ -14,6 +15,7 @@ type Fixture={opponent:string;venue:"H"|"B"};
 const SEASON="2026/27";
 const group=(p:Player)=>p.position==="D"?"D":p.position==="G"?"G":"F";
 const eventLabel=(t:EventType)=>t==="rich_uncle"?"Rik Onkel":"Fattig Onkel";
+const EventTitle=({children}:{children:React.ReactNode})=><span style={{display:"inline-flex",alignItems:"center",gap:9}}><SIIcon name="event" size={26}/>{children}</span>;
 
 function defaultLine1(ids:string[],players:Player[]){
  const chosen=ids.map(id=>players.find(p=>p.id===id)).filter(Boolean) as Player[];const out:string[]=[];
@@ -51,9 +53,9 @@ export default function EventTeamPage(){
  function switchLine(id:string){const p=players.find(x=>x.id===id);if(!p)return;const inL1=line1.includes(id);const candidate=chosen.find(x=>group(x)===group(p)&&line1.includes(x.id)!==inL1);if(!candidate)return setMsg("Ingen spiller i motsatt rekke med samme posisjonsgruppe");setLine1(inL1?[...line1.filter(x=>x!==id),candidate.id]:[...line1.filter(x=>x!==candidate.id),id]);}
  async function save(){if(!meta?.is_open||!activeType||!valid)return;setBusy(true);try{const s=getSupabaseBrowserClient();if(!s)throw new Error("Supabase er ikke tilgjengelig");const{error}=await s.rpc("save_fantasy_event_team_v1",{p_season:SEASON,p_event_type:activeType,p_name:name,p_player_ids:selected,p_line1_player_ids:line1,p_captain:captain,p_vice_captain:vice});if(error)throw error;setMsg(`${eventLabel(activeType)}-laget er lagret ✓`);await load()}catch(e:any){setMsg(`Lagring stoppet: ${e.message||e}`)}finally{setBusy(false)}}
 
- if(!meta)return <main className="event-shell"><div className="event-empty"><h1>Event Weeks</h1><p>{msg}</p><p>Det permanente fantasy-laget ditt påvirkes ikke.</p><p>Rik Onkel bruker 200m budsjett, mens Fattig Onkel bruker 70m.</p></div></main>;
- return <main className="event-shell"><section className="event-hero"><div><p className="fantasy-kicker">STANG INN · EVENT WEEK</p><h1>{eventLabel(meta.event_type)}</h1><p>Bygg et midlertidig lag for runde {meta.round_no}. Rik Onkel har 200m og Fattig Onkel har 70m. Det permanente 100m-laget ditt endres ikke.</p></div><span className="event-badge">{meta.is_open?"ÅPEN":"LÅST"}</span></section>
-  {Array.from(new Set(events.map(x=>x.event_type))).length>1&&<div className="event-tabs">{Array.from(new Set(events.map(x=>x.event_type))).map(t=><button key={t} className={activeType===t?"active":""} onClick={()=>{setActiveType(t);hydrate(t)}}>{eventLabel(t)}</button>)}</div>}
+ if(!meta)return <main className="event-shell"><div className="event-empty"><h1><EventTitle>Event Weeks</EventTitle></h1><p>{msg}</p><p>Det permanente fantasy-laget ditt påvirkes ikke.</p><p>Rik Onkel bruker 200m budsjett, mens Fattig Onkel bruker 70m.</p></div></main>;
+ return <main className="event-shell"><section className="event-hero"><div><p className="fantasy-kicker">STANG INN · EVENT WEEK</p><h1><EventTitle>{eventLabel(meta.event_type)}</EventTitle></h1><p>Bygg et midlertidig lag for runde {meta.round_no}. Rik Onkel har 200m og Fattig Onkel har 70m. Det permanente 100m-laget ditt endres ikke.</p></div><span className="event-badge">{meta.is_open?"ÅPEN":"LÅST"}</span></section>
+  {Array.from(new Set(events.map(x=>x.event_type))).length>1&&<div className="event-tabs">{Array.from(new Set(events.map(x=>x.event_type))).map(t=><button key={t} className={activeType===t?"active":""} onClick={()=>{setActiveType(t);hydrate(t)}}><span style={{display:"inline-flex",alignItems:"center",gap:6}}><SIIcon name="event" size={16}/>{eventLabel(t)}</span></button>)}</div>}
   <div className="event-warning"><strong>Viktig:</strong> Dette er et separat eventlag. Bytter her bruker ikke vanlige transfers og lagres ikke i ditt permanente fantasy-lag.</div>
   <section className="event-info"><article><span>Budsjett</span><strong>{budget.toFixed(0)}m</strong></article><article><span>Brukt</span><strong>{total.toFixed(1)}m</strong></article><article><span>Igjen</span><strong>{left.toFixed(1)}m</strong></article><article><span>Deadline</span><strong>{new Date(meta.deadline_at).toLocaleString("nb-NO",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</strong></article></section>
   <section className="event-grid"><div className="event-panel"><h2>Spillerpool</h2><div className="event-filters"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Søk spiller eller klubb"/><select value={pos} onChange={e=>setPos(e.target.value as any)}><option value="ALL">Alle</option><option value="F">Forwards</option><option value="D">Backer</option><option value="G">Keepere</option></select></div><div className="event-pool">{visible.map(p=><div key={p.id} className="event-pool-row"><strong>{group(p)}</strong><div className="event-player-meta"><b>{p.name}</b><small>{p.team} · {p.position}</small><small className="event-fixture">Runde {meta.round_no} · {fixture(p.team)}</small></div><span>{p.price.toFixed(1)}m</span><button disabled={!meta.is_open} onClick={()=>toggle(p)}>{selected.includes(p.id)?"Fjern":"Legg til"}</button></div>)}</div></div>
