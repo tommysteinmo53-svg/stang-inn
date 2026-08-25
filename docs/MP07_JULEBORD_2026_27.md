@@ -1,13 +1,14 @@
 # MP-07 – Julebord Event Week 2026/27
 
 Dato: 2026-08-23
-Status: BESLUTTET PRODUKTREGEL – implementasjon/verifikasjon gjenstår
+Sist produksjonsverifisert: 2026-08-25
+Status: **PRODUKSJONSVERIFISERT**
 
 ## Beslutning
 
-**Julebord legges til GW22 – torsdag 3. desember 2026.**
+**Julebord er GW22 – torsdag 3. desember 2026.**
 
-Julebord er en felles Event Week for alle Fantasy-brukere og skal være tydelig forskjellig fra Rik Onkel og Fattig Onkel.
+Julebord er den midterste av tre felles Event Weeks for Fantasy 2026/27 og er tydelig forskjellig fra Rik Onkel og Fattig Onkel.
 
 ## Regel
 
@@ -15,37 +16,34 @@ Julebord er en felles Event Week for alle Fantasy-brukere og skal være tydelig 
 
 I GW22 teller både rekke 1 og rekke 2 **100 %** av sine ordinære fantasy-poeng.
 
-- Ingen ekstra multiplikator legges på individuelle spillerhendelser utover gjeldende C/VC-regler.
+- Det ordinære permanentlaget brukes; Julebord oppretter ikke separat eventlag.
 - Kaptein beholder ordinær ×2.
-- Visekaptein beholder ordinær ×1,5 etter gjeldende regler.
-- Personlige boostere skal ikke kunne aktiveres i Julebord-runden; dette må håndheves og kommuniseres tydelig i UI/regler.
-- Ordinære lag-, klubb-, posisjons-, deadline- og snapshotregler gjelder med mindre annet eksplisitt dokumenteres.
-
-Produkttekst kan presenteres omtrent slik:
-
-> 🎄 JULEBORD – Alle skal med! Denne runden teller både rekke 1 og rekke 2 100 %. Sett sammen hele laget med omhu – ingen får sitte igjen hjemme mens førstelinja er på julebord.
-
-## Hvorfor GW22
-
-GW22 ligger i ønsket tidsrom tidlig i desember og gir en naturlig sesongmessig Event Week mellom Rik Onkel og Fattig Onkel. Endelig implementasjon skal verifisere GW22 mot den autoritative 45-runders produksjonskalenderen før eventtypen aktiveres.
+- Visekaptein beholder ordinær ×1,5.
+- Personlige boostere kan ikke kombineres med Julebord.
+- Permanente transfers er sperret mens GW22 er den aktive Event Week-runden.
+- Ordinære lag-, klubb-, posisjons- og deadline-regler gjelder.
+- Deadline er autoritativ `deadline_at` = første kampstart i GW22.
+- Snapshotet fryser `christmas_party` og rekke-2-multiplikator 1,00 slik at historisk scoring kan reproduseres.
 
 ## Sesongrytme
 
-- GW15: **Rik Onkel** – 200m eventlag.
-- GW22: **Julebord** – begge rekker teller 100 %.
-- GW38: **Fattig Onkel** – 70m eventlag.
+- GW15: **Rik Onkel** – separat 200m-eventlag.
+- GW22: **Julebord** – permanentlaget, begge rekker teller 100 %.
+- GW38: **Fattig Onkel** – separat 70m-eventlag.
 
-## Ferdigkriterier
+## Produksjonsverifikasjon
 
-Punktet kan først markeres ✅ når:
+MP-14.1 kontrollerte 2026-08-25 faktisk produksjonsdatabase og produksjonsfunksjoner:
 
-1. GW22 er verifisert mot autoritativ produksjonskalender.
-2. Julebord er konfigurert i produksjonsdata/event-systemet.
-3. Scoring håndterer 100 % poeng fra begge rekker uten å bryte ordinær C/VC-logikk.
-4. Personlige boostere er blokkert i GW22.
-5. Deadline og snapshot fryser korrekt Julebord-lag/regler.
-6. Fantasy-kalender, lagbygger og regler viser Julebord tydelig.
-7. Rundehistorikk/statistikk kan identifisere Julebord-runden korrekt.
-8. Regresjonstester dekker scoring, boosterkonflikt, snapshot og historikk.
+1. GW22 finnes i den autoritative 45-runders produksjonskalenderen.
+2. `fantasy_event_weeks` har publisert `christmas_party` koblet til GW22.
+3. Produksjonssnapshot bruker permanentlaget og setter `line2_multiplier_override = 1.00`.
+4. Autoritativ scoringmotor bruker snapshot-override, mens C ×2 og VC ×1,5 beholdes.
+5. Snapshot-gaten avviser personlige boostere i Julebord-runden.
+6. Permanent transfer-RPC sperrer transfers i Event Weeks.
+7. Brukersynlig regelbok viser GW22 og korrekt Julebord-regel.
+8. Event Week-regresjonsdekning finnes i MP-07/MP-12-testene.
 
-Dette arbeidet eies av Chat 07 / MP-07, med scoringverifikasjon i MP-06 og regresjon i MP-12 ved behov.
+## Konklusjon
+
+Ferdigkriteriene for MP-07.12 er oppfylt. Julebord er implementert og produksjonsverifisert. Videre endringer i regelen skal behandles som en eksplisitt produkt-/launch-endring og må re-verifiseres mot snapshots, scoring og Event Week-konflikter.
