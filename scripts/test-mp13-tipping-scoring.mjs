@@ -67,38 +67,38 @@ check("Awards bruker bare autoritativt lagrede tippingpoeng", () => {
 check("Månedsvinner kåres bare for avsluttet kalendermåned", () => {
   assert.match(awardsSource, /function monthIsClosed/);
   assert.match(awardsSource, /closedScoredMonths/);
-  assert.match(awardsSource, /title: "Månedsvinner"/);
+  assert.match(awardsSource, /title\s*:\s*"Månedsvinner"/);
   assert.match(awardsSource, /Kåres etter første avsluttede kalendermåned med scorede tips/);
 });
 check("Månedsvinner bruker samme poeng- og tie-break-rekkefølge som rundevinner", () => {
   const monthlyBlock = awardsSource.slice(awardsSource.indexOf("let monthlyWinner"), awardsSource.indexOf("const chooseMiss"));
-  assert.match(monthlyBlock, /b\.points - a\.points/);
-  assert.match(monthlyBlock, /b\.exact - a\.exact/);
-  assert.match(monthlyBlock, /b\.correct - a\.correct/);
-  assert.match(monthlyBlock, /localeCompare\(b\.p\.display_name, "no"\)/);
+  assert.match(monthlyBlock, /b\.points\s*-\s*a\.points/);
+  assert.match(monthlyBlock, /b\.exact\s*-\s*a\.exact/);
+  assert.match(monthlyBlock, /b\.correct\s*-\s*a\.correct/);
+  assert.match(monthlyBlock, /localeCompare\(b\.p\.display_name,\s*"no"\)/);
 });
 check("Eksperttittel krever 75 prosent deltakelse og rangerer på treffprosent", () => {
   const expertBlock = awardsSource.slice(awardsSource.indexOf("const expertMinTips"), awardsSource.indexOf("let streak"));
-  assert.match(expertBlock, /Math\.ceil\(finished\.length \* 0\.75\)/);
-  assert.match(expertBlock, /row\.tipped >= expertMinTips/);
-  assert.match(expertBlock, /\(row\.exact \+ row\.correct\) \/ row\.tipped/);
-  assert.match(expertBlock, /b\.hitRate - a\.hitRate/);
-  assert.match(expertBlock, /b\.exact - a\.exact/);
-  assert.match(expertBlock, /b\.points - a\.points/);
-  assert.match(expertBlock, /b\.correct - a\.correct/);
-  assert.match(expertBlock, /localeCompare\(b\.p\.display_name, "no"\)/);
-  assert.match(awardsSource, /title: "Eksperttittel"/);
-  assert.match(awardsSource, /minst 75 % deltakelse/);
+  assert.match(expertBlock, /Math\.ceil\(finished\.length\s*\*\s*0\.75\)/);
+  assert.match(expertBlock, /row\.tipped\s*>=\s*expertMinTips/);
+  assert.match(expertBlock, /\(row\.exact\s*\+\s*row\.correct\)\s*\/\s*row\.tipped/);
+  assert.match(expertBlock, /b\.hitRate\s*-\s*a\.hitRate/);
+  assert.match(expertBlock, /b\.exact\s*-\s*a\.exact/);
+  assert.match(expertBlock, /b\.points\s*-\s*a\.points/);
+  assert.match(expertBlock, /b\.correct\s*-\s*a\.correct/);
+  assert.match(expertBlock, /localeCompare\(b\.p\.display_name,\s*"no"\)/);
+  assert.match(awardsSource, /title\s*:\s*"Eksperttittel"/);
+  assert.match(awardsSource, /minst 75 %/);
 });
 check("Ukens bom bruker siste fullførte EHL-runde og deterministisk avvik", () => {
   assert.match(awardsSource, /const completedRounds/);
-  assert.match(awardsSource, /const latestRound = completedRounds\.at\(-1\)/);
+  assert.match(awardsSource, /const latestRound\s*=\s*completedRounds\.at\(-1\)/);
   assert.match(awardsSource, /const weeklyRoundIds/);
   assert.match(awardsSource, /const weeklyMiss/);
-  assert.match(awardsSource, /title: "Ukens bom"/);
-  assert.match(awardsSource, /b\.distance - a\.distance/);
+  assert.match(awardsSource, /title\s*:\s*"Ukens bom"/);
+  assert.match(awardsSource, /b\.distance\s*-\s*a\.distance/);
   assert.match(awardsSource, /a\.p\.display_name\.localeCompare/);
-  assert.match(awardsSource, /a\.match\.id - b\.match\.id/);
+  assert.match(awardsSource, /a\.match\.id\s*-\s*b\.match\.id/);
 });
 
 let failed = 0;
