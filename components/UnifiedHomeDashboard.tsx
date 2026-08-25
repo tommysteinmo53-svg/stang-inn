@@ -8,6 +8,7 @@ import HomeFantasyLineup from "./HomeFantasyLineup";
 import HomeTippingCoupon from "./HomeTippingCoupon";
 import HomeRoundHistory from "./HomeRoundHistory";
 import HomeActivityFeed from "./HomeActivityFeed";
+import "./HomeHero.css";
 
 const SEASON="2026/27";
 type Match={id:number;home_team:string;away_team:string;match_time:string|null;finished:boolean;home_score:number|null;away_score:number|null};
