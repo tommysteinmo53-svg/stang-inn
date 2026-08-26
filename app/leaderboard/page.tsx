@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase";
 
-type Player = { id: string; display_name: string };
+type Player = { id: string; display_name: string; deactivated_at: string | null };
 type Tip = { id: number; player_id: string; match_id: number; home_tip: number; away_tip: number; points: number | null };
 type Match = { id: number; finished: boolean; home_score: number | null; away_score: number | null; match_time: string | null };
 type Row = Player & { points: number; exact: number; correctOutcome: number; scoredTips: number; hitRate: number; streak: number; bestStreak: number };
@@ -36,7 +36,7 @@ export default function LeaderboardPage() {
     const supabase = getSupabaseBrowserClient(); if (!supabase) { setLoading(false); return; }
     const [{ data: sessionData }, p, t, m] = await Promise.all([
       supabase.auth.getSession(),
-      supabase.from("players").select("id,display_name").order("created_at"),
+      supabase.from("players").select("id,display_name,deactivated_at").is("deactivated_at", null).order("created_at"),
       supabase.from("tips").select("id,player_id,match_id,home_tip,away_tip,points"),
       supabase.from("matches").select("id,finished,home_score,away_score,match_time"),
     ]);
@@ -131,7 +131,7 @@ export default function LeaderboardPage() {
             <strong className="competitionPoints">{row.points}<small>p</small></strong>
           </a>;
         })}
-        {rows.length === 0 && <p className="leaderboardEmpty">Ingen spillere er registrert ennå.</p>}
+        {rows.length === 0 && <p className="leaderboardEmpty">Ingen aktive spillere er registrert ennå.</p>}
       </div>
     </section>
 
