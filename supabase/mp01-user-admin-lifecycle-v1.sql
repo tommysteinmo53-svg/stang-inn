@@ -1,6 +1,6 @@
 -- MP-01: safe user lifecycle administration.
--- Run manually in Supabase SQL editor before enabling deactivate/reactivate in production.
--- Preserves all competition/history rows; Auth blocking is handled server-side.
+-- Preserves all competition/history rows; Auth blocking is handled server-side
+-- and AuthGate also checks the public deactivation marker for still-valid JWTs.
 
 alter table public.players
   add column if not exists deactivated_at timestamptz;
@@ -24,6 +24,10 @@ alter table public.user_admin_audit enable row level security;
 
 revoke all on table public.user_admin_audit from public, anon, authenticated;
 revoke insert, update, delete, truncate, references, trigger on table public.players from anon, authenticated;
+
+-- A still-valid JWT must be able to see this single marker so AuthGate can
+-- fail closed immediately after an administrator disables the account.
+grant select (deactivated_at) on table public.players to authenticated;
 
 comment on column public.players.deactivated_at is
   'Administrative Stang Inn deactivation marker. Historical fantasy/tipping/league data is retained.';
