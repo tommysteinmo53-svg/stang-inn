@@ -7,6 +7,7 @@ type SessionProfile = {
   display_name: string;
   admin: boolean;
   profile_name_confirmed_at: string | null;
+  deactivated_at: string | null;
 } | null;
 
 const AUTH_TIMEOUT_MS = 8_000;
@@ -45,6 +46,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<SessionProfile>(null);
   const [routeKind, setRouteKind] = useState<"app" | "login" | "onboarding">("app");
   const [authError, setAuthError] = useState<string | null>(null);
+  const [accountDisabled, setAccountDisabled] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -80,7 +82,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         const { data: player } = await withTimeout(
           supabase
             .from("players")
-            .select("display_name,admin,profile_name_confirmed_at")
+            .select("display_name,admin,profile_name_confirmed_at,deactivated_at")
             .eq("id", user.id)
             .maybeSingle(),
           "Profilkontroll",
@@ -88,6 +90,14 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
 
         const loadedProfile = player ?? null;
+        if (loadedProfile?.deactivated_at) {
+          setProfile(null);
+          setAccountDisabled(true);
+          setReady(false);
+          await supabase.auth.signOut({ scope: "local" });
+          return;
+        }
+
         setProfile(loadedProfile);
         const complete = hasCompleteProfile(loadedProfile);
 
@@ -122,6 +132,20 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     const supabase = getSupabaseBrowserClient();
     await supabase?.auth.signOut();
     window.location.replace("/login");
+  }
+
+  if (accountDisabled) {
+    return (
+      <main style={{ padding: 32, color: "#f4f8ff", maxWidth: 640, margin: "0 auto" }}>
+        <h1 style={{ fontSize: 24, marginBottom: 12 }}>Kontoen er deaktivert</h1>
+        <p style={{ color: "#b9c8dc", lineHeight: 1.6 }}>
+          Denne Stang Inn-kontoen er deaktivert av administrator. Konkurransehistorikken din er bevart, men kontoen kan ikke brukes før den blir gjenåpnet.
+        </p>
+        <a href="/login" style={{ display: "inline-block", marginTop: 18, borderRadius: 10, padding: "10px 14px", background: "#1d3658", color: "#f4f8ff", textDecoration: "none", fontWeight: 800 }}>
+          Til innlogging
+        </a>
+      </main>
+    );
   }
 
   if (authError) {
