@@ -21,6 +21,34 @@ async function getAdmin(request: NextRequest) {
   return{adminClient,currentUserId:userData.user.id};
 }
 
+export async function GET(request:NextRequest){
+ const context=await getAdmin(request);if("error" in context)return context.error;
+ const{adminClient}=context;
+ const[{data:profiles,error:profileError},{data:authData,error:authError}]=await Promise.all([
+  adminClient.from("players").select("id,display_name,email,admin,created_at,profile_name_confirmed_at").order("created_at",{ascending:true}),
+  adminClient.auth.admin.listUsers({page:1,perPage:1000})
+ ]);
+ if(profileError)return NextResponse.json({ok:false,error:"Kunne ikke hente profiler."},{status:500});
+ if(authError)return NextResponse.json({ok:false,error:"Kunne ikke hente Auth-brukere."},{status:500});
+ const authById=new Map((authData.users||[]).map(user=>[user.id,user]));
+ const users=(profiles||[]).map(profile=>{
+  const authUser=authById.get(profile.id);
+  const providers=Array.from(new Set((authUser?.identities||[]).map(identity=>identity.provider).filter(Boolean)));
+  return{
+   id:profile.id,
+   display_name:profile.display_name||"",
+   email:authUser?.email||profile.email||null,
+   admin:Boolean(profile.admin),
+   created_at:profile.created_at||authUser?.created_at||null,
+   last_sign_in_at:authUser?.last_sign_in_at||null,
+   email_confirmed_at:authUser?.email_confirmed_at||null,
+   providers,
+   profile_complete:Boolean(profile.display_name?.trim()&&profile.profile_name_confirmed_at),
+  };
+ });
+ return NextResponse.json({ok:true,users});
+}
+
 export async function PATCH(request:NextRequest){
  const context=await getAdmin(request);if("error" in context)return context.error;
  const body=await request.json().catch(()=>null);const id=typeof body?.id==="string"?body.id:"";const displayName=typeof body?.display_name==="string"?body.display_name.trim():"";const email=typeof body?.email==="string"?body.email.trim().toLowerCase():"";const admin=Boolean(body?.admin);
