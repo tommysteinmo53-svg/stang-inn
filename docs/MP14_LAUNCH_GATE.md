@@ -13,7 +13,7 @@ Sporbart kontrollregister for MP-14.1–MP-14.7. GitHub `main` og faktisk produk
 | MP-14.3 | Alle 45 gameweeks og deadlines | **PASS** | 45/45 runder, 225/225 kamper, unike koblinger, deadlines, Event Weeks og isolert E2E verifisert 2026-08-25 | Ingen |
 | MP-14.4 | Scoring, snapshots og leaderboard | **PASS** | Produksjons-E2E for snapshot/scoring/transfers/DGW/Event Weeks/rundehistorikk/leaderboard + grønn CI og Vercel verifisert 2026-08-25 | Ingen preseason-blocker; MP-06.6 live kampdatavalidering gjenstår når representative seriekamper finnes |
 | MP-14.5 | Produksjonsmiljø | **PASS** | Vercel-status, Supabase health, aktiv 5-min synk, env-/secret-kontrakt, retry/fail-closed, RLS/auth, grønn CI/build og 0 syntetiske rester verifisert 2026-08-25 | Ingen |
-| MP-14.6 | Mobil/desktop smoke-test | **BLOCKED** | MP-11.8 er dokumentert produksjonsverifisert; ny launch-smoke ble forsøkt, men kontrollmiljøet blokkerer produksjonsbrowseren | Reell visuell desktop+mobil-smoke mot faktisk produksjon må fortsatt dokumenteres |
+| MP-14.6 | Mobil/desktop smoke-test | **PASS** | Faktisk produksjon gjennomgått manuelt av produkteier på desktop og mobil 2026-08-26. Ett mobilavvik i Mitt lag/Spillermarked ble rettet på `main`, deployet med grønn CI/Vercel og visuelt re-verifisert. Øvrige hovedflater godkjent på mobil. | Ingen |
 | MP-14.7 | Backup, rollback og adminrutiner | **PASS** | Supabase Pro backup-forutsetning, Vercel rollback, database-repair/restore-prinsipp, adminverktøy og eksplisitt incident recovery-runbook verifisert 2026-08-26 | Ingen |
 
 ## MP-14.1 – Endelig Fantasy-regelverk
@@ -38,7 +38,7 @@ Sporbart kontrollregister for MP-14.1–MP-14.7. GitHub `main` og faktisk produk
 
 ## MP-14.6 – Mobil/desktop smoke-test
 
-**BLOCKED.** Punktet krever en ny faktisk visuell sluttkontroll av produksjonsproduktet på både desktop og mobil etter MP-11.8. Ingen produktfeil er påvist, men tilgjengelig kontrollmiljø blokkerer produksjons-URL-en i browseren. Punktet skal først settes til PASS etter ekte mobil- og desktop-smoke av landing/navigation, onboarding, Fantasy lagbygger, transfers, leaderboard/runder/historikk, miniligaer, Tipping, Event Weeks, brukersynlige analyseflater, branding og relevante loading/error/empty states.
+**PASS.** Faktisk produksjonsprodukt ble gjennomgått manuelt av produkteier 2026-08-26 på desktop og mobil. Desktop-smoken av landing/navigation, Fantasy, transfers, leaderboard/runder/historikk, miniligaer, Tipping, Event Weeks og analyseflater ble godkjent. På mobil ble det funnet ett konkret launch-avvik i `Mitt lag → Spillermarked`: lange spillernavn ble avkortet slik at spilleren ikke kunne identifiseres tydelig. Avviket ble rettet på `main` i commit `dd325d4` ved å gi spillernavnet lesbar mobilplass og flerl linje-layout uten å endre desktop. GitHub Actions og Vercel er grønne på fixen, og produkteier re-verifiserte visuelt at løsningen ser riktig ut. Deretter ble øvrige mobile hovedflater gjennomgått og godkjent uten nye launch-blockere.
 
 ## MP-14.7 – Backup, rollback og adminrutiner
 
@@ -59,13 +59,13 @@ Sporbart kontrollregister for MP-14.1–MP-14.7. GitHub `main` og faktisk produk
 
 ### MP-14.7 konklusjon
 
-**PASS.** Det finnes nå en forsvarlig og eksplisitt operativ plan for backup, kode-/deploy-rollback, database-repair/restore, synkfeil, scoringfeil, snapshotfeil, Event Week-feil og admininngrep. Planen prioriterer dataintegritet, sporbare migrations/repairs og eksisterende autoritative admin-/scoring-/snapshotgater fremfor ad-hoc produksjonsendringer.
+**PASS.** Det finnes en forsvarlig og eksplisitt operativ plan for backup, kode-/deploy-rollback, database-repair/restore, synkfeil, scoringfeil, snapshotfeil, Event Week-feil og admininngrep. Planen prioriterer dataintegritet, sporbare migrations/repairs og eksisterende autoritative admin-/scoring-/snapshotgater fremfor ad-hoc produksjonsendringer.
 
 ## Samlet status før GO LIVE
 
-MP-14.1–14.5 og MP-14.7 er **PASS**. MP-14.6 er fortsatt **BLOCKED** fordi den påkrevde nye faktiske visuelle produksjonssmoken på mobil og desktop ikke kan utføres fra tilgjengelig kontrollmiljø.
+MP-14.1–MP-14.7 er **PASS**. Ingen preseason launch-blockere er åpne. MP-06.6 live kampdatavalidering står eksplisitt igjen som sesongavhengig oppfølging når representative 2026/27-seriekamper finnes.
 
-Samlet launch-status er derfor foreløpig **🔴 NOT READY** utelukkende på grunn av MP-14.6.
+Samlet launch-status er **🟢 READY FOR GO LIVE**.
 
 ## GO LIVE
 
