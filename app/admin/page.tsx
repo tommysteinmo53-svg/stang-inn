@@ -23,9 +23,14 @@ export default function AdminHubPage(){
   return <main className="appShell">
     <header className="topbar"><div className="brand"><div className="brandMark">🛠️</div><div><p className="eyebrow">ADMIN ONLY</p><h1>Stang Inn · Admin</h1></div></div><a href="/" className="textButton">Til appen →</a></header>
     <section className="pageStack" style={{marginTop:24}}>
-      <article className="heroCard"><div><p className="eyebrow">Kommandosenter</p><h2>Alt adminarbeid samlet på ett sted</h2><p className="muted">Fantasyhockey og Hockeytipset er skilt i hver sin del, mens felles innlogging og administratorrolle beholdes.</p></div><span className="statusPill">✓ {message}</span></article>
+      <article className="heroCard"><div><p className="eyebrow">Kommandosenter</p><h2>Alt adminarbeid samlet på ett sted</h2><p className="muted">Fantasyhockey og Hockeytipset er skilt i hver sin del, mens brukere, innlogging og administratorrolle er felles.</p></div><span className="statusPill">✓ {message}</span></article>
 
       <div className="statsGrid" style={{alignItems:"stretch"}}>
+        <a href="/admin/users" className="panel" style={{display:"block",textDecoration:"none",color:"inherit",minHeight:220}}>
+          <p className="eyebrow">👤 FELLES</p><h2>Brukere</h2>
+          <p className="muted">Sikker oversikt over registrerte profiler, Auth-status, innloggingsmetode og administratorrolle.</p>
+          <div style={{marginTop:18,fontWeight:900}}>Åpne brukeradministrasjon →</div>
+        </a>
         <a href="/admin/fantasy" className="panel" style={{display:"block",textDecoration:"none",color:"inherit",minHeight:220}}>
           <p className="eyebrow">🏒 FANTASYHOCKEY</p><h2>Fantasy-admin</h2>
           <p className="muted">Nye EHL-spillere, prisgodkjenning, roster/synk, runder, diagnose og private analyseverktøy.</p>
@@ -38,12 +43,12 @@ export default function AdminHubPage(){
         </a>
         <a href="/admin/hockeytips" className="panel" style={{display:"block",textDecoration:"none",color:"inherit",minHeight:220}}>
           <p className="eyebrow">🎯 HOCKEYTIPSET</p><h2>Hockeytips-admin</h2>
-          <p className="muted">Terminliste/resultater, HockeyLive-synk, manuell kampkorrigering, brukere og synkhistorikk.</p>
+          <p className="muted">Terminliste/resultater, HockeyLive-synk, manuell kampkorrigering og synkhistorikk.</p>
           <div style={{marginTop:18,fontWeight:900}}>Åpne Hockeytips-admin →</div>
         </a>
       </div>
 
-      <article className="panel"><div className="panelHeading"><div><p className="eyebrow">Felles prinsipp</p><h3>Én adminrolle · to spill</h3></div><span className="statusPill">Admin only</span></div><p className="muted">Begge delene bruker den samme Supabase-innloggingen og eksisterende <code>players.admin</code>-rolle. Dette endrer ikke vanlig Hockeytips ↔ Fantasy-bryter for spillerne.</p></article>
+      <article className="panel"><div className="panelHeading"><div><p className="eyebrow">Felles prinsipp</p><h3>Én adminrolle · to spill</h3></div><span className="statusPill">Admin only</span></div><p className="muted">Begge delene bruker den samme Supabase-innloggingen og eksisterende <code>players.admin</code>-rolle. Brukeroversikten henter sensitive Auth-data server-side uten å åpne RLS for vanlige spillere.</p></article>
     </section>
   </main>;
 }
