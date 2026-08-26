@@ -2,7 +2,7 @@
 
 > Prosjektets operative kontrollsenter. GitHub `main` er teknisk source of truth. Denne filen gir oversikt, prioritering og sporbarhet.
 
-Sist oppdatert: 2026-08-25
+Sist oppdatert: 2026-08-26
 
 ## Arbeidsregler
 
@@ -41,7 +41,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 - MP-01.3 ✅ RLS/RPC-/rollegrenser er produksjonskontrollert og ytterligere hardnet i MP-01.6; sikkerhetsregresjon fortsetter løpende ved nye funksjoner.
 - MP-01.4 ✅ Vercel/produksjonsoppsett etablert.
 - MP-01.5 ✅ GitHub Actions build-CI inkluderer MP-01 produksjonsdrift, MP-12 scoring/security/test-isolation, MP-13 scoring/readiness/felles miniligaer, MP-04 transfer, Bonus Weeks, MP-07 historikk/stats/identitet/Event Weeks og MP-10 optimizer før build.
-- MP-01.6 ✅ **Samlet produksjons-/driftschecklist før sesongstart:** Vercel/CI, Supabase-produksjon, auth/onboarding, RLS/RPC-grenser, migrations/schema, cron/EHL-HockeyLive-synk, fail-closed feil/retry, Fantasy/Tipping-produksjonsdata, testisolasjon, adminrutiner, observability og rollback er kontrollert mot produksjonen. HockeyLive har intern timeout og delvise synkfeil gir `ok=false`/HTTP 500 slik at cron kan retry-e. Service-only flater er hardnet uten å svekke auth/RLS. Supabase-organisasjonen `Hockeytips` er verifisert på **Pro** 2026-08-25, slik at managed-backup-forutsetningen er etablert. Operativ runbook ligger i `docs/MP01_PRODUCTION_RUNBOOK.md`. Handoff: **Chat 14 – MP-14.1–14.7 endelig launch-gate**.
+- MP-01.6 ✅ **Samlet produksjons-/driftschecklist før sesongstart:** Vercel/CI, Supabase-produksjon, auth/onboarding, RLS/RPC-grenser, migrations/schema, cron/EHL-HockeyLive-synk, fail-closed feil/retry, Fantasy/Tipping-produksjonsdata, testisolasjon, adminrutiner, observability og rollback er kontrollert mot produksjonen. HockeyLive har intern timeout og delvise synkfeil gir `ok=false`/HTTP 500 slik at cron kan retry-e. Service-only flater er hardnet uten å svekke auth/RLS. Supabase-organisasjonen `Hockeytips` er verifisert på **Pro** 2026-08-25, slik at managed-backup-forutsetningen er etablert. Operativ runbook ligger i `docs/MP01_PRODUCTION_RUNBOOK.md`.
 - MP-01.7 ✅ **Obligatorisk brukerprofilnavn:** eksplisitt Stang Inn-profilnavn med onboarding/completion-state, servervalidering og hardened tilgang er implementert og produksjonsverifisert 2026-08-24.
 
 # MP-02 – EHL-data, terminliste og spilleridentitet
@@ -141,27 +141,26 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 # MP-14 – Lansering EHL 2026/27
 
-**Status: ⬜ endelig launch-gate gjenstår**
+**Status: ✅ GO LIVE gjennomført 2026-08-26 / 🔵 sesongdrift**
 
-- MP-14.1 ⬜ Lås og publiser endelig fantasyregelverk.
-- MP-14.2 ⬜ Verifiser spillerpool, lag, posisjoner og priser.
-- MP-14.3 ⬜ Verifiser alle 45 runder/deadlines mot terminlisten.
-- MP-14.4 ⬜ Full scoring-/snapshot-/leaderboard-regresjon.
-- MP-14.5 ⬜ Verifiser produksjonsmiljø, cron/synk og secrets.
-- MP-14.6 ⬜ Mobil/desktop smoke test inkludert endelig branding/redesign.
-- MP-14.7 ⬜ Backup/rollback/admin-rutiner.
-- MP-14.8 ⬜ GO LIVE.
+- MP-14.1 ✅ Endelig Fantasy-regelverk verifisert mot produksjonskode, database og publiserte regler.
+- MP-14.2 ✅ Spillerpool, lag, posisjoner, kjøpbarhet og låste priser verifisert i produksjon.
+- MP-14.3 ✅ Alle 45 runder, 225 kampkoblinger, deadlines og Event Weeks verifisert.
+- MP-14.4 ✅ Preseason launch-regresjon for scoring, snapshots, transfers, rundehistorikk og leaderboard bestått. MP-06.6 står fortsatt åpen for live kampdatavalidering.
+- MP-14.5 ✅ Produksjonsmiljø, Supabase, Vercel, CI, cron/synk, auth/RLS og testisolasjon verifisert.
+- MP-14.6 ✅ Faktisk mobil/desktop smoke-test gjennomført; funnet mobilavvik i spillermarkedet ble rettet, deployet og re-verifisert.
+- MP-14.7 ✅ Backup, rollback og admin-/incidentrutiner verifisert og dokumentert.
+- MP-14.8 ✅ **GO LIVE godkjent av produkteier og gjennomført kontrollert 2026-08-26.** Siste godkjente `main` var grønn i GitHub Actions/Vercel, Supabase var `ACTIVE_HEALTHY`, 45/45 runder og 225/225 kampkoblinger var intakte, current roster var 239/239 korrekt priset/kjøpbar med 0 prisavvik, tre Event Weeks var publisert, og ferske HockeyLive-synker var `ok=true`. Ingen unødvendig redeploy eller featureendring ble gjort som del av launch.
 
 ---
 
 ## Prioritert arbeidskø
 
-Dette er den operative standardrekkefølgen. Køen skal vurderes på nytt når et steg er ferdig eller når nye avhengigheter oppstår.
+Stang Inn er nå i sesongbasert driftsfase.
 
-1. **Chat 14 – MP-14.1–14.7: endelig launch-gate.** Bruk `docs/MP01_PRODUCTION_RUNBOOK.md` og siste produksjonsstatus til en eksplisitt PASS/FAIL-kontroll av regler, spillerpool/priser, 45 runder/deadlines, scoring/snapshots/leaderboard, produksjonsmiljø/secrets/cron, mobil/desktop smoke og backup/rollback/adminrutiner.
-2. **Chat 14 – MP-14.8: GO LIVE** når alle kritiske gates i MP-14.1–14.7 er PASS.
-
-**Sesongavhengig:** MP-06.6 gjennomføres i Chat 06 når representative 2026/27-seriekamper finnes. MP-02.6 og MP-09 fortsetter løpende. MP-13 live-verifiseres på reelle sesongdata.
+1. **🔵 Løpende sesongdrift:** MP-02.6 roster-/kampdatasynk, MP-09 availability, MP-13 live-verifisering, cron/sync/CI og produksjonsobservability følges gjennom sesongen.
+2. **MP-06.6 – live kampdatavalidering:** gjennomføres i Chat 06 når representative ekte 2026/27-seriekamper finnes. Punktet skal stå åpent til da.
+3. Ved incident brukes `docs/MP01_PRODUCTION_RUNBOOK.md`; dataintegritet og snapshot-/scoringfasit prioriteres foran ad-hoc korrigering.
 
 ## Fast handoff mellom arbeidschatter
 
