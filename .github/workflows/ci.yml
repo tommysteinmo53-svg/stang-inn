@@ -47,6 +47,8 @@ jobs:
         run: npm run test:mp07:event-weeks
       - name: MP-10 optimizer regression
         run: npm run test:mp10:optimizer
+      - name: MP-14 purchase consistency regression
+        run: npm run test:mp14:purchases
       - name: Build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
