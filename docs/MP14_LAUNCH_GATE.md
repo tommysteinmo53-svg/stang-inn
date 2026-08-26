@@ -2,7 +2,7 @@
 
 Sist oppdatert: 2026-08-26
 
-Sporbart kontrollregister for MP-14.1–MP-14.7. GitHub `main` og faktisk produksjonsstatus er source of truth. Statusverdier: **PASS / FAIL / BLOCKED / N/A**.
+Sporbart kontrollregister for MP-14.1–MP-14.8. GitHub `main` og faktisk produksjonsstatus er source of truth. Statusverdier: **PASS / FAIL / BLOCKED / N/A**.
 
 ## Samlet gate
 
@@ -15,6 +15,7 @@ Sporbart kontrollregister for MP-14.1–MP-14.7. GitHub `main` og faktisk produk
 | MP-14.5 | Produksjonsmiljø | **PASS** | Vercel-status, Supabase health, aktiv 5-min synk, env-/secret-kontrakt, retry/fail-closed, RLS/auth, grønn CI/build og 0 syntetiske rester verifisert 2026-08-25 | Ingen |
 | MP-14.6 | Mobil/desktop smoke-test | **PASS** | Faktisk produksjon gjennomgått manuelt av produkteier på desktop og mobil 2026-08-26. Ett mobilavvik i Mitt lag/Spillermarked ble rettet på `main`, deployet med grønn CI/Vercel og visuelt re-verifisert. Øvrige hovedflater godkjent på mobil. | Ingen |
 | MP-14.7 | Backup, rollback og adminrutiner | **PASS** | Supabase Pro backup-forutsetning, Vercel rollback, database-repair/restore-prinsipp, adminverktøy og eksplisitt incident recovery-runbook verifisert 2026-08-26 | Ingen |
+| MP-14.8 | GO LIVE | **PASS** | Eksplisitt produkteiergodkjenning 2026-08-26. Pre-flight mot siste godkjente `main`, produksjonsdata, Supabase og synk var grønn. Produksjonsaliaset kjørte allerede godkjent `main`; ingen feature-flag eller unødvendig funksjonsendring var nødvendig. | Ingen |
 
 ## MP-14.1 – Endelig Fantasy-regelverk
 
@@ -26,7 +27,7 @@ Sporbart kontrollregister for MP-14.1–MP-14.7. GitHub `main` og faktisk produk
 
 ## MP-14.3 – Alle 45 gameweeks og deadlines
 
-**PASS.** Produksjonen har 45/45 Fantasy-runder og 225/225 autoritative kamper. Ingen manglende eller dupliserte kampkoblinger. Deadline er første kampstart i alle runder. GW15, GW22 og GW38 er korrekt koblet. Flyttede kamper kan rekalkulere kalender før snapshots; historiske snapshots beskytter mot feilaktig deadline-flytting.
+**PASS.** Produksjonen har 45/45 Fantasy-runder og 225/225 autoritative kampkoblinger. Ingen manglende eller dupliserte kampkoblinger. Deadline er første kampstart i alle runder. GW15, GW22 og GW38 er korrekt koblet. Flyttede kamper kan rekalkulere kalender før snapshots; historiske snapshots beskytter mot feilaktig deadline-flytting.
 
 ## MP-14.4 – Scoring, snapshots og leaderboard
 
@@ -38,7 +39,7 @@ Sporbart kontrollregister for MP-14.1–MP-14.7. GitHub `main` og faktisk produk
 
 ## MP-14.6 – Mobil/desktop smoke-test
 
-**PASS.** Faktisk produksjonsprodukt ble gjennomgått manuelt av produkteier 2026-08-26 på desktop og mobil. Desktop-smoken av landing/navigation, Fantasy, transfers, leaderboard/runder/historikk, miniligaer, Tipping, Event Weeks og analyseflater ble godkjent. På mobil ble det funnet ett konkret launch-avvik i `Mitt lag → Spillermarked`: lange spillernavn ble avkortet slik at spilleren ikke kunne identifiseres tydelig. Avviket ble rettet på `main` i commit `dd325d4` ved å gi spillernavnet lesbar mobilplass og flerl linje-layout uten å endre desktop. GitHub Actions og Vercel er grønne på fixen, og produkteier re-verifiserte visuelt at løsningen ser riktig ut. Deretter ble øvrige mobile hovedflater gjennomgått og godkjent uten nye launch-blockere.
+**PASS.** Faktisk produksjonsprodukt ble gjennomgått manuelt av produkteier 2026-08-26 på desktop og mobil. Desktop-smoken av landing/navigation, Fantasy, transfers, leaderboard/runder/historikk, miniligaer, Tipping, Event Weeks og analyseflater ble godkjent. På mobil ble det funnet ett konkret launch-avvik i `Mitt lag → Spillermarked`: lange spillernavn ble avkortet slik at spilleren ikke kunne identifiseres tydelig. Avviket ble rettet på `main` i commit `dd325d4`, GitHub Actions og Vercel ble grønne, og løsningen ble visuelt re-verifisert. Deretter ble øvrige mobile hovedflater gjennomgått og godkjent uten nye launch-blockere.
 
 ## MP-14.7 – Backup, rollback og adminrutiner
 
@@ -47,7 +48,7 @@ Sporbart kontrollregister for MP-14.1–MP-14.7. GitHub `main` og faktisk produk
 | Kontroll | Resultat | Bevis/verifikasjon | Blocker |
 | --- | --- | --- | --- |
 | Supabase backup | PASS | Produksjonsorganisasjonen er Pro. Supabase Pro har managed daglige databasebackups med standard syv dagers retensjon. Restore er dokumentert som kontrollert nedetidsoperasjon. | Ingen |
-| PITR | N/A | Ikke et preseason launch-krav. Kan aktiveres senere dersom lavere RPO enn daglig backup blir nødvendig. | Ingen |
+| PITR | N/A | Ikke et launch-krav. Kan aktiveres senere dersom lavere RPO enn daglig backup blir nødvendig. | Ingen |
 | Kode/deploy rollback | PASS | Runbook bruker siste kjente grønne Vercel-deploy eller kontrollert Git-revert; force-push skal ikke brukes. Vercel bevarer immutable deployments og støtter rollback/promote. | Ingen |
 | Databaseendringer | PASS | Fremoverrettet migrasjon er standard repair. Full restore brukes kun ved reelt datatap/korrupsjon; koderollback antas aldri å rulle DB tilbake. | Ingen |
 | Roster-/kampdatasynkfeil | PASS | Fail-closed sync, `sync_runs`/GitHub/Supabase-logger, roster-audit/preflight og idempotent re-sync er eksplisitt recovery-rutine. | Ingen |
@@ -57,16 +58,34 @@ Sporbart kontrollregister for MP-14.1–MP-14.7. GitHub `main` og faktisk produk
 | Admininngrep | PASS | Fantasy-admin tilbyr roster-audit, player queue/priser, rundeverktøy, roster/HockeyLive-diagnostikk, scoring-backtest og sesongvalidering. Adminrutene er auth/admin-gatet. | Ingen |
 | Kritisk feil etter launch | PASS | Runbook har eksplisitt incident-sekvens: klassifiser → stopp propagasjon → rollback kode eller repair/restore data → behold auth/RLS → verifiser end-to-end før normal drift. | Ingen |
 
-### MP-14.7 konklusjon
+## MP-14.8 – GO LIVE
 
-**PASS.** Det finnes en forsvarlig og eksplisitt operativ plan for backup, kode-/deploy-rollback, database-repair/restore, synkfeil, scoringfeil, snapshotfeil, Event Week-feil og admininngrep. Planen prioriterer dataintegritet, sporbare migrations/repairs og eksisterende autoritative admin-/scoring-/snapshotgater fremfor ad-hoc produksjonsendringer.
+**PASS – gjennomført 2026-08-26 etter eksplisitt godkjenning fra produkteier.**
 
-## Samlet status før GO LIVE
+Kontrollert GO LIVE-sekvens:
 
-MP-14.1–MP-14.7 er **PASS**. Ingen preseason launch-blockere er åpne. MP-06.6 live kampdatavalidering står eksplisitt igjen som sesongavhengig oppfølging når representative 2026/27-seriekamper finnes.
+1. Siste `main` før launch ble kontrollert. Launch-registeret viste MP-14.1–MP-14.7 = PASS, og det fantes ingen nyere commit som introduserte en blocker.
+2. GitHub Build for siste godkjente launch-commit var `success`, og Vercel-status var `success`.
+3. Supabase-produksjonsprosjektet var `ACTIVE_HEALTHY`.
+4. Produksjonsintegritet ble kontrollert: 45 Fantasy-runder, 225 kampkoblinger, 239 current-roster-spillere; 239/239 hadde 2026/27-pris, external ID og var kjøpbare, med 0 current-roster prisavvik. Tre Event Weeks var publisert. 0 snapshots og 0 lagpoeng fantes før sesongstart.
+5. Fersk HockeyLive-synk ble kontrollert. De siste fem observerte kjøringene var `ok=true`, uten `error_message`, og importerte 225 kamper per kjøring.
+6. Produksjonsaliaset var allerede deployet fra den godkjente `main`-kjeden. Repoet inneholder ingen separat launch-/maintenance-featureflag som måtte åpnes. Det ble derfor ikke gjort en unødvendig redeploy eller funksjonsendring for å «slå på» produktet.
+7. `docs/MASTERPLAN.md`, `docs/PROJECT_STATUS.md` og dette launch-registeret ble oppdatert til faktisk GO LIVE-status.
 
-Samlet launch-status er **🟢 READY FOR GO LIVE**.
+### GO LIVE-konklusjon
 
-## GO LIVE
+**🟢 LIVE – Stang Inn EHL 2026/27 er overlevert til sesongbasert drift.**
 
-MP-14.8 skal **ikke** gjennomføres automatisk. Selv når MP-14.1–MP-14.7 er PASS, kreves eksplisitt godkjenning fra produkteier før GO LIVE.
+MP-06.6 er fortsatt **åpen**. Full live-produksjonsvalidering av kampdata/scoring skal gjennomføres når representative ekte 2026/27-seriekamper finnes.
+
+## Handoff – sesongdrift
+
+Følg spesielt:
+
+- HockeyLive `sync_runs`, GitHub EHL auto sync og feil/retry.
+- Rosterendringer og identitets-/posisjonsavvik gjennom MP-02.6.
+- Availability/skader gjennom MP-09.
+- Første deadlines/snapshots og første runde med faktisk Fantasy-scoring.
+- Tipping live-scoring og awards/statistikk gjennom MP-13.
+- MP-06.6 når representative seriekamper finnes.
+- Ved incident: bruk `docs/MP01_PRODUCTION_RUNBOOK.md`; ikke svekk auth/RLS eller håndrediger leaderboard/snapshotfasit som første tiltak.
