@@ -1,6 +1,6 @@
 # MP-14 – Endelig launch-gate EHL 2026/27
 
-Sist oppdatert: 2026-08-25
+Sist oppdatert: 2026-08-26
 
 Sporbart kontrollregister for MP-14.1–MP-14.7. GitHub `main` og faktisk produksjonsstatus er source of truth. Statusverdier: **PASS / FAIL / BLOCKED / N/A**.
 
@@ -13,8 +13,8 @@ Sporbart kontrollregister for MP-14.1–MP-14.7. GitHub `main` og faktisk produk
 | MP-14.3 | Alle 45 gameweeks og deadlines | **PASS** | 45/45 runder, 225/225 kamper, unike koblinger, deadlines, Event Weeks og isolert E2E verifisert 2026-08-25 | Ingen |
 | MP-14.4 | Scoring, snapshots og leaderboard | **PASS** | Produksjons-E2E for snapshot/scoring/transfers/DGW/Event Weeks/rundehistorikk/leaderboard + grønn CI og Vercel verifisert 2026-08-25 | Ingen preseason-blocker; MP-06.6 live kampdatavalidering gjenstår når representative seriekamper finnes |
 | MP-14.5 | Produksjonsmiljø | **PASS** | Vercel-status, Supabase health, aktiv 5-min synk, env-/secret-kontrakt, retry/fail-closed, RLS/auth, grønn CI/build og 0 syntetiske rester verifisert 2026-08-25 | Ingen |
-| MP-14.6 | Mobil/desktop smoke-test | **BLOCKED** | MP-11.8 er dokumentert produksjonsverifisert på dagens `main`; CI/Vercel er grønne. Ny launch-smoke ble forsøkt 2026-08-25, men kontrollmiljøet blokkerer produksjons-URL i Chromium (`ERR_BLOCKED_BY_ADMINISTRATOR`), direkte web-åpning feilet og Vercel runtime-lesing returnerte 403. | Reell visuell desktop+mobil-smoke mot faktisk produksjon kan ikke gjennomføres fra tilgjengelig kontrollmiljø. Skal ikke markeres PASS uten ny faktisk browser-verifikasjon. |
-| MP-14.7 | Backup, rollback og adminrutiner | BLOCKED | Ikke sluttverifisert i MP-14 ennå | Må gjennomføres |
+| MP-14.6 | Mobil/desktop smoke-test | **BLOCKED** | MP-11.8 er dokumentert produksjonsverifisert; ny launch-smoke ble forsøkt, men kontrollmiljøet blokkerer produksjonsbrowseren | Reell visuell desktop+mobil-smoke mot faktisk produksjon må fortsatt dokumenteres |
+| MP-14.7 | Backup, rollback og adminrutiner | **PASS** | Supabase Pro backup-forutsetning, Vercel rollback, database-repair/restore-prinsipp, adminverktøy og eksplisitt incident recovery-runbook verifisert 2026-08-26 | Ingen |
 
 ## MP-14.1 – Endelig Fantasy-regelverk
 
@@ -34,23 +34,38 @@ Sporbart kontrollregister for MP-14.1–MP-14.7. GitHub `main` og faktisk produk
 
 ## MP-14.5 – Produksjonsmiljø
 
-**PASS.** Supabase er `ACTIVE_HEALTHY`. Siste 24 timer ved kontroll: 307/307 HockeyLive-sync-runs med `ok=true`, 0 feil og 0 `error_message`; ordinære synker importerer 225 kamper. GitHub cron kjører hvert 5. minutt og bruker retry/timeout. `/api/sync-ehl` er fail-closed. Sensitive kontrollerte RPC-er har ikke anon-EXECUTE og bruker auth/admin/service-gater der nødvendig. GitHub Actions og Vercel er grønne, og 0 syntetiske testrester finnes i produksjon. Secret-verdier er ikke eksponert.
+**PASS.** Supabase er `ACTIVE_HEALTHY`. Ved kontroll var HockeyLive-synken stabil uten feil, GitHub cron kjører hvert 5. minutt med retry/timeout, `/api/sync-ehl` er fail-closed, sensitive kontrollerte RPC-er er auth/admin/service-gatet, GitHub Actions/Vercel er grønne og ingen syntetiske testrester ligger i produksjon.
 
 ## MP-14.6 – Mobil/desktop smoke-test
 
-**BLOCKED.** Dette punktet krever en ny faktisk visuell sluttkontroll av produksjonsproduktet på både desktop og mobil etter MP-11.8.
+**BLOCKED.** Punktet krever en ny faktisk visuell sluttkontroll av produksjonsproduktet på både desktop og mobil etter MP-11.8. Ingen produktfeil er påvist, men tilgjengelig kontrollmiljø blokkerer produksjons-URL-en i browseren. Punktet skal først settes til PASS etter ekte mobil- og desktop-smoke av landing/navigation, onboarding, Fantasy lagbygger, transfers, leaderboard/runder/historikk, miniligaer, Tipping, Event Weeks, brukersynlige analyseflater, branding og relevante loading/error/empty states.
 
-Delbevis som er grønt:
+## MP-14.7 – Backup, rollback og adminrutiner
 
-- `docs/PROJECT_STATUS.md` på dagens `main` dokumenterer MP-11.8 som ferdigstilt og produksjonsverifisert med samlet shell/header/navigation, premium svart/gull branding, Stang Inn-logo/SI-mark, metadata/favicon/app-assets og konsistent mobil/desktop-presentasjon.
-- Samme dags sluttregresjon er grønn for Fantasy, transfers, rundehistorikk, identitet, Event Weeks, miniligaer, Tipping og Next.js-build.
-- Vercel status på dagens `main` er `success`.
+**PASS.** Operativ recovery er verifisert og samlet i `docs/MP01_PRODUCTION_RUNBOOK.md`.
 
-Ny launch-smoke ble forsøkt mot `https://stang-inn-xi.vercel.app` med Chromium i 1440×1000 og 390×844 på landing, login/onboarding-relaterte flater, Fantasy, transfers, leaderboard/historikk, miniligaer, Tipping, Event Weeks, analyse og admin. Nettleseren ble stoppet av kontrollmiljøets policy med `ERR_BLOCKED_BY_ADMINISTRATOR` før siden kunne lastes. Direkte web-åpning fra tilgjengelig webverktøy feilet også, og Vercel runtime-lesing ga 403. Dette er ikke bevis på feil i Stang Inn, men det betyr at den nødvendige faktiske visuelle sluttkontrollen ikke kan dokumenteres fra dette miljøet.
+| Kontroll | Resultat | Bevis/verifikasjon | Blocker |
+| --- | --- | --- | --- |
+| Supabase backup | PASS | Produksjonsorganisasjonen er Pro. Supabase Pro har managed daglige databasebackups med standard syv dagers retensjon. Restore er dokumentert som kontrollert nedetidsoperasjon. | Ingen |
+| PITR | N/A | Ikke et preseason launch-krav. Kan aktiveres senere dersom lavere RPO enn daglig backup blir nødvendig. | Ingen |
+| Kode/deploy rollback | PASS | Runbook bruker siste kjente grønne Vercel-deploy eller kontrollert Git-revert; force-push skal ikke brukes. Vercel bevarer immutable deployments og støtter rollback/promote. | Ingen |
+| Databaseendringer | PASS | Fremoverrettet migrasjon er standard repair. Full restore brukes kun ved reelt datatap/korrupsjon; koderollback antas aldri å rulle DB tilbake. | Ingen |
+| Roster-/kampdatasynkfeil | PASS | Fail-closed sync, `sync_runs`/GitHub/Supabase-logger, roster-audit/preflight og idempotent re-sync er eksplisitt recovery-rutine. | Ingen |
+| Feil scoring | PASS | Årsak korrigeres før rescore; leaderboard/lagpoeng skal ikke håndredigeres som første tiltak. Re-verifisering går spillerpoeng → lagpoeng → rundehistorikk → leaderboard. | Ingen |
+| Feil snapshots/deadline | PASS | Snapshot behandles som historisk fasit. Før snapshot brukes autoritativ kalender-sync; etter snapshot kreves eksplisitt dokumentert repair/migrasjon og full etterkontroll. | Ingen |
+| Feil Event Week | PASS | Før snapshot korrigeres target-GW/type/budsjett via eksisterende admin-/RPC-gate; etter snapshot/scoring behandles endringen som historisk datarepair med rescore/etterkontroll. | Ingen |
+| Admininngrep | PASS | Fantasy-admin tilbyr roster-audit, player queue/priser, rundeverktøy, roster/HockeyLive-diagnostikk, scoring-backtest og sesongvalidering. Adminrutene er auth/admin-gatet. | Ingen |
+| Kritisk feil etter launch | PASS | Runbook har eksplisitt incident-sekvens: klassifiser → stopp propagasjon → rollback kode eller repair/restore data → behold auth/RLS → verifiser end-to-end før normal drift. | Ingen |
 
-### MP-14.6 konklusjon
+### MP-14.7 konklusjon
 
-**BLOCKED – ikke FAIL.** Ingen produktfeil er påvist. Blockeren er manglende tilgang til en faktisk produksjonsbrowser i kontrollmiljøet. Punktet skal først settes til PASS etter en ekte mobil- og desktop-smoke av produksjonsaliaset som minst dekker landing/navigation, onboarding, Fantasy lagbygger, transfers, leaderboard/runder/historikk, miniligaer, Tipping, Event Weeks, brukersynlige analyseflater, branding og relevante loading/error/empty states.
+**PASS.** Det finnes nå en forsvarlig og eksplisitt operativ plan for backup, kode-/deploy-rollback, database-repair/restore, synkfeil, scoringfeil, snapshotfeil, Event Week-feil og admininngrep. Planen prioriterer dataintegritet, sporbare migrations/repairs og eksisterende autoritative admin-/scoring-/snapshotgater fremfor ad-hoc produksjonsendringer.
+
+## Samlet status før GO LIVE
+
+MP-14.1–14.5 og MP-14.7 er **PASS**. MP-14.6 er fortsatt **BLOCKED** fordi den påkrevde nye faktiske visuelle produksjonssmoken på mobil og desktop ikke kan utføres fra tilgjengelig kontrollmiljø.
+
+Samlet launch-status er derfor foreløpig **🔴 NOT READY** utelukkende på grunn av MP-14.6.
 
 ## GO LIVE
 
