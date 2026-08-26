@@ -20,17 +20,23 @@ Sist kontrollert mot GitHub `main`: 2026-08-26
 
 - Next.js 16.2.11 / React 19.2.0 / TypeScript 5.9.x.
 - Supabase + Vercel.
-- GitHub Actions build-CI med MP-01 produksjonsdrift, MP-12 scoring/security/test-isolation, MP-13 scoring/readiness/felles miniligaer, MP-04 transfer, Bonus Weeks, MP-07 rundehistorikk/stats/identitet/Event Weeks og MP-10 optimizer før build.
+- GitHub Actions build-CI med MP-01 produksjonsdrift, MP-01 brukeradmin-livssyklus, MP-12 scoring/security/test-isolation, MP-13 scoring/readiness/felles miniligaer, MP-04 transfer, Bonus Weeks, MP-07 rundehistorikk/stats/identitet/Event Weeks og MP-10 optimizer før build.
 - Isolerte tester skal aldri endre ekte 2026/27-data og skal rydde egne syntetiske fixtures.
 - **MP-01.6 produksjons-/driftsgaten er ferdigstilt og produksjonsverifisert.** Operativ runbook: `docs/MP01_PRODUCTION_RUNBOOK.md`.
 - Supabase-organisasjonen `Hockeytips` er verifisert på **Pro**, slik at managed-backup-forutsetningen er etablert.
 - HockeyLive-requester har intern timeout, og delvise sync-/Fantasy-livssyklusfeil gir `ok=false`/HTTP 500 slik at cron kan retry-e i stedet for å rapportere falsk suksess.
 
-## Felles brukeridentitet
+## Felles brukeridentitet og brukeradministrasjon
 
 - **MP-01.7 er ferdigstilt og produksjonsverifisert 2026-08-24.** `public.players` er den generelle Stang Inn-profilen for Tipping, Fantasy, leaderboard og felles miniligaer.
 - Ny/ufullstendig bruker må eksplisitt bekrefte profilnavn via `/onboarding`; Google-navn er kun forslag.
 - `complete_stanginn_profile_v1(text)` er authenticated-only og servervaliderer profilnavnet. Direkte profilskriving for vanlige klienter er begrenset.
+- **Felles brukeradministrasjon er produksjonsverifisert 2026-08-26.** `/admin/users` er eneste autoritative skriveflate for profiler/Auth/roller på tvers av Stang Inn. Admin kan se sikker brukeroversikt, endre profilnavn, administrere adminrolle, deaktivere/gjenåpne konto og se auditlogg. Permanent sletting fra adminflaten er deaktivert slik at konkurransehistorikk beholdes.
+- `players.deactivated_at` + Supabase Auth-ban brukes sammen ved deaktivering. AuthGate kontrollerer deaktiveringsmarkøren fail-closed, slik at et fortsatt gyldig kortlivet JWT ikke gir tilgang til Stang Inn.
+- `user_admin_audit` har RLS og er stengt for direkte klienttilgang. Siste aktive administrator og egen administratorkonto er beskyttet mot utilsiktet deaktivering/nedgradering.
+- Produksjonsflyten **aktiv → deaktivert → gjenåpnet** er testet med reell adminbruker, og auditloggen viste handlingene med riktig utførende administrator.
+- Den gamle brukeradministrasjonen i Hockeytipset-admin er fjernet som skriveflate og erstattet med lenke til `/admin/users`. Regresjonen `test:mp01:user-admin` beskytter at legacy brukerwrites ikke kommer tilbake.
+- Operativ dokumentasjon: `docs/MP01_USER_ADMIN.md`.
 
 ## EHL 2026/27
 
@@ -78,6 +84,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-26
 
 - **MP-12 bred sluttregresjon er ferdigstilt og grønn etter identitets-, lagnavn-, miniliga-, Event Week- og MP-11.8-endringene.** GitHub Actions og Vercel er grønne.
 - MP-01.6-produksjonsregresjonen beskytter cron-secret/retry, HockeyLive-timeout, partial-sync failure og service-only hardening.
+- MP-01 user-admin-regresjonen beskytter admin-gate, deaktivering/gjenåpning, audit, last-admin/self-gater, fravær av hard delete og én autoritativ brukeradminflate.
 - MP-04 transferregresjonen inkluderer MP-04.8-kontrakter.
 - MP-07.10-regresjonen beskytter snapshot-frosset `owner_name`, bekreftet profilnavn, identitets-RPC-er, uendret ranking/tie-break, fravær av e-post og anon-hardening.
 - MP-07.11/07.12-regresjonen beskytter GW15/GW22/GW38, 200m/70m, Julebord-rekke 2 = 100 %, ordinær C/VC, booster-/transfersperrer og Event Week-identitet i UI/historikk.
