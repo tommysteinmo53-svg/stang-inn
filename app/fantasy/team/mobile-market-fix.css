@@ -1,0 +1,23 @@
+@media(max-width:650px){
+  .team-market-player{
+    grid-template-columns:28px minmax(0,1fr) 40px;
+    grid-template-areas:
+      "pos player action"
+      "pos price action";
+    column-gap:8px;
+    row-gap:4px;
+    align-items:start;
+    padding:11px 10px;
+  }
+  .team-market-player>.team-pos{grid-area:pos;align-self:start;margin-top:2px}
+  .team-market-player>span:nth-child(2){grid-area:player;min-width:0}
+  .team-market-player strong{
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+    overflow-wrap:anywhere;
+    line-height:1.25;
+  }
+  .team-market-player>b{grid-area:price;text-align:left;margin-top:2px}
+  .team-market-player>em{grid-area:action;align-self:center;justify-self:end}
+}
