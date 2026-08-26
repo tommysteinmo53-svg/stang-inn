@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 
 const route = await readFile(new URL("../app/api/admin/users/route.ts", import.meta.url), "utf8");
 const page = await readFile(new URL("../app/admin/users/page.tsx", import.meta.url), "utf8");
+const hockeytipsAdmin = await readFile(new URL("../app/admin/HockeytipsAdminPage.tsx", import.meta.url), "utf8");
 const authGate = await readFile(new URL("../components/AuthGate.tsx", import.meta.url), "utf8");
 const sql = await readFile(new URL("../supabase/mp01-user-admin-lifecycle-v1.sql", import.meta.url), "utf8");
 
@@ -65,6 +66,14 @@ await check("Admin UI exposes deactivate/reactivate and audit without hard delet
   assert.match(page,/Gjenåpne/);
   assert.match(page,/Auditlogg/);
   assert.doesNotMatch(page,/Slett bruker/);
+});
+
+await check("Hockeytipset admin no longer contains legacy user writes",()=>{
+  assert.doesNotMatch(hockeytipsAdmin,/fetch\("\/api\/admin\/users"/);
+  assert.doesNotMatch(hockeytipsAdmin,/deleteUser\(/);
+  assert.doesNotMatch(hockeytipsAdmin,/saveUser\(/);
+  assert.doesNotMatch(hockeytipsAdmin,/type EditState/);
+  assert.match(hockeytipsAdmin,/href=\"\/admin\/users\"/);
 });
 
 const failed=checks.filter(row=>!row.ok);
