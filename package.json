@@ -24,6 +24,7 @@
     "test:mp13:scoring": "node scripts/test-mp13-tipping-scoring.mjs",
     "test:mp13:readiness": "node scripts/test-mp13-season-readiness.mjs",
     "test:mp13:leagues": "node scripts/test-mp13-shared-leagues.mjs",
+    "test:mp14:purchases": "node scripts/test-mp14-purchase-consistency.mjs",
     "backtest:availability:nitten": "node scripts/backtest-nitten-availability.mjs"
   },
   "dependencies": {
