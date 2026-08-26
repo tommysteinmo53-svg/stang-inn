@@ -3,58 +3,29 @@
 import {useEffect,useMemo,useState} from "react";
 import {getSupabaseBrowserClient} from "../../../lib/supabase";
 
-type AdminUser={
- id:string;
- display_name:string;
- email:string|null;
- admin:boolean;
- created_at:string|null;
- last_sign_in_at:string|null;
- email_confirmed_at:string|null;
- providers:string[];
- profile_complete:boolean;
-};
-
-function dateLabel(value:string|null){
- if(!value)return "—";
- return new Date(value).toLocaleString("no-NO",{dateStyle:"medium",timeStyle:"short"});
-}
+type AdminUser={id:string;display_name:string;email:string|null;admin:boolean;created_at:string|null;last_sign_in_at:string|null;email_confirmed_at:string|null;providers:string[];profile_complete:boolean;is_current:boolean};
+function dateLabel(value:string|null){if(!value)return"—";return new Date(value).toLocaleString("no-NO",{dateStyle:"medium",timeStyle:"short"})}
+function normalizeName(value:string){return value.trim().replace(/\s+/g," ")}
 
 export default function AdminUsersPage(){
- const[users,setUsers]=useState<AdminUser[]>([]);
- const[loading,setLoading]=useState(true);
- const[error,setError]=useState("");
- const[search,setSearch]=useState("");
-
+ const[users,setUsers]=useState<AdminUser[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(""),[message,setMessage]=useState(""),[search,setSearch]=useState(""),[editingId,setEditingId]=useState<string|null>(null),[name,setName]=useState(""),[saving,setSaving]=useState<string|null>(null);
  useEffect(()=>{void load()},[]);
- async function load(){
-  setLoading(true);setError("");
-  try{
-   const s=getSupabaseBrowserClient();if(!s)throw new Error("Supabase er ikke tilgjengelig.");
-   const{data}=await s.auth.getSession();const token=data.session?.access_token;if(!token)throw new Error("Du må være logget inn.");
-   const response=await fetch("/api/admin/users",{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
-   const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||"Kunne ikke hente brukere.");
-   setUsers(result.users||[]);
-  }catch(e:any){setError(e?.message||"Kunne ikke hente brukere.")}
-  finally{setLoading(false)}
- }
+ async function token(){const s=getSupabaseBrowserClient();if(!s)throw new Error("Supabase er ikke tilgjengelig.");const{data}=await s.auth.getSession();if(!data.session?.access_token)throw new Error("Du må være logget inn.");return data.session.access_token}
+ async function load(){setLoading(true);setError("");try{const t=await token();const response=await fetch("/api/admin/users",{headers:{Authorization:`Bearer ${t}`},cache:"no-store"});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||"Kunne ikke hente brukere.");setUsers(result.users||[])}catch(e:any){setError(e?.message||"Kunne ikke hente brukere.")}finally{setLoading(false)}}
+ async function patch(body:Record<string,unknown>){const t=await token();const response=await fetch("/api/admin/users",{method:"PATCH",headers:{Authorization:`Bearer ${t}`,"Content-Type":"application/json"},body:JSON.stringify(body)});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||"Endringen kunne ikke lagres.");return result}
+ async function saveName(user:AdminUser){const normalized=normalizeName(name);if(normalized.length<2||normalized.length>60){setMessage("Profilnavnet må være 2–60 tegn.");return}setSaving(user.id);setMessage("");try{await patch({action:"profile_name",id:user.id,display_name:normalized});setEditingId(null);setMessage(`✓ Profilnavnet til ${normalized} er lagret.`);await load()}catch(e:any){setMessage(`Feil: ${e?.message||"Kunne ikke lagre profilnavn."}`)}finally{setSaving(null)}}
+ async function toggleAdmin(user:AdminUser){const next=!user.admin;if(user.is_current&&!next){setMessage("Du kan ikke fjerne din egen administratorstatus.");return}const verb=next?"gi administratorrettigheter til":"fjerne administratorrettighetene fra";if(!window.confirm(`Vil du ${verb} ${user.display_name}?`))return;setSaving(user.id);setMessage("");try{await patch({action:"admin_role",id:user.id,admin:next});setMessage(next?`✓ ${user.display_name} er nå administrator.`:`✓ Administratorrollen er fjernet fra ${user.display_name}.`);await load()}catch(e:any){setMessage(`Feil: ${e?.message||"Kunne ikke endre administratorrolle."}`)}finally{setSaving(null)}}
  const visible=useMemo(()=>{const q=search.trim().toLowerCase();return q?users.filter(u=>`${u.display_name} ${u.email||""}`.toLowerCase().includes(q)):users},[users,search]);
- const admins=users.filter(u=>u.admin).length;
- const incomplete=users.filter(u=>!u.profile_complete).length;
-
+ const admins=users.filter(u=>u.admin).length,incomplete=users.filter(u=>!u.profile_complete).length;
  if(loading)return <main className="appShell"><p className="muted">Henter sikker brukeroversikt …</p></main>;
  if(error)return <main className="appShell"><article className="panel"><h2>Ingen tilgang</h2><p className="muted">{error}</p><a href="/admin" className="textButton">← Adminoversikt</a></article></main>;
- return <main className="appShell">
-  <header className="topbar"><div className="brand"><div className="brandMark">👤</div><div><p className="eyebrow">FELLES ADMINISTRASJON</p><h1>Brukere</h1></div></div><a href="/admin" className="textButton">← Adminoversikt</a></header>
-  <section className="pageStack" style={{marginTop:24}}>
-   <article className="heroCard"><div><p className="eyebrow">Supabase Auth + Stang Inn-profiler</p><h2>Trygg brukeroversikt</h2><p className="muted">E-post og Auth-status hentes kun gjennom et server-side admin-endepunkt. Vanlige innloggede brukere får ikke utvidet tilgang til profildata.</p></div><span className="statusPill">Read only</span></article>
-   <div className="statsGrid"><article className="miniCard"><span>Registrerte</span><strong>{users.length}</strong><small>Auth-kontoer med profil</small></article><article className="miniCard"><span>Administratorer</span><strong>{admins}</strong><small>players.admin</small></article><article className="miniCard"><span>Ufullstendige profiler</span><strong>{incomplete}</strong><small>{incomplete===0?"Alle profiler ser komplette ut":"Krever kontroll"}</small></article></div>
-   <article className="panel"><div className="panelHeading"><div><p className="eyebrow">Registrerte brukere</p><h3>Profiler og innlogging</h3></div><span className="statusPill">{visible.length} vist</span></div>
-    <input className="matchSearch" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Søk navn eller e-post …" style={{width:"100%",marginBottom:14}}/>
-    <div className="tableWrap"><table><thead><tr><th>Bruker</th><th>Rolle</th><th>Innlogging</th><th>Registrert</th><th>Sist innlogget</th><th>Status</th></tr></thead><tbody>{visible.map(user=><tr key={user.id}><td><strong>{user.display_name||"Uten profilnavn"}</strong><div className="muted" style={{fontSize:12,marginTop:3}}>{user.email||"Ingen e-post"}</div></td><td>{user.admin?<span className="statusPill">Administrator</span>:"Spiller"}</td><td>{user.providers.length?user.providers.join(" + "):"Ukjent"}</td><td>{dateLabel(user.created_at)}</td><td>{dateLabel(user.last_sign_in_at)}</td><td>{!user.profile_complete?<span style={{fontWeight:800,color:"#ffb3bd"}}>Profil mangler data</span>:!user.email_confirmed_at?<span style={{fontWeight:800,color:"#f0c86b"}}>Ikke bekreftet</span>:<span style={{fontWeight:800}}>✓ Klar</span>}</td></tr>)}</tbody></table></div>
-    {visible.length===0&&<p className="muted" style={{marginTop:14}}>Ingen brukere matcher søket.</p>}
-   </article>
-   <article className="panel"><div className="panelHeading"><div><p className="eyebrow">Neste sikkerhetssteg</p><h3>Ingen skrivehandlinger i denne versjonen</h3></div><span className="statusPill">Bevisst avgrenset</span></div><p className="muted">Profilendring, adminrolle, deaktivering og eventuell sletting bygges separat etter at konsekvenser, sperrer og auditlogg er definert og testet.</p></article>
-  </section>
- </main>;
+ return <main className="appShell"><header className="topbar"><div className="brand"><div className="brandMark">👤</div><div><p className="eyebrow">FELLES ADMINISTRASJON</p><h1>Brukere</h1></div></div><a href="/admin" className="textButton">← Adminoversikt</a></header><section className="pageStack" style={{marginTop:24}}>
+  <article className="heroCard"><div><p className="eyebrow">Supabase Auth + Stang Inn-profiler</p><h2>Trygg brukeradministrasjon</h2><p className="muted">Profilnavn og administratorrolle kan endres her. Auth-e-post og Google-identitet endres ikke, og permanent sletting er deaktivert.</p></div><span className="statusPill">Admin only</span></article>
+  <div className="statsGrid"><article className="miniCard"><span>Registrerte</span><strong>{users.length}</strong><small>Auth-kontoer med profil</small></article><article className="miniCard"><span>Administratorer</span><strong>{admins}</strong><small>Siste administrator kan ikke fjernes</small></article><article className="miniCard"><span>Ufullstendige profiler</span><strong>{incomplete}</strong><small>{incomplete===0?"Alle profiler ser komplette ut":"Krever kontroll"}</small></article></div>
+  {message&&<article className="quoteCard"><span>Status</span><p>{message}</p></article>}
+  <article className="panel"><div className="panelHeading"><div><p className="eyebrow">Registrerte brukere</p><h3>Profiler, Auth og roller</h3></div><span className="statusPill">{visible.length} vist</span></div><input className="matchSearch" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Søk navn eller e-post …" style={{width:"100%",marginBottom:14}}/>
+   <div className="pageStack">{visible.map(user=><div key={user.id} style={{padding:14,border:"1px solid var(--line)",borderRadius:14,background:"rgba(5,11,16,.84)"}}><div style={{display:"flex",justifyContent:"space-between",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}><div style={{minWidth:0}}><strong style={{fontSize:18}}>{user.display_name||"Uten profilnavn"}{user.is_current?" · deg":""}</strong><div className="muted" style={{fontSize:12,marginTop:4,overflowWrap:"anywhere"}}>{user.email||"Ingen e-post"}</div><div className="muted" style={{fontSize:12,marginTop:5}}>{user.providers.length?user.providers.join(" + "):"Ukjent innlogging"} · registrert {dateLabel(user.created_at)} · sist innlogget {dateLabel(user.last_sign_in_at)}</div><div style={{marginTop:7}}>{user.admin?<span className="statusPill">Administrator</span>:<span className="muted">Spiller</span>} {!user.profile_complete&&<span style={{marginLeft:8,fontWeight:800,color:"#ffb3bd"}}>Profil mangler data</span>} {user.profile_complete&&user.email_confirmed_at&&<span style={{marginLeft:8,fontWeight:800}}>✓ Klar</span>}</div></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button className="compactButton" onClick={()=>{setEditingId(user.id);setName(user.display_name);setMessage("")}} disabled={saving===user.id}>Endre profilnavn</button><button onClick={()=>void toggleAdmin(user)} disabled={saving===user.id||(user.is_current&&user.admin)} style={{padding:"10px 13px",border:"1px solid rgba(216,180,85,.25)",background:"rgba(216,180,85,.07)",color:"#eee7d7",fontWeight:900}}>{user.admin?"Fjern admin":"Gjør til admin"}</button></div></div>{editingId===user.id&&<div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto auto",gap:8,marginTop:12}}><input className="matchSearch" value={name} maxLength={60} onChange={e=>setName(e.target.value)} aria-label={`Nytt profilnavn for ${user.display_name}`}/><button className="compactButton" disabled={saving===user.id} onClick={()=>void saveName(user)}>{saving===user.id?"Lagrer …":"Lagre"}</button><button onClick={()=>setEditingId(null)}>Avbryt</button></div>}</div>)}</div>{visible.length===0&&<p className="muted" style={{marginTop:14}}>Ingen brukere matcher søket.</p>}
+  </article>
+  <article className="panel"><div className="panelHeading"><div><p className="eyebrow">Sikkerhetsgrenser</p><h3>Bevisst avgrensede handlinger</h3></div><span className="statusPill">Fail closed</span></div><p className="muted">E-post kan ikke redigeres her. Egen adminrolle kan ikke fjernes. Serveren blokkerer også fjerning av siste administrator. Permanent sletting er deaktivert mens vi definerer trygg deaktivering og auditlogg.</p></article>
+ </section></main>;
 }
