@@ -36,49 +36,32 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 **Status: ✅ produksjons-/driftsgrunnlag verifisert / 🔵 løpende sikkerhets- og sesongdrift**
 
-- MP-01.1 ✅ Next.js / React / TypeScript-applikasjon etablert.
-- MP-01.2 ✅ Supabase og innlogging etablert.
-- MP-01.3 ✅ RLS/RPC-/rollegrenser er produksjonskontrollert og ytterligere hardnet i MP-01.6; sikkerhetsregresjon fortsetter løpende ved nye funksjoner.
-- MP-01.4 ✅ Vercel/produksjonsoppsett etablert.
-- MP-01.5 ✅ GitHub Actions build-CI inkluderer MP-01 produksjonsdrift, MP-12 scoring/security/test-isolation, MP-13 scoring/readiness/felles miniligaer, MP-04 transfer, Bonus Weeks, MP-07 historikk/stats/identitet/Event Weeks og MP-10 optimizer før build.
-- MP-01.6 ✅ **Samlet produksjons-/driftschecklist før sesongstart:** Vercel/CI, Supabase-produksjon, auth/onboarding, RLS/RPC-grenser, migrations/schema, cron/EHL-HockeyLive-synk, fail-closed feil/retry, Fantasy/Tipping-produksjonsdata, testisolasjon, adminrutiner, observability og rollback er kontrollert mot produksjonen. HockeyLive har intern timeout og delvise synkfeil gir `ok=false`/HTTP 500 slik at cron kan retry-e. Service-only flater er hardnet uten å svekke auth/RLS. Supabase-organisasjonen `Hockeytips` er verifisert på **Pro** 2026-08-25, slik at managed-backup-forutsetningen er etablert. Operativ runbook ligger i `docs/MP01_PRODUCTION_RUNBOOK.md`.
-- MP-01.7 ✅ **Obligatorisk brukerprofilnavn:** eksplisitt Stang Inn-profilnavn med onboarding/completion-state, servervalidering og hardened tilgang er implementert og produksjonsverifisert 2026-08-24.
+- MP-01.1–MP-01.7 ✅ Plattform, Supabase/auth, RLS, Vercel, CI, produksjonsrunbook og profilnavn er etablert og produksjonsverifisert.
+- MP-01.6 inkluderer Vercel/CI, Supabase, auth/onboarding, RLS/RPC, migrations/schema, cron/EHL-HockeyLive-synk, fail-closed retry, testisolasjon, adminrutiner, observability, backup og rollback. Operativ runbook: `docs/MP01_PRODUCTION_RUNBOOK.md`.
 
 # MP-02 – EHL-data, terminliste og spilleridentitet
 
 **Status: ✅ preseason-spillerpool verifisert / 🔵 løpende drift**
 
-- MP-02.1 ✅ EHL 2026/27 Tournament ID `448981` etablert.
-- MP-02.2 ✅ Terminlisteimport og kampdata etablert.
-- MP-02.3 ✅ Preseason-spillerpool verifisert mot EliteProspects.
-- MP-02.4 ✅ Full roster-gate: 239/239 matchet, 0 mangler, 0 tvetydige, 0 lagavvik, 0 ekstra og 0 posisjonsavvik.
-- MP-02.5 ✅ Robust identitetsmatching, duplicate checks, reviewed aliases og admin-audit finnes.
+- MP-02.1–MP-02.5 ✅ Tournament ID `448981`, terminliste/kampdata, preseason-roster, identitetsmatching og roster-gate er etablert og verifisert.
 - MP-02.6 🔵 Løpende roster- og kampdatasynk gjennom sesongen.
 
 # MP-03 – Fantasypriser og spillerøkonomi
 
 **Status: ✅ preseason-priser og fast 2026/27-prispolicy ferdigstilt**
 
-- MP-03.1–MP-03.5 ✅ Historisk prisgrunnlag, v4-modellfamilie og publiseringsspor er etablert.
-- MP-03.6 ✅ V4.6.2 er publisert og produksjonsverifisert: 239/239 current-roster-spillere har låst sesongpris og er kjøpbare; 0 lag over 100m ved kontroll.
-- MP-03.7 ✅ **Faste spillerpriser 2026/27:** alle kjøp, salg og lagverdier bruker den låste `fantasy_player_season_prices`-prisen. Det skal ikke forekomme automatiske markedsprisendringer eller manuell reprising etter sesongstart. Databasen blokkerer UPDATE/DELETE av eksisterende 2026/27-sesongpriser etter første ordinære kampstart, også via admin/service-role, og hindrer `fantasy_players.price` i å divergere fra en eksisterende låst sesongpris. En helt ny spiller som kommer inn etter sesongstart kan få én førstegangspris; deretter er prisen låst resten av sesongen. Produksjonsverifisert 2026-08-25 med 239/239 current-roster-priser, 0 prisavvik og 0 stale `purchase_price`-rader.
+- MP-03.1–MP-03.6 ✅ Historisk prisgrunnlag, v4-modellfamilie, publisering og V4.6.2 preseason-priser er etablert og produksjonsverifisert.
+- MP-03.7 ✅ **Faste spillerpriser 2026/27:** eksisterende spilleres sesongpris kan ikke reprises etter sesongstart. En helt ny spiller kan få én førstegangspris; denne låses deretter resten av sesongen. Kjøp, salg og lagverdi bruker låst sesongpris.
 
 # MP-04 – Lagbygger, regler og brukerlag
 
 **Status: ✅ transfer-/regel-/lagnavnkjernen ferdigstilt / 🔵 sesongvedlikehold**
 
-- MP-04.1 ✅ Persistente fantasybrukerlag etablert.
-- MP-04.2 ✅ Kaptein og visekaptein støttes.
-- MP-04.3 ✅ Klubbbegrensning og sentrale lagvalideringer implementert.
-- MP-04.4 ✅ Lagbygger/UI er sluttpolert for mobil og desktop gjennom MP-11.
-- MP-04.5 ✅ Full transfersyklus: maks 2 permanente bytter per ordinær runde, ingen bank/hits, Bytteboost opptil 4, transferledger og brukerhistorikk.
-- MP-04.6 ✅ Endelig låseregelverk er dokumentert; rekke/C/VC/lagnavn er gratis endringer, Event Weeks sperrer permanente transfers og deadline-snapshot er historisk fasit.
-- MP-04.7 ✅ Motstandere i aktuell fantasy-gameweek vises på hver spiller med H/B og støtte for 0/1/flere kamper via autoritativ rundelogikk.
-- MP-04.8 ✅ **Obligatorisk lagnavn:** nye Fantasy-lag kan ikke lagres med tomt navn, whitespace eller placeholder som `Mitt lag`. Felles servervalidator normaliserer whitespace, krever 3–40 tegn, alfanumerisk innhold og avviser kontrolltegn/placeholders. `fantasy_user_teams` har triggergate og authenticated-only `rename_fantasy_team_v1`. Lagbyggeren krever eksplisitt navn og gir eksisterende placeholder-lag en rename-only kompletteringsflyt uten å endre team-ID, roster, C/VC, transfers, snapshots, boostere eller poeng. Navneendring teller ikke som transfer. Produksjonsverifisert 2026-08-24; eksisterende placeholder-lag ble bevisst ikke automatisk omskrevet.
+- MP-04.1–MP-04.8 ✅ Persistente lag, C/VC, klubb-/lagvalidering, lagbygger, transfers, deadline-/snapshotregler, GW-motstandere og obligatorisk lagnavn er implementert og verifisert.
 
 # MP-05 – Fantasy-runder, deadlines og snapshots
 
-**Status: ✅ kjerne implementert**
+**Status: ✅ kjerne implementert / 🔵 regresjonsvedlikehold**
 
 - MP-05.1–MP-05.6 ✅ Kalenderbaserte runder, flyttede kamper, første-kamp-deadline, snapshots/readiness og isolerte testkontroller er implementert.
 - MP-05.7 🔵 Regresjonstest ved endringer i runde-/deadline-logikk.
@@ -95,16 +78,13 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 
 **Status: ✅ konkurranse- og Event Week-kjerne ferdigstilt**
 
-- MP-07.1–MP-07.9 ✅ Leaderboard, runder, tie-break, Bonus Weeks, snapshot-first rundehistorikk og personlig statistikkdashboard er implementert og verifisert.
-- MP-07.10 ✅ **Lagnavn + eiernavn i Fantasy-tabeller:** globalt leaderboard, månedspresentasjon og identitetsbevisste rundehistorikk-/runde-RPC-er viser både Fantasy-lagnavn og bekreftet Stang Inn-profilnavn uten å endre ranking, scoring eller tie-break. Historisk navnepolicy er låst: sesongtabellen viser dagens lagnavn + dagens bekreftede profilnavn; historiske runder viser snapshot-frosset `team_name` + nytt snapshot-frosset `owner_name`; månedstabell bruker identiteten fra lagets siste snapshot i måneden. Snapshot-triggeren fryser kun bekreftet `players.display_name`, aldri e-post. Produksjonen hadde 0 2026/27-snapshots ved migrasjon, så ingen historikk ble omskrevet. Nye RPC-er er authenticated-only (`anon` uten EXECUTE), MP-07.10-regresjon kjører i CI, og Vercel er grønn. Eksisterende private Fantasy-miniliga viste allerede lagnavn + profilnavn og ble derfor ikke endret i denne oppgaven.
-- MP-07.11 ✅ **Produksjonskonfigurerte Event Weeks:** GW15 Rik Onkel (200m) og GW38 Fattig Onkel (70m) er produksjonsmigrert og verifisert mot de 45 autoritative rundene, fem kamper/10 lag, første-kamp-deadline, separate eventlag, permanent transfer-/boostersperre, snapshot/scoring-kjede, kalender/UI, rundehistorikk/leaderboard, auth/RLS og regresjon før/etter eventrundene. Produksjonsverifisert 2026-08-25.
-- MP-07.12 ✅ **Julebord – GW22:** «Alle skal med!» er produksjonsmigrert på autoritativ GW22. Snapshotet fryser `christmas_party` med rekke 2 = 100 %, mens ordinær C×2 og VC×1,5 beholdes fra sesongreglene; personlige boostere og permanente transfers er sperret. Kalender/UI, rundehistorikk, leaderboard, auth/RLS og Event Week-regresjon er verifisert. Produksjonsverifisert 2026-08-25.
+- MP-07.1–MP-07.12 ✅ Leaderboard, runder, tie-break, Bonus Weeks, historikk/stats, lagnavn + eiernavn og Event Weeks (GW15 Rik Onkel, GW22 Julebord, GW38 Fattig Onkel) er implementert og produksjonsverifisert.
 
 # MP-08 – Analyse, xFP og anbefalinger
 
 **Status: ✅ produksjonsverifisert**
 
-- MP-08.1–MP-08.8 ✅ Analyse-command-center, xFP, form/verdi, fixture-rating, kjøp/hold/selg, kapteinscore og horisonter er implementert. Preseason-FP er bevisst avviklet som Fantasy-signal.
+- MP-08.1–MP-08.8 ✅ Analyse-command-center, xFP, form/verdi, fixture-rating, kjøp/hold/selg, kapteinscore og horisonter er implementert.
 
 # MP-09 – Skader, fravær og tilgjengelighet
 
@@ -117,42 +97,154 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 **Status: ✅ adminverktøy produksjonsverifisert**
 
 - MP-10.1–MP-10.5 ✅ Lag/budsjett/transferstatus/låste spillere, UT→INN, xFP-gevinst/risiko, strategier, availability/fixture og autoritative transferregler er implementert.
-- **Admin-only-policy ✅:** Lagoptimalisatoren er et internt analyseverktøy og skal kun være tilgjengelig under adminverktøyet. Offentlig `/fantasy/optimizer`, offentlig optimizer-API og vanlig Fantasy-navigasjon er fjernet; optimizer-RPC-er/endepunkter er beskyttet av admin-gate.
-- **Transferstatus/låste spillere – produksjonsfiks ✅ 2026-08-26:** `get_fantasy_transfer_status_v1` returnerer eksplisitt `permanent_transfers_allowed`, slik at optimizeren bruker den autoritative 0/2/4-kontrakten korrekt: 2 permanente bytter i ordinær runde, opptil 4 med Bytteboost og 0 i Rik/Fattig Onkel. Dette rettet feilen der 2/2 ledige bytter kunne vises samtidig som transferregelen feilaktig sto som «Sperret». Produksjonsverifisert med låste spillere: låste spillere beholdes, mens ulåste spillere kan foreslås UT når et gyldig bedre bytte finnes.
+- Lagoptimalisatoren er admin-only. Offentlig optimizer/API er fjernet og optimizer-RPC-er/endepunkter er beskyttet av admin-gate.
 
 # MP-11 – UI/UX og mobilopplevelse
 
 **Status: ✅ redesign/branding og samlet mobil-/desktop-pass ferdigstilt**
 
-- MP-11.1–MP-11.7 ✅ Navigasjon, Fantasy-/tippingflater, mobil, states og samlet UX-polering er implementert.
-- MP-11.8 ✅ **Stang Inn-redesign, logo og visuell merkevare:** valgt premium sportsretning er implementert på `main` med Stang Inn-logo/SI-mark, samlet shell/header/navigasjon, svart/gull merkevare, metadata/favicon/app-assets og konsistent Fantasy/Tipping/admin-presentasjon. Mobil og desktop er sluttverifisert, og produksjonsbuild/Vercel er grønn.
+- MP-11.1–MP-11.8 ✅ Navigasjon, Fantasy/Tipping-flater, mobil, states, UX-polering og Stang Inn-redesign/logo/branding er implementert og verifisert.
 
 # MP-12 – Testing, sikkerhet og datakvalitet
 
 **Status: ✅ endelig bred pre-launch-regresjon ferdigstilt / 🔵 regresjonsvedlikehold**
 
-- MP-12.1–MP-12.7 ✅ CI, isolerte E2E-gater, sikkerhet og bred sluttregresjon er etablert og bestått etter identitets-, lagnavn-, miniliga-, Event Week- og MP-11.8-endringene. Ingen test skal endre ekte 2026/27-data.
-- MP-01.6 har i tillegg lagt produksjonsdriftskontrakter inn i CI for cron-secret/retry, HockeyLive-timeout, partial-sync failure og service-only hardening.
+- MP-12.1–MP-12.7 ✅ CI, isolerte E2E-gater, sikkerhet og bred sluttregresjon er etablert og bestått. Ingen test skal endre ekte 2026/27-data.
 
 # MP-13 – Stang Inn tipping
 
 **Status: ✅ preseasonklar kjerne + felles miniligaer / 🔵 live-verifisering gjennom sesongen**
 
-- MP-13.1–MP-13.5 ✅ Kamptips, tabelltips, automatisk scoring, awards/statistikk og sesongklar brukerflyt er implementert; live-verifisering fortsetter på reelle sesongdata.
-- MP-13.6 ✅ **Felles miniligaer på tvers av Tipping og Fantasy:** én kanonisk `stang_inn_private_leagues` + `stang_inn_private_league_members`-modell er produksjonsmigrert fra begge legacy-produktene uten tap av liga-ID, invitasjonskode, eier, medlemskap eller `joined_at`. Legacy-tabellene beholdes som immutable migreringshistorikk, mens gamle Fantasy-/Tipping-RPC-er er kompatibilitetswrappere mot den kanoniske modellen. Create/join/list/leave og medlemskontroll er authenticated-only; `anon` har ikke EXECUTE, og vanlige klientroller har ingen direkte tabelltilgang. Ligaeier er ligadmin og kan ikke forlate ligaen; ordinær utmelding fjerner medlemskapet fra begge produkter og rejoin via samme invitasjonskode gjenoppretter begge. `/leagues` er felles brukerflate med Tipping-/Fantasy-faner; gamle `/fantasy/leagues`-ruter redirecter dit. Fantasy-tabellen filtrerer den autoritative `get_fantasy_competition_table_v2` og beholder tie-break totalpoeng → rundeseire → beste runde, med Fantasy-lagnavn + bekreftet profilnavn. Tipping-tabellen beholder eksisterende 5/3/0- og poeng → eksakte → riktige utfall-logikk med Stang Inn-profilnavn. Ingen e-post/private profilfelt eksponeres. Rollback-only behavioral produksjonstest verifiserte Fantasy-create → Tipping-synlighet, Tipping-join → Fantasy-synlighet, separate standings med samme medlemmer, leave/rejoin, owner-sperre og 0 testrester. MP-13.6-regresjon er koblet til CI og Vercel-build er grønn 2026-08-24.
+- MP-13.1–MP-13.6 ✅ Kamptips, tabelltips, automatisk scoring, awards/statistikk, brukerflyt og felles miniligaer på tvers av Tipping/Fantasy er implementert.
+- 🔵 Live-verifisering fortsetter på reelle sesongdata.
 
 # MP-14 – Lansering EHL 2026/27
 
 **Status: ✅ GO LIVE gjennomført 2026-08-26 / 🔵 sesongdrift**
 
-- MP-14.1 ✅ Endelig Fantasy-regelverk verifisert mot produksjonskode, database og publiserte regler.
-- MP-14.2 ✅ Spillerpool, lag, posisjoner, kjøpbarhet og låste priser verifisert i produksjon.
-- MP-14.3 ✅ Alle 45 runder, 225 kampkoblinger, deadlines og Event Weeks verifisert.
-- MP-14.4 ✅ Preseason launch-regresjon for scoring, snapshots, transfers, rundehistorikk og leaderboard bestått. MP-06.6 står fortsatt åpen for live kampdatavalidering.
-- MP-14.5 ✅ Produksjonsmiljø, Supabase, Vercel, CI, cron/synk, auth/RLS og testisolasjon verifisert.
-- MP-14.6 ✅ Faktisk mobil/desktop smoke-test gjennomført; funnet mobilavvik i spillermarkedet ble rettet, deployet og re-verifisert.
-- MP-14.7 ✅ Backup, rollback og admin-/incidentrutiner verifisert og dokumentert.
-- MP-14.8 ✅ **GO LIVE godkjent av produkteier og gjennomført kontrollert 2026-08-26.** Siste godkjente `main` var grønn i GitHub Actions/Vercel, Supabase var `ACTIVE_HEALTHY`, 45/45 runder og 225/225 kampkoblinger var intakte, current roster var 239/239 korrekt priset/kjøpbar med 0 prisavvik, tre Event Weeks var publisert, og ferske HockeyLive-synker var `ok=true`. Ingen unødvendig redeploy eller featureendring ble gjort som del av launch.
+- MP-14.1–MP-14.7 ✅ Launch-gatene er PASS: regelverk, spillerpool/priser, 45 runder/225 kampkoblinger, preseason scoring/snapshot/leaderboard-regresjon, produksjonsmiljø, mobil/desktop smoke og backup/rollback/adminrutiner.
+- MP-14.8 ✅ **GO LIVE godkjent av produkteier og gjennomført kontrollert 2026-08-26.**
+- MP-06.6 står fortsatt åpen som planlagt live kampdatavalidering og er ikke lukket av preseason-gaten.
+
+---
+
+# Sesongdrift 2026/27 – fast arbeidsfordeling
+
+Dette avsnittet er operativ fasit for hvor hendelser og vedlikeholdsoppgaver skal håndteres etter GO LIVE. Styringschatten brukes til prioritering og tverrgående beslutninger; detaljarbeid gjøres i riktig arbeidschat.
+
+## 1. Ny spiller kommer til EHL
+
+**Eier først: Chat 02 – MP-02.6. Deretter Chat 03 ved behov.**
+
+Arbeidsflyt:
+
+1. Chat 02 verifiserer at spilleren faktisk er ny i current roster og ikke en eksisterende spiller med alternativ stavemåte/ID.
+2. Identitet, HockeyLive/NIF-ID når tilgjengelig, klubb, posisjon og rosterstatus verifiseres. Usikker eller tvetydig matching skal stoppes for manuell kontroll; det skal aldri opprettes en ny spiller bare fordi automatisk matching er usikker.
+3. Først når identiteten er sikker kan spilleren synkes/opprettes som current-roster-spiller.
+4. Chat 03 setter **én førstegangspris** etter gjeldende prismodell og dokumenterer grunnlaget. Eksisterende spillerpriser skal ikke brukes som snarvei dersom spilleren faktisk er ny.
+5. Førstegangsprisen låses deretter for resten av 2026/27 etter MP-03.7.
+6. Kjøpbarhet åpnes først når identitet, klubb, posisjon og låst sesongpris er på plass og verifisert.
+7. Ved behov vurderer Chat 08 analyse/xFP når tilstrekkelig datagrunnlag finnes, og Chat 09 håndterer eventuell availability-status.
+
+**Sikkerhetsregel:** Ny spiller skal ikke bli kjøpbar i Fantasy før identitet og førstegangspris er verifisert.
+
+## 2. Eksisterende spiller bytter EHL-klubb
+
+**Eier: Chat 02 – MP-02.6. Chat 04 kobles inn hvis klubbskiftet påvirker gyldigheten til eksisterende Fantasy-lag.**
+
+- Behold samme spilleridentitet og historikk; ikke opprett duplikat.
+- Oppdater klubbtilhørighet først når klubbskiftet er sikkert verifisert.
+- Spillerens låste 2026/27-pris endres **ikke** på grunn av klubbskiftet.
+- Historiske kampdata, snapshots og tidligere rundepoeng skal fortsatt tilhøre samme spiller og skal ikke omskrives.
+- Etter klubbskiftet kontrolleres konsekvensen for Fantasy-klubbgrensen. Dersom et eksisterende lag blir regelstridig utelukkende fordi en spiller bytter klubb, skal Chat 04 avklare og dokumentere håndteringen før ad-hoc endringer gjøres. Historiske snapshots skal aldri endres for å reparere et nåværende klubbgrenseproblem.
+
+## 3. Spiller forlater EHL / er ikke lenger current roster
+
+**Eier: Chat 02 – MP-02.6. Chat 04 kobles inn for Fantasy-konsekvenser.**
+
+- Verifiser avgangen før rosterstatus endres.
+- Behold spilleridentitet, kamp-/poenghistorikk og historiske snapshots.
+- Spilleren skal normalt stenges for **nye Fantasy-kjøp**, ikke slettes fra historikken.
+- Eksisterende lag som allerede eier spilleren skal ikke muteres automatisk uten eksplisitt dokumentert Fantasy-regel. Chat 04 avgjør hvordan brukeren skal kunne/ måtte bytte spilleren ut.
+- Låst sesongpris beholdes som historisk økonomifasit.
+
+## 4. Skade, sykdom, suspensjon eller annet fravær
+
+**Eier: Chat 09 – MP-09.**
+
+- Availability-status skal bygge på dokumentert kilde og sikker spilleridentitet.
+- Usikker ekstern matching skal ikke automatisk knyttes til en spiller.
+- Availability kan påvirke xFP/anbefalinger og admin-optimalisator etter eksisterende modell, men skal ikke omskrive historiske poeng eller snapshots.
+- Roster-/identitetsproblem sendes til Chat 02; analysekonsekvens sendes til Chat 08 ved behov.
+
+## 5. Kampdata, HockeyLive eller terminliste
+
+- **Chat 02:** feil/mangler i kampimport, terminliste, kamp-ID, lag-/spilleridentitet, roster eller synk.
+- **Chat 06:** kampstatistikken er hentet, men Fantasy-poeng/statistikk/reconciliation ser feil ut.
+- **Chat 05:** feil rundeplassering, deadline eller snapshot/freeze.
+
+Feil skal spores til kilden før data korrigeres. Ikke reparer et scoringproblem ved å endre kampdata dersom kampdata faktisk er korrekte, og ikke reparer et importproblem i scoringmotoren.
+
+## 6. Fantasy-regler og brukerlag i drift
+
+- **Chat 04:** lagbygger, permanente transfers, Bytteboost, budsjett, posisjon/klubbgrense, C/VC og brukerlag.
+- **Chat 05:** runder, deadlines, flyttede kamper og snapshots.
+- **Chat 07:** leaderboard, rundehistorikk, Event Weeks og konkurransepresentasjon.
+- **Chat 10:** admin-only lag-/bytteoptimalisering og optimizerlogikk.
+
+## 7. Analyse og anbefalinger
+
+- **Chat 08:** xFP, form, fixture-rating, verdi, kjøp/hold/selg og kapteinsanalyse.
+- **Chat 09:** availability-input som påvirker analysen.
+- **Chat 10:** optimizer bruker de autoritative inputene; optimizer skal ikke reparere feil i MP-02/08/09-data selv.
+
+## 8. Tipping og miniligaer
+
+**Eier: Chat 13.**
+
+Kamptips, tabelltips, tipping-scoring, awards/streak/statistikk og felles miniliga-medlemskap håndteres her. Underliggende EHL-kamp-/terminlistedatafeil sendes til Chat 02.
+
+## 9. Teknisk produksjonsdrift og incidents
+
+**Eier: Chat 01.**
+
+Vercel, Supabase, auth, RLS, migrations, secrets, cron, HockeyLive-jobber, CI, backups, rollback, observability og tekniske produksjonsincidenter håndteres etter `docs/MP01_PRODUCTION_RUNBOOK.md`.
+
+Ved større incident:
+
+1. Beskytt dataintegritet og historiske snapshots/scoring først.
+2. Finn rotårsak før ad-hoc korrigering.
+3. Ikke svekk auth/RLS eller testisolasjon for å få systemet opp.
+4. Involver domenechatten (02/04/05/06/07/09/13) dersom feilen ligger i forretningslogikken/dataene.
+5. Dokumenter korrigering og verifisering på `main`.
+
+## 10. UI/mobil og regresjon
+
+- **Chat 11:** visuelle feil, responsive problemer, navigasjon og UX.
+- **Chat 12:** regresjon, datakvalitet, sikkerhetstester og testisolasjon etter produksjonsendringer.
+
+## Hurtigruting
+
+| Hendelse | Primær chat | Sekundær chat ved behov |
+|---|---|---|
+| Ny EHL-spiller | 02 | 03 → 08/09 |
+| Førstegangspris på ny spiller | 03 | 02 |
+| Spiller bytter klubb | 02 | 04 |
+| Spiller forlater EHL | 02 | 04 |
+| Skade/sykdom/suspensjon | 09 | 02/08 |
+| Feil roster/spiller-ID | 02 | 12 |
+| Feil kampimport/terminliste | 02 | 05/06 |
+| Feil Fantasy-poeng/kampstatistikk | 06 | 02/12 |
+| Feil deadline/snapshot | 05 | 06/12 |
+| Transfer-/lagregelproblem | 04 | 05/12 |
+| Leaderboard/Event Week/historikk | 07 | 05/06/12 |
+| xFP/anbefaling | 08 | 09/10 |
+| Bytte-/lagoptimalisering | 10 | 04/08/09 |
+| Tipping/miniliga | 13 | 02/12 |
+| UI/mobil/design | 11 | 12 |
+| Vercel/Supabase/cron/auth/RLS | 01 | 12 + relevant domenechat |
+| Større produksjonsincident | 01 | relevant domenechat |
+| Prioritering/tverrgående beslutning | Styringschat | relevant arbeidschat |
 
 ---
 
@@ -162,7 +254,8 @@ Stang Inn er nå i sesongbasert driftsfase.
 
 1. **🔵 Løpende sesongdrift:** MP-02.6 roster-/kampdatasynk, MP-09 availability, MP-13 live-verifisering, cron/sync/CI og produksjonsobservability følges gjennom sesongen.
 2. **MP-06.6 – live kampdatavalidering:** gjennomføres i Chat 06 når representative ekte 2026/27-seriekamper finnes. Punktet skal stå åpent til da.
-3. Ved incident brukes `docs/MP01_PRODUCTION_RUNBOOK.md`; dataintegritet og snapshot-/scoringfasit prioriteres foran ad-hoc korrigering.
+3. **Nye spillere/klubbskifter/avganger:** følg arbeidsflyten i «Sesongdrift 2026/27»; ny spiller går Chat 02 → Chat 03 før kjøpbarhet, klubbskifte/avgang starter i Chat 02.
+4. Ved incident brukes `docs/MP01_PRODUCTION_RUNBOOK.md`; dataintegritet og snapshot-/scoringfasit prioriteres foran ad-hoc korrigering.
 
 ## Fast handoff mellom arbeidschatter
 
