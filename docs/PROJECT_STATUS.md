@@ -12,8 +12,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-26
 ## Launch-status
 
 - **MP-14.1–MP-14.7: PASS.** Endelig launch-gate er fullført og dokumentert i `docs/MP14_LAUNCH_GATE.md`.
-- **MP-14.8 GO LIVE: gjennomført 2026-08-26 etter eksplisitt produkteiergodkjenning.** Ingen separat feature-flag/maintenance-bryter måtte åpnes; produksjonsaliaset kjørte allerede siste godkjente `main`, så launch ble gjennomført som kontrollert operativ aksept uten unødvendig redeploy eller featureendring.
-- Pre-flight ved GO LIVE: siste godkjente `main` hadde grønn GitHub Build og Vercel-status, Supabase var `ACTIVE_HEALTHY`, 45/45 Fantasy-runder og 225/225 kampkoblinger var intakte, 239/239 current-roster-spillere var kjøpbare med external ID og låst 2026/27-pris med 0 prisavvik, tre Event Weeks var publisert, 0 snapshots/lagpoeng fantes før sesongstart, og de ferskeste HockeyLive-synkene var `ok=true` med 225 importerte kamper.
+- **MP-14.8 GO LIVE: gjennomført 2026-08-26 etter eksplisitt produkteiergodkjenning.** Produksjonen er i sesongdrift.
 - **MP-06.6 står fortsatt åpen** og skal først lukkes etter full live-produksjonsvalidering mot representative ekte 2026/27-seriekamper.
 
 ## Stack og drift
@@ -30,9 +29,8 @@ Sist kontrollert mot GitHub `main`: 2026-08-26
 
 - **MP-01.7 er ferdigstilt og produksjonsverifisert 2026-08-24.** `public.players` er den generelle Stang Inn-profilen for Tipping, Fantasy, leaderboard og felles miniligaer.
 - Ny/ufullstendig bruker må eksplisitt bekrefte profilnavn via `/onboarding`; Google-navn er kun forslag.
-- `complete_stanginn_profile_v1(text)` er authenticated-only og servervaliderer profilnavnet. Direkte profilskriving for vanlige klienter er begrenset.
 - **Felles brukeradministrasjon er produksjonsverifisert 2026-08-26.** `/admin/users` er eneste autoritative skriveflate for profiler/Auth/roller på tvers av Stang Inn. Admin kan se sikker brukeroversikt, endre profilnavn, administrere adminrolle, deaktivere/gjenåpne konto og se auditlogg. Permanent sletting fra adminflaten er deaktivert slik at konkurransehistorikk beholdes.
-- `players.deactivated_at` + Supabase Auth-ban brukes sammen ved deaktivering. AuthGate kontrollerer deaktiveringsmarkøren fail-closed, slik at et fortsatt gyldig kortlivet JWT ikke gir tilgang til Stang Inn.
+- `players.deactivated_at` + Supabase Auth-ban brukes sammen ved deaktivering. AuthGate kontrollerer deaktiveringsmarkøren fail-closed.
 - `user_admin_audit` har RLS og er stengt for direkte klienttilgang. Siste aktive administrator og egen administratorkonto er beskyttet mot utilsiktet deaktivering/nedgradering.
 - Produksjonsflyten **aktiv → deaktivert → gjenåpnet** er testet med reell adminbruker, og auditloggen viste handlingene med riktig utførende administrator.
 - Den gamle brukeradministrasjonen i Hockeytipset-admin er fjernet som skriveflate og erstattet med lenke til `/admin/users`. Regresjonen `test:mp01:user-admin` beskytter at legacy brukerwrites ikke kommer tilbake.
@@ -51,45 +49,29 @@ Sist kontrollert mot GitHub `main`: 2026-08-26
 - Persistente brukerlag, 100m budsjett, posisjons-/klubbregler, rekke 1/2, C/VC og responsive lagbyggerflater.
 - MP-04.5/04.6 transferkjernen er ferdigstilt og behavioralt verifisert: maks 2 permanente bytter per ordinær runde, ingen bank eller poengtrekk, Bytteboost opptil 4, Event Week-sperre og permanent transferledger.
 - MP-04.7 viser autoritative gameweek-motstandere med H/B og 0/1/flere kamper direkte i lagbyggeren.
-- **MP-04.8 obligatorisk Fantasy-lagnavn er ferdigstilt og produksjonsverifisert 2026-08-24.** Nye lag kan ikke lagres med tomt/whitespace-navn eller placeholder; servervalidator, triggergate og authenticated-only rename-RPC er på plass. Navneendring teller ikke som transfer og endrer ikke team-ID, roster, C/VC, transferledger, snapshots, boostere eller poeng.
+- **MP-04.8 obligatorisk Fantasy-lagnavn er ferdigstilt og produksjonsverifisert 2026-08-24.** Nye lag kan ikke lagres med tomt/whitespace-navn eller placeholder; servervalidator, triggergate og authenticated-only rename-RPC er på plass. Navneendring teller ikke som transfer.
+- **Fantasy spillerkort-konsistens er oppdatert 2026-08-26.** Spillermarkedet bruker nå samme grunnstruktur/informasjonsrekkefølge som spillerkortene under `Mitt lag`: posisjon, spiller, klubb/posisjon, valgt rundes motstander(e) med H/B og pris. Markedskortet beholder `+` som egen add-handling. Implementert på `main` i commit `f12120e9` og skal behandles som UI-kontrakt ved senere lagbyggerendringer.
 - MP-05 kalender/deadline/snapshot-kjernen er implementert.
 - MP-06 scoring med special teams, C×2 og VC×1,5 er implementert; full live-validering mot representative 2026/27-kamper tas når slike kamper finnes.
-- MP-07.1–07.9 leaderboard, tie-break, Bonus Weeks, snapshot-first rundehistorikk og personlig statistikk er ferdigstilt.
-- **MP-07.10 lagnavn + eiernavn er ferdigstilt og produksjonsverifisert 2026-08-24.** Globalt leaderboard bruker dagens Fantasy-lagnavn + dagens bekreftede Stang Inn-profilnavn; historiske runder bruker snapshot-frosset `team_name` + `owner_name`; månedstabell bruker identiteten fra siste snapshot i måneden. Ingen e-post/private profilfelt eksponeres. Identity-RPC-ene er authenticated-only og Vercel er grønn.
-- **MP-07.11 + MP-07.12 Event Weeks er ferdigstilt og produksjonsverifisert 2026-08-25.** GW15 = Rik Onkel 200m med separat eventlag, GW38 = Fattig Onkel 70m med separat eventlag, og GW22 = Julebord / «Alle skal med!» med begge rekker 100 %, ordinær C×2/VC×1,5 og personlige boostere sperret. Alle tre peker på autoritative femkampsrunder med 10 lag og deadline lik første kampstart. Permanente transfers er sperret i Event Weeks, permanentlaget overskrives ikke av Rik/Fattig-eventlag, og snapshot/scoring/history/leaderboard/UI-kjeden er koblet til eventidentiteten.
-- Produksjonsdatabasen inneholder den faktiske Event Week-konfigurasjonen; verifikasjonen baserte seg ikke bare på SQL-filer i repoet. Ved launch var target-rundene fortsatt uten snapshots/scoring/aktive boostere/permanente transferbatcher, så eksisterende 2026/27-historikk var ikke omskrevet.
-- Event Week-RPC-er er authenticated-only der de skal være det, `anon` har ikke utilsiktet EXECUTE på de kontrollerte bruker-/interne funksjonene, og Event Week-regresjonen + øvrige CI-gater + Next.js-build er grønne på `main`.
-- Bonus Weeks: Kapteinsboost ×2,5, Rekkeboost (rekke 2 = 100 %), Bytteboost opptil 4; Rik/Fattig Onkel bruker separate eventlag.
+- MP-07 leaderboard, tie-break, Bonus Weeks, rundehistorikk, identitet og Event Weeks er ferdigstilt.
 - MP-08 analyse/xFP/fixture-rating er produksjonsverifisert. Preseason-/treningskampstatistikk brukes ikke som Fantasy-signal.
-- **MP-10 lagoptimalisator er ferdigstilt og produksjonsverifisert som admin-only analyseverktøy.** Offentlig optimizer-side/API og vanlig Fantasy-navigasjon er fjernet, og optimizer-tilgangen er admin-gated. Låste spillere fungerer som server-side constraint. Transferstatus-kontrakten ble produksjonsrettet 2026-08-26 slik at `get_fantasy_transfer_status_v1` eksplisitt returnerer `permanent_transfers_allowed`; optimizeren følger dermed autoritativ 0/2/4-logikk for Event Weeks/ordinære runder/Bytteboost. Feilen der 2/2 ledige bytter kunne vises som «Sperret» er lukket og produksjonsverifisert: låste spillere beholdes og ulåste kan foreslås UT.
-- **MP-11.8 redesign/branding er ferdigstilt.** Valgt premium sportsretning med Stang Inn-logo/SI-mark, samlet shell/header/navigasjon, svart/gull merkevare, metadata/favicon/app-assets og konsistent mobil/desktop-presentasjon er implementert på `main` og produksjonsverifisert.
-- MP-14.6 faktisk desktop/mobil-smoke er bestått. Mobilavviket i `Mitt lag → Spillermarked` ble rettet på `main`, deployet med grønn CI/Vercel og visuelt re-verifisert før GO LIVE.
+- MP-10 lagoptimalisator er produksjonsverifisert som admin-only analyseverktøy.
+- **MP-11.8 redesign/branding er ferdigstilt.** Valgt premium sportsretning med Stang Inn-logo/SI-mark, samlet shell/header/navigasjon, svart/gull merkevare og konsistent mobil/desktop-presentasjon er implementert.
+- **MP-11 UI-kontrakt:** `Spillermarked` og `Mitt lag` skal bruke samme spillerkortspråk på mobil og desktop. Forskjellen skal primært være konteksthandlingene (f.eks. `+` i markedet versus C/VC/fjern/bytt-rekke på laget), ikke ulik grunnpresentasjon av spilleren.
 
 ## Tipping og felles miniligaer
 
 - MP-13.1–13.5 er preseasonklare: kamptips, tabelltips, server-eid scoring, awards/statistikk og mobilflyt.
-- **MP-13.6 felles miniligaer er ferdigstilt og produksjonsverifisert 2026-08-24.**
-  - Én kanonisk `stang_inn_private_leagues` + `stang_inn_private_league_members`-modell brukes på tvers av Tipping og Fantasy.
-  - Eksisterende legacy-ligaer og medlemskap er migrert uten tap av liga-ID, invitasjonskode, eier, medlemskap eller `joined_at`; legacy-tabellene beholdes som immutable migreringshistorikk.
-  - Gamle Fantasy-/Tipping-RPC-er er kompatibilitetswrappere mot den felles modellen.
-  - Create/join/list/leave og medlemskontroll er authenticated-only; `anon` har ikke EXECUTE, og vanlige klientroller har ingen direkte tabelltilgang.
-  - Ligaeier er ligadmin og kan ikke forlate ligaen; ordinær utmelding fjerner medlemskapet fra begge produkter og rejoin via samme kode gjenoppretter begge.
-  - `/leagues` er felles brukerflate med Tipping-/Fantasy-faner; gamle `/fantasy/leagues`-ruter redirecter dit.
-  - Fantasy-tabellen bruker autoritativ Fantasy-ranking/tie-break og viser lagnavn + bekreftet profilnavn. Tipping-tabellen beholder eksisterende tipping-score/tie-break og viser Stang Inn-profilnavn.
-  - Rollback-only behavioral produksjonstest verifiserte cross-product create/join/synlighet, separate standings, leave/rejoin, owner-sperre og 0 testrester.
-  - MP-13.6-regresjon er koblet til CI og Vercel-build er grønn.
+- **MP-13.6 felles miniligaer er ferdigstilt og produksjonsverifisert 2026-08-24.** Én kanonisk liga-/medlemskapsmodell brukes på tvers av Tipping og Fantasy, med authenticated-only RPC-er og separate produktstandings.
 - Live-verifisering av Tipping fortsetter på reelle sesongdata.
 
 ## Testing og sikkerhet
 
-- **MP-12 bred sluttregresjon er ferdigstilt og grønn etter identitets-, lagnavn-, miniliga-, Event Week- og MP-11.8-endringene.** GitHub Actions og Vercel er grønne.
+- **MP-12 bred sluttregresjon er ferdigstilt og grønn.** GitHub Actions og Vercel er etablerte produksjonsgater.
 - MP-01.6-produksjonsregresjonen beskytter cron-secret/retry, HockeyLive-timeout, partial-sync failure og service-only hardening.
 - MP-01 user-admin-regresjonen beskytter admin-gate, deaktivering/gjenåpning, audit, last-admin/self-gater, fravær av hard delete og én autoritativ brukeradminflate.
-- MP-04 transferregresjonen inkluderer MP-04.8-kontrakter.
-- MP-07.10-regresjonen beskytter snapshot-frosset `owner_name`, bekreftet profilnavn, identitets-RPC-er, uendret ranking/tie-break, fravær av e-post og anon-hardening.
-- MP-07.11/07.12-regresjonen beskytter GW15/GW22/GW38, 200m/70m, Julebord-rekke 2 = 100 %, ordinær C/VC, booster-/transfersperrer og Event Week-identitet i UI/historikk.
-- MP-13.6-regresjonen beskytter den kanoniske felles liga-/medlemskapsmodellen, cross-product medlemskap, separate produktstandings, owner/leave/rejoin og auth/RLS.
-- Produksjonssmoke og testisolasjonskontroller viste 0 varige syntetiske testrester i ekte 2026/27-data.
+- Relevante Fantasy/Tipping/leaderboard/miniliga/Event Week-regresjoner skal videreføres ved sesongendringer.
+- Produksjonssmoke og testisolasjonskontroller skal fortsatt sikre 0 varige syntetiske testrester i ekte 2026/27-data.
 
 ## Aktivt område / neste kobling
 
@@ -98,7 +80,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-26
 Neste operative fokus:
 
 1. **MP-02.6 / MP-09 / MP-13 – løpende sesongdrift:** roster, kampdatasynk, availability, tipping-liveverifisering, CI/Vercel/Supabase og cron/sync overvåkes fortløpende.
-2. **MP-06.6 – full live kampdatavalidering:** tas i Chat 06 så snart representative ekte 2026/27-seriekamper finnes. Dette punktet er bevisst fortsatt åpent.
+2. **MP-06.6 – full live kampdatavalidering:** tas i Chat 06 så snart representative ekte 2026/27-seriekamper finnes.
 3. Ved driftsavvik brukes `docs/MP01_PRODUCTION_RUNBOOK.md` og `docs/MP14_LAUNCH_GATE.md` som operativt grunnlag.
 
 ## Arbeidsstart i ny chat
