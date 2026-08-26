@@ -117,6 +117,8 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 **Status: ✅ adminverktøy produksjonsverifisert**
 
 - MP-10.1–MP-10.5 ✅ Lag/budsjett/transferstatus/låste spillere, UT→INN, xFP-gevinst/risiko, strategier, availability/fixture og autoritative transferregler er implementert.
+- **Admin-only-policy ✅:** Lagoptimalisatoren er et internt analyseverktøy og skal kun være tilgjengelig under adminverktøyet. Offentlig `/fantasy/optimizer`, offentlig optimizer-API og vanlig Fantasy-navigasjon er fjernet; optimizer-RPC-er/endepunkter er beskyttet av admin-gate.
+- **Transferstatus/låste spillere – produksjonsfiks ✅ 2026-08-26:** `get_fantasy_transfer_status_v1` returnerer eksplisitt `permanent_transfers_allowed`, slik at optimizeren bruker den autoritative 0/2/4-kontrakten korrekt: 2 permanente bytter i ordinær runde, opptil 4 med Bytteboost og 0 i Rik/Fattig Onkel. Dette rettet feilen der 2/2 ledige bytter kunne vises samtidig som transferregelen feilaktig sto som «Sperret». Produksjonsverifisert med låste spillere: låste spillere beholdes, mens ulåste spillere kan foreslås UT når et gyldig bedre bytte finnes.
 
 # MP-11 – UI/UX og mobilopplevelse
 

@@ -55,7 +55,7 @@ Sist kontrollert mot GitHub `main`: 2026-08-26
 - Event Week-RPC-er er authenticated-only der de skal være det, `anon` har ikke utilsiktet EXECUTE på de kontrollerte bruker-/interne funksjonene, og Event Week-regresjonen + øvrige CI-gater + Next.js-build er grønne på `main`.
 - Bonus Weeks: Kapteinsboost ×2,5, Rekkeboost (rekke 2 = 100 %), Bytteboost opptil 4; Rik/Fattig Onkel bruker separate eventlag.
 - MP-08 analyse/xFP/fixture-rating er produksjonsverifisert. Preseason-/treningskampstatistikk brukes ikke som Fantasy-signal.
-- MP-10 lagoptimalisator er ferdigstilt som adminverktøy.
+- **MP-10 lagoptimalisator er ferdigstilt og produksjonsverifisert som admin-only analyseverktøy.** Offentlig optimizer-side/API og vanlig Fantasy-navigasjon er fjernet, og optimizer-tilgangen er admin-gated. Låste spillere fungerer som server-side constraint. Transferstatus-kontrakten ble produksjonsrettet 2026-08-26 slik at `get_fantasy_transfer_status_v1` eksplisitt returnerer `permanent_transfers_allowed`; optimizeren følger dermed autoritativ 0/2/4-logikk for Event Weeks/ordinære runder/Bytteboost. Feilen der 2/2 ledige bytter kunne vises som «Sperret» er lukket og produksjonsverifisert: låste spillere beholdes og ulåste kan foreslås UT.
 - **MP-11.8 redesign/branding er ferdigstilt.** Valgt premium sportsretning med Stang Inn-logo/SI-mark, samlet shell/header/navigasjon, svart/gull merkevare, metadata/favicon/app-assets og konsistent mobil/desktop-presentasjon er implementert på `main` og produksjonsverifisert.
 - MP-14.6 faktisk desktop/mobil-smoke er bestått. Mobilavviket i `Mitt lag → Spillermarked` ble rettet på `main`, deployet med grønn CI/Vercel og visuelt re-verifisert før GO LIVE.
 
