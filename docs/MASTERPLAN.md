@@ -58,6 +58,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 **Status: ✅ transfer-/regel-/lagnavnkjernen ferdigstilt / 🔵 sesongvedlikehold**
 
 - MP-04.1–MP-04.8 ✅ Persistente lag, C/VC, klubb-/lagvalidering, lagbygger, transfers, deadline-/snapshotregler, GW-motstandere og obligatorisk lagnavn er implementert og verifisert.
+- 🔵 **UI-kontrakt 2026-08-26:** spillerkort i `Spillermarked` skal bruke samme grunnstruktur og informasjonsrekkefølge som spillerkortene under `Mitt lag` (posisjon, navn, klubb/posisjon, valgt rundes motstander(e) med H/B og pris), mens markedskortet beholder `+` som markedshandling. Implementert på `main` i `f12120e9`.
 
 # MP-05 – Fantasy-runder, deadlines og snapshots
 
@@ -104,6 +105,7 @@ Stang Inn skal være en mobilvennlig webapp for norsk ishockey med to hovedprodu
 **Status: ✅ redesign/branding og samlet mobil-/desktop-pass ferdigstilt**
 
 - MP-11.1–MP-11.8 ✅ Navigasjon, Fantasy/Tipping-flater, mobil, states, UX-polering og Stang Inn-redesign/logo/branding er implementert og verifisert.
+- 🔵 **Fantasy-kortkonsistens:** `Spillermarked` og `Mitt lag` bruker samme visuelle spillerkortspråk på mobil/desktop; markedet beholder egen add-handling. Dette er en videre UI-kontrakt ved senere endringer i lagbyggeren.
 
 # MP-12 – Testing, sikkerhet og datakvalitet
 
@@ -212,58 +214,31 @@ Vercel, Supabase, auth, RLS, migrations, secrets, cron, HockeyLive-jobber, CI, b
 
 Ved større incident:
 
-1. Beskytt dataintegritet og historiske snapshots/scoring først.
-2. Finn rotårsak før ad-hoc korrigering.
-3. Ikke svekk auth/RLS eller testisolasjon for å få systemet opp.
-4. Involver domenechatten (02/04/05/06/07/09/13) dersom feilen ligger i forretningslogikken/dataene.
-5. Dokumenter korrigering og verifisering på `main`.
+1. Beskytt dataintegritet først; ikke svekk auth/RLS og ikke gjør destruktive produksjonsendringer for å få grønt lys raskt.
+2. Skill frontend/runtime, auth, Data API/PostgREST, database og eksterne requests før årsak antas.
+3. Bruk kjent grønn Vercel-deploy/Git-revert for kode-rollback; database håndteres separat etter runbook.
+4. Etter recovery verifiseres auth/onboarding, Fantasy, Tipping, synk og relevante data før incidenten lukkes.
 
-## 10. UI/mobil og regresjon
+## 10. Brukeridentitet og konto-/adminproblemer
 
-- **Chat 11:** visuelle feil, responsive problemer, navigasjon og UX.
-- **Chat 12:** regresjon, datakvalitet, sikkerhetstester og testisolasjon etter produksjonsendringer.
+**Eier: Chat 01.**
 
-## Hurtigruting
-
-| Hendelse | Primær chat | Sekundær chat ved behov |
-|---|---|---|
-| Ny EHL-spiller | 02 | 03 → 08/09 |
-| Førstegangspris på ny spiller | 03 | 02 |
-| Spiller bytter klubb | 02 | 04 |
-| Spiller forlater EHL | 02 | 04 |
-| Skade/sykdom/suspensjon | 09 | 02/08 |
-| Feil roster/spiller-ID | 02 | 12 |
-| Feil kampimport/terminliste | 02 | 05/06 |
-| Feil Fantasy-poeng/kampstatistikk | 06 | 02/12 |
-| Feil deadline/snapshot | 05 | 06/12 |
-| Transfer-/lagregelproblem | 04 | 05/12 |
-| Leaderboard/Event Week/historikk | 07 | 05/06/12 |
-| xFP/anbefaling | 08 | 09/10 |
-| Bytte-/lagoptimalisering | 10 | 04/08/09 |
-| Tipping/miniliga | 13 | 02/12 |
-| UI/mobil/design | 11 | 12 |
-| Vercel/Supabase/cron/auth/RLS | 01 | 12 + relevant domenechat |
-| Større produksjonsincident | 01 | relevant domenechat |
-| Prioritering/tverrgående beslutning | Styringschat | relevant arbeidschat |
+- Profilnavn/onboarding, Auth, RLS, adminrolle og brukeradministrasjon håndteres som felles Stang Inn-identitet, ikke som Fantasy-/Tipping-spesifikk logikk.
+- Offentlige konkurranseflater skal bruke profil-/lagnavn etter gjeldende identitetskontrakt og skal ikke eksponere e-post eller andre unødvendige personopplysninger.
+- Konto-/Auth-feil skal diagnostiseres mot faktisk Supabase/Auth-status før profil- eller konkurransedata endres.
 
 ---
 
-## Prioritert arbeidskø
+# Åpne live-valideringer etter GO LIVE
 
-Stang Inn er nå i sesongbasert driftsfase.
+1. **MP-06.6:** valider full Fantasy-scoring/reconciliation mot representative ekte 2026/27-seriekamper når kampdata finnes.
+2. **MP-02.6 / MP-09:** løpende roster-, kampdata- og availability-verifisering gjennom sesongen.
+3. **MP-13:** live Tipping-verifisering på reelle avgjorte kamper.
+4. **Drift:** følg cron/sync_runs, CI/Vercel, Supabase og backup/rollback-rutiner etter MP-01-runbook.
 
-1. **🔵 Løpende sesongdrift:** MP-02.6 roster-/kampdatasynk, MP-09 availability, MP-13 live-verifisering, cron/sync/CI og produksjonsobservability følges gjennom sesongen.
-2. **MP-06.6 – live kampdatavalidering:** gjennomføres i Chat 06 når representative ekte 2026/27-seriekamper finnes. Punktet skal stå åpent til da.
-3. **Nye spillere/klubbskifter/avganger:** følg arbeidsflyten i «Sesongdrift 2026/27»; ny spiller går Chat 02 → Chat 03 før kjøpbarhet, klubbskifte/avgang starter i Chat 02.
-4. Ved incident brukes `docs/MP01_PRODUCTION_RUNBOOK.md`; dataintegritet og snapshot-/scoringfasit prioriteres foran ad-hoc korrigering.
+# Prioritert arbeidskø etter GO LIVE
 
-## Fast handoff mellom arbeidschatter
-
-Når et steg faktisk er ferdig:
-
-- **✅ Ferdig:** `MP-XX.YY – kort navn`.
-- **Verifisert:** finnes på `main` + relevante tester/kontroller bestått.
-- **➡️ Neste prioritet:** `Chat NN – navn`, `MP-XX.YY – konkret neste oppgave`.
-- **Hvorfor nå:** kort forklaring på avhengigheten/prioriteringen.
-
-Hvis arbeidet ikke er på `main`, verifikasjon mangler eller nødvendig manuell SQL gjenstår, skal punktet ikke markeres ferdig.
+1. 🔵 **Sesongdrift:** håndter nye spillere, klubbskifter, rosterendringer, availability og kampdata etter arbeidsfordelingen over.
+2. ⬜ **MP-06.6:** full live scoring/reconciliation når representative seriekamper finnes.
+3. 🔵 **Tipping live:** verifiser scoring/awards/statistikk når kamper blir avgjort.
+4. 🔵 **Regresjonsvedlikehold:** kjør/utvid relevante gater ved hver endring i regler, scoring, auth, snapshots, miniligaer eller Event Weeks.
