@@ -23,6 +23,8 @@ jobs:
         run: npm run test:mp01:operations
       - name: MP-01 user admin lifecycle regression
         run: npm run test:mp01:user-admin
+      - name: MP-01 scaling and Google-only auth regression
+        run: npm run test:mp01:scaling-auth
       - name: MP-12 scoring regression
         run: npm run test:mp12:scoring
       - name: MP-12 security contract regression
