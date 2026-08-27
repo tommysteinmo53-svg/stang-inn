@@ -5,9 +5,11 @@ const login=read("app/login/page.tsx");
 const authGate=read("components/AuthGate.tsx");
 const home=read("components/UnifiedHomeDashboard.tsx");
 const leaderboard=read("app/leaderboard/page.tsx");
+const fantasyLeaderboard=read("app/fantasy/leaderboard/page.tsx");
 const homeSql=read("supabase/mp01-scaling-tipping-home-summary-v1.sql");
 const leaderboardSql=read("supabase/mp01-scaling-tipping-leaderboard-v2.sql");
 const fantasyHomeSql=read("supabase/mp01-scaling-fantasy-home-summary-v1.sql");
+const cacheSql=read("supabase/mp01-scaling-competition-cache-v1.sql");
 
 const checks=[
  ["Login uses Google OAuth",login.includes('provider: "google"')&&login.includes("signInWithOAuth")],
@@ -32,6 +34,15 @@ const checks=[
  ["Leaderboard RPC is authenticated-only",leaderboardSql.includes("revoke all on function public.get_tipping_leaderboard_v1() from public, anon")&&leaderboardSql.includes("grant execute on function public.get_tipping_leaderboard_v1() to authenticated")],
  ["Leaderboard avoids player x match cross join",!leaderboardSql.includes("cross join finished_matches")&&!leaderboardSql.includes("cross join finished_matches fm")],
  ["Leaderboard streaks preserve contiguous match semantics",leaderboardSql.includes("rt.match_no - row_number()")&&leaderboardSql.includes("run_end = (select max_match_no from max_match)")],
+ ["Fantasy leaderboard uses competition v2 RPC",fantasyLeaderboard.includes('rpc("get_fantasy_competition_table_v2",{p_season:SEASON})')],
+ ["Competition cache tables deny direct client grants",cacheSql.includes("revoke all on table public.tipping_leaderboard_cache from public, anon, authenticated")&&cacheSql.includes("revoke all on table public.fantasy_season_leaderboard_cache from public, anon, authenticated")],
+ ["Competition cache tables have RLS",cacheSql.includes("alter table public.tipping_leaderboard_cache enable row level security")&&cacheSql.includes("alter table public.fantasy_season_leaderboard_cache enable row level security")],
+ ["Cache refresh is service-role only",cacheSql.includes("grant execute on function public.refresh_tipping_leaderboard_cache_v1() to service_role")&&cacheSql.includes("grant execute on function public.refresh_fantasy_season_leaderboard_cache_v1(text) to service_role")&&cacheSql.includes("revoke all on function public.refresh_tipping_leaderboard_cache_v1() from public, anon, authenticated")],
+ ["Cached reads filter deactivated users live",(cacheSql.match(/p\.deactivated_at is null/g)||[]).length>=3],
+ ["Cached Fantasy read preserves MP-07 tie-break",cacheSql.includes("a.total_points desc")&&cacheSql.includes("a.round_wins desc")&&cacheSql.includes("a.best_round_points desc")],
+ ["Cached Fantasy competition preserves movement inputs",cacheSql.includes("previous_total")&&cacheSql.includes("previous_round_wins")&&cacheSql.includes("previous_best_round_points")&&cacheSql.includes("previous_standings_position")],
+ ["Cached Fantasy competition preserves current identity",cacheSql.includes("t.name::text as team_name")&&cacheSql.includes("p.profile_name_confirmed_at is not null")&&cacheSql.includes("'Ukjent spiller'")],
+ ["Cached read RPCs stay authenticated-only",cacheSql.includes("grant execute on function public.get_tipping_leaderboard_v1() to authenticated")&&cacheSql.includes("grant execute on function public.get_my_tipping_home_summary_v1() to authenticated")&&cacheSql.includes("grant execute on function public.get_my_fantasy_home_summary_v1(text) to authenticated")&&cacheSql.includes("grant execute on function public.get_fantasy_competition_table_v2(text) to authenticated")],
 ];
 
 let failed=0;
