@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../../lib/supabase";
 import styles from "./page.module.css";
@@ -10,20 +10,29 @@ function safeNext(value:string|null){
  if(!value||!value.startsWith("/")||value.startsWith("//"))return "/";
  return value;
 }
+function hasGoogleIdentity(user:any){
+ const identities=Array.isArray(user?.identities)?user.identities:[];
+ const providers=Array.isArray(user?.app_metadata?.providers)?user.app_metadata.providers:[];
+ return identities.some((identity:any)=>identity?.provider==="google")||user?.app_metadata?.provider==="google"||providers.includes("google");
+}
 
 export default function LoginPage() {
   const params=useSearchParams();
   const next=useMemo(()=>safeNext(params.get("next")),[params]);
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(params.get("reason")==="google_required"?"Stang Inn bruker nå kun Google-innlogging. Velg Google-kontoen din for å fortsette.":"");
   const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     const supabase = getSupabaseBrowserClient();
-    supabase?.auth.getSession().then(({ data }) => {
-      if (data.session) window.location.replace(next);
+    supabase?.auth.getSession().then(async ({ data }) => {
+      if (!data.session) return;
+      if (hasGoogleIdentity(data.session.user)) {
+        window.location.replace(next);
+        return;
+      }
+      await supabase.auth.signOut({scope:"local"});
+      setMessage("Denne innloggingen er ikke koblet til Google. Stang Inn bruker nå kun Google-innlogging.");
     });
   }, [next]);
 
@@ -46,41 +55,19 @@ export default function LoginPage() {
     if (error) { setGoogleLoading(false); setMessage(`${error.message}${error.status ? ` (HTTP ${error.status})` : ""}`); }
   }
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!isSupabaseConfigured) { setMessage("Supabase er ikke koblet til ennå. Legg inn miljøvariablene først."); return; }
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) return;
-    rememberReturn();
-    setLoading(true); setMessage("");
-    const callback=next==="/"?`${window.location.origin}/`:`${window.location.origin}/?next=${encodeURIComponent(next)}`;
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options:{ emailRedirectTo:callback },
-    });
-    setLoading(false);
-    setMessage(error ? `${error.message}${error.status ? ` (HTTP ${error.status})` : ""}` : "Innloggingslenken er sendt. Sjekk e-posten din 🏒");
-  }
-
   return (
     <main className={styles.shell}>
       <section className={styles.card}>
         <div className={styles.mark}>🏒</div>
         <p className={styles.eyebrow}>EHL 2026/27</p>
         <h1 className={styles.title}>Stang Inn</h1>
-        <p className={styles.muted}>Én innlogging for Hockeytips og EHL Fantasy. Lever tips, bygg fantasylaget og følg konkurransene gjennom hele sesongen.</p>
+        <p className={styles.muted}>Én Google-innlogging for Stang Inn Tipping og EHL Fantasy. Lever tips, bygg fantasylaget og følg konkurransene gjennom hele sesongen.</p>
 
-        <button className={styles.googleButton} type="button" onClick={signInWithGoogle} disabled={googleLoading || loading}>
+        <button className={styles.googleButton} type="button" onClick={signInWithGoogle} disabled={googleLoading}>
           <span className={styles.googleMark}>G</span>
           {googleLoading ? "Åpner Google …" : "Fortsett med Google"}
         </button>
-        <div className={styles.divider}><span>eller</span></div>
-        <form className={styles.form} onSubmit={submit}>
-          <label htmlFor="email">Logg inn med e-post</label>
-          <input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="navn@epost.no" />
-          <button className={styles.button} type="submit" disabled={loading || googleLoading}>{loading ? "Sender …" : "Send innloggingslenke"}</button>
-        </form>
-        <p className={styles.helper}>Samme konto brukes i både Hockeytips og Fantasy. Google anbefales; e-post er tilgjengelig som reserve.</p>
+        <p className={styles.helper}>Stang Inn bruker kun Google-innlogging. Profilnavnet ditt i Stang Inn administreres separat fra Google-kontoens navn.</p>
         {!isSupabaseConfigured && <div className={styles.notice}>Demo-modus: Supabase-miljøvariablene mangler. Appen kan fortsatt vises lokalt, men innlogging er ikke aktivert.</div>}
         {message && <p className={styles.message}>{message}</p>}
       </section>
