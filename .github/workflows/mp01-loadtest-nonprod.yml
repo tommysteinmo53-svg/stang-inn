@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Run isolated cached read-path bursts
+      - name: Run isolated live-ranked cached bursts
         shell: bash
         env:
           SUPABASE_URL: https://iemvlwafnwakgmalhggk.supabase.co
@@ -26,9 +26,9 @@ jobs:
           const uid="00000000-0000-4000-8000-000000000001";
           const stages=[100,250,500,1000];
           const targets=[
-            {name:"tipping-home-cached",path:"loadtest_cached_tipping_home",body:{p_user_id:uid}},
-            {name:"fantasy-home-cached",path:"loadtest_cached_fantasy_home",body:{p_user_id:uid,p_season:"2026/27"}},
-            {name:"tipping-leaderboard-cached",path:"loadtest_cached_tipping_leaderboard",body:{}},
+            {name:"tipping-home-live-rank",path:"loadtest_cached_tipping_home_live_rank",body:{p_user_id:uid}},
+            {name:"fantasy-home-live-rank",path:"loadtest_cached_fantasy_home_live_rank",body:{p_user_id:uid,p_season:"2026/27"}},
+            {name:"tipping-leaderboard-live-rank",path:"loadtest_cached_tipping_leaderboard_live_rank",body:{}},
           ];
           const headers={apikey:key,"content-type":"application/json"};
           function pct(v,p){if(!v.length)return 0;v=[...v].sort((a,b)=>a-b);return v[Math.min(v.length-1,Math.ceil(v.length*p/100)-1)]}
