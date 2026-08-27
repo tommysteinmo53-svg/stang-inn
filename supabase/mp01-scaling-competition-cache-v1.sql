@@ -52,7 +52,7 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-  row_count integer;
+  refreshed_rows integer;
 begin
   delete from public.tipping_leaderboard_cache;
 
@@ -176,8 +176,8 @@ begin
     now()
   from ranked r;
 
-  get diagnostics row_count = row_count;
-  return row_count;
+  get diagnostics refreshed_rows = row_count;
+  return refreshed_rows;
 end;
 $$;
 
