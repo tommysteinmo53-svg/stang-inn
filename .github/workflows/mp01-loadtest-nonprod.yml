@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Run isolated live-ranked cached bursts
+      - name: Run isolated Fantasy competition bursts
         shell: bash
         env:
           SUPABASE_URL: https://iemvlwafnwakgmalhggk.supabase.co
@@ -23,28 +23,19 @@ jobs:
           const base=process.env.SUPABASE_URL.replace(/\/$/,"");
           const key=process.env.SUPABASE_PUBLISHABLE_KEY;
           if(!base.includes("iemvlwafnwakgmalhggk.supabase.co")) throw new Error("Refusing non-preview target");
-          const uid="00000000-0000-4000-8000-000000000001";
           const stages=[100,250,500,1000];
-          const targets=[
-            {name:"tipping-home-live-rank",path:"loadtest_cached_tipping_home_live_rank",body:{p_user_id:uid}},
-            {name:"fantasy-home-live-rank",path:"loadtest_cached_fantasy_home_live_rank",body:{p_user_id:uid,p_season:"2026/27"}},
-            {name:"tipping-leaderboard-live-rank",path:"loadtest_cached_tipping_leaderboard_live_rank",body:{}},
-          ];
+          const target={name:"fantasy-competition-v2-cached",path:"loadtest_fantasy_competition_table_v2_cached",body:{p_season:"2026/27"}};
           const headers={apikey:key,"content-type":"application/json"};
           function pct(v,p){if(!v.length)return 0;v=[...v].sort((a,b)=>a-b);return v[Math.min(v.length-1,Math.ceil(v.length*p/100)-1)]}
-          async function once(t){const c=new AbortController();const timer=setTimeout(()=>c.abort(),15000);const s=performance.now();try{const r=await fetch(`${base}/rest/v1/rpc/${t.path}`,{method:"POST",headers,body:JSON.stringify(t.body),signal:c.signal});const ms=performance.now()-s;if(!r.ok)return{ok:false,ms,status:r.status,error:(await r.text()).slice(0,120)};await r.arrayBuffer();return{ok:true,ms,status:r.status}}catch(e){return{ok:false,ms:performance.now()-s,status:0,error:e?.name||String(e)}}finally{clearTimeout(timer)}}
+          async function once(){const c=new AbortController();const timer=setTimeout(()=>c.abort(),20000);const s=performance.now();try{const r=await fetch(`${base}/rest/v1/rpc/${target.path}`,{method:"POST",headers,body:JSON.stringify(target.body),signal:c.signal});const ms=performance.now()-s;if(!r.ok)return{ok:false,ms,status:r.status,error:(await r.text()).slice(0,120)};await r.arrayBuffer();return{ok:true,ms,status:r.status}}catch(e){return{ok:false,ms:performance.now()-s,status:0,error:e?.name||String(e)}}finally{clearTimeout(timer)}}
           let failed=false;
           for(const n of stages){
-            console.log(`\n=== concurrency ${n} ===`);
-            for(const t of targets){
-              const started=performance.now();
-              const rs=await Promise.all(Array.from({length:n},()=>once(t)));
-              const ok=rs.filter(x=>x.ok),bad=rs.filter(x=>!x.ok),lat=ok.map(x=>x.ms);
-              const row={target:t.name,concurrency:n,ok:ok.length,failed:bad.length,error_rate:+(bad.length*100/rs.length).toFixed(2),p50_ms:+pct(lat,50).toFixed(1),p95_ms:+pct(lat,95).toFixed(1),p99_ms:+pct(lat,99).toFixed(1),burst_ms:+(performance.now()-started).toFixed(1)};
-              console.log(JSON.stringify(row));
-              if(bad.length){failed=true;console.log("sample_error",bad[0]);}
-              await new Promise(r=>setTimeout(r,3000));
-            }
+            const started=performance.now();
+            const rs=await Promise.all(Array.from({length:n},()=>once()));
+            const ok=rs.filter(x=>x.ok),bad=rs.filter(x=>!x.ok),lat=ok.map(x=>x.ms);
+            console.log(JSON.stringify({target:target.name,concurrency:n,ok:ok.length,failed:bad.length,error_rate:+(bad.length*100/rs.length).toFixed(2),p50_ms:+pct(lat,50).toFixed(1),p95_ms:+pct(lat,95).toFixed(1),p99_ms:+pct(lat,99).toFixed(1),burst_ms:+(performance.now()-started).toFixed(1)}));
+            if(bad.length){failed=true;console.log("sample_error",bad[0]);}
+            await new Promise(r=>setTimeout(r,3000));
           }
           if(failed) process.exitCode=1;
           })().catch(e=>{console.error(e);process.exit(1)});
