@@ -6,7 +6,7 @@ const authGate=read("components/AuthGate.tsx");
 const home=read("components/UnifiedHomeDashboard.tsx");
 const leaderboard=read("app/leaderboard/page.tsx");
 const homeSql=read("supabase/mp01-scaling-tipping-home-summary-v1.sql");
-const leaderboardSql=read("supabase/mp01-scaling-tipping-leaderboard-v1.sql");
+const leaderboardSql=read("supabase/mp01-scaling-tipping-leaderboard-v2.sql");
 const fantasyHomeSql=read("supabase/mp01-scaling-fantasy-home-summary-v1.sql");
 
 const checks=[
@@ -30,6 +30,8 @@ const checks=[
  ["Leaderboard polls only lightweight match status",leaderboard.includes('.from("matches").select("id,finished,match_time")')],
  ["Leaderboard SQL excludes deactivated users",leaderboardSql.includes("where p.deactivated_at is null")],
  ["Leaderboard RPC is authenticated-only",leaderboardSql.includes("revoke all on function public.get_tipping_leaderboard_v1() from public, anon")&&leaderboardSql.includes("grant execute on function public.get_tipping_leaderboard_v1() to authenticated")],
+ ["Leaderboard avoids player x match cross join",!leaderboardSql.includes("cross join finished_matches")&&!leaderboardSql.includes("cross join finished_matches fm")],
+ ["Leaderboard streaks preserve contiguous match semantics",leaderboardSql.includes("rt.match_no - row_number()")&&leaderboardSql.includes("run_end = (select max_match_no from max_match)")],
 ];
 
 let failed=0;
