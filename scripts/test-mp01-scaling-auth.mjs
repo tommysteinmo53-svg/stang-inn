@@ -7,6 +7,7 @@ const home=read("components/UnifiedHomeDashboard.tsx");
 const leaderboard=read("app/leaderboard/page.tsx");
 const homeSql=read("supabase/mp01-scaling-tipping-home-summary-v1.sql");
 const leaderboardSql=read("supabase/mp01-scaling-tipping-leaderboard-v1.sql");
+const fantasyHomeSql=read("supabase/mp01-scaling-fantasy-home-summary-v1.sql");
 
 const checks=[
  ["Login uses Google OAuth",login.includes('provider: "google"')&&login.includes("signInWithOAuth")],
@@ -15,8 +16,13 @@ const checks=[
  ["Homepage uses lightweight tipping summary RPC",home.includes('rpc("get_my_tipping_home_summary_v1")')],
  ["Homepage no longer stores global tips or players",!home.includes("allTips")&&!home.includes("setAllTips")&&!home.includes("setPlayers")],
  ["Homepage no longer performs unscoped tips query",!home.includes('sb.from("tips").select("player_id,match_id,home_tip,away_tip,points"),')],
- ["Homepage summary excludes deactivated users",homeSql.includes("where p.deactivated_at is null")],
- ["Homepage summary is authenticated-only",homeSql.includes("revoke all on function public.get_my_tipping_home_summary_v1() from public, anon")&&homeSql.includes("grant execute on function public.get_my_tipping_home_summary_v1() to authenticated")],
+ ["Tipping homepage summary excludes deactivated users",homeSql.includes("where p.deactivated_at is null")],
+ ["Tipping homepage summary is authenticated-only",homeSql.includes("revoke all on function public.get_my_tipping_home_summary_v1() from public, anon")&&homeSql.includes("grant execute on function public.get_my_tipping_home_summary_v1() to authenticated")],
+ ["Homepage uses lightweight fantasy summary RPC",home.includes('rpc("get_my_fantasy_home_summary_v1",{p_season:SEASON})')],
+ ["Homepage no longer downloads full fantasy season leaderboard",!home.includes('rpc("get_fantasy_season_leaderboard"')],
+ ["Fantasy homepage summary excludes deactivated users",fantasyHomeSql.includes("p.deactivated_at is null")],
+ ["Fantasy homepage summary preserves MP-07 tie-break",fantasyHomeSql.includes("at.total_points desc")&&fantasyHomeSql.includes("at.round_wins desc")&&fantasyHomeSql.includes("at.best_round_points desc")],
+ ["Fantasy homepage summary is authenticated-only",fantasyHomeSql.includes("from public, anon")&&fantasyHomeSql.includes("to authenticated")&&fantasyHomeSql.includes("auth.uid()")],
  ["Leaderboard uses server-side RPC",leaderboard.includes('rpc("get_tipping_leaderboard_v1")')],
  ["Leaderboard no longer downloads all tips",!leaderboard.includes('.from("tips")')&&!leaderboard.includes("home_tip")&&!leaderboard.includes("away_tip")],
  ["Leaderboard no longer downloads players",!leaderboard.includes('.from("players")')],
