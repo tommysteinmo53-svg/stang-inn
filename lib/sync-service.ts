@@ -38,6 +38,11 @@ export type SyncResult = {
     skippedPointsNotReady: number;
     statusUpdates: number;
   };
+  competitionCache?: {
+    tippingRows: number;
+    fantasyRows: number;
+  };
+  competitionCacheError?: string;
   fantasyError?: string;
   error?: string;
 };
@@ -215,7 +220,6 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
         fantasyScheduleImported = schedule.imported;
         const fantasySeason = process.env.NIF_SEASON_LABEL || "2026/27";
 
-        // First pass freezes teams as soon as the deadline has passed, independently of match-data imports.
         const { data: beforeData, error: beforeError } = await supabase.rpc(
           "process_fantasy_rounds_automation",
           { p_season: fantasySeason, p_include_test_rounds: false },
@@ -223,7 +227,6 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
         if (beforeError) throw beforeError;
         const before = automationResult(firstRpcRow(beforeData));
 
-        // Process only a small queue per five-minute run to stay safely inside the cron timeout.
         const gameProcessing = await processFinishedFantasyGames({ season: fantasySeason, limit: 3 });
         fantasyGames = {
           finishedGames: gameProcessing.finishedGames,
@@ -235,7 +238,6 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
           errors: gameProcessing.errors,
         };
 
-        // Second pass can score a round immediately after the last missing game was materialized.
         const { data: afterData, error: afterError } = await supabase.rpc(
           "process_fantasy_rounds_automation",
           { p_season: fantasySeason, p_include_test_rounds: false },
@@ -248,9 +250,35 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
       }
     }
 
+    let competitionCache: SyncResult["competitionCache"];
+    let competitionCacheError: string | undefined;
+    if (providerName === "hockeylive") {
+      try {
+        const fantasySeason = process.env.NIF_SEASON_LABEL || "2026/27";
+        const { data: tippingRows, error: tippingCacheError } = await supabase.rpc(
+          "refresh_tipping_leaderboard_cache_v1",
+        );
+        if (tippingCacheError) throw tippingCacheError;
+
+        const { data: fantasyRows, error: fantasyCacheError } = await supabase.rpc(
+          "refresh_fantasy_season_leaderboard_cache_v1",
+          { p_season: fantasySeason },
+        );
+        if (fantasyCacheError) throw fantasyCacheError;
+
+        competitionCache = {
+          tippingRows: Number(tippingRows ?? 0),
+          fantasyRows: Number(fantasyRows ?? 0),
+        };
+      } catch (error: any) {
+        competitionCacheError = error?.message || "Ukjent feil ved refresh av konkurranse-cache";
+      }
+    }
+
     const operationalErrors: string[] = [];
     if (standingsError) operationalErrors.push(`Tabellsynk: ${standingsError}`);
     if (fantasyError) operationalErrors.push(`Fantasy-livssyklus: ${fantasyError}`);
+    if (competitionCacheError) operationalErrors.push(`Konkurranse-cache: ${competitionCacheError}`);
     if ((fantasyGames?.failed ?? 0) > 0) {
       operationalErrors.push(`Fantasy-kampbehandling: ${fantasyGames!.failed} kamp(er) feilet`);
     }
@@ -272,6 +300,8 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
       ...(fantasyScheduleImported !== undefined ? { fantasyScheduleImported } : {}),
       ...(fantasyGames ? { fantasyGames } : {}),
       ...(fantasyAutomation ? { fantasyAutomation } : {}),
+      ...(competitionCache ? { competitionCache } : {}),
+      ...(competitionCacheError ? { competitionCacheError } : {}),
       ...(fantasyError ? { fantasyError } : {}),
       ...(syncError ? { error: syncError } : {}),
     };
