@@ -30,9 +30,12 @@ export default function UnifiedHomeDashboard(){
  useEffect(()=>{if(pathname!=="/")return;(async()=>{try{
   const sb=getSupabaseBrowserClient();if(!sb)throw new Error("Supabase er ikke tilgjengelig");
   const{data:session}=await sb.auth.getSession();const user=session.session?.user;if(!user)throw new Error("Du må være logget inn");
-  const[{data:m},{data:t},{data:summary,error:summaryError},{data:l},{data:team}]=await Promise.all([
-   sb.from("matches").select("id,home_team,away_team,match_time,finished,home_score,away_score").order("match_time"),
-   sb.from("tips").select("player_id,match_id,home_tip,away_tip,points").eq("player_id",user.id),
+  const nowIso=new Date().toISOString();
+  const{data:m,error:matchError}=await sb.from("matches").select("id,home_team,away_team,match_time,finished,home_score,away_score").eq("finished",false).gte("match_time",nowIso).order("match_time").limit(5);
+  if(matchError)throw matchError;
+  const matchIds=(m||[]).map((x:any)=>Number(x.id));
+  const[{data:t},{data:summary,error:summaryError},{data:l},{data:team}]=await Promise.all([
+   sb.from("tips").select("player_id,match_id,home_tip,away_tip,points").eq("player_id",user.id).in("match_id",matchIds.length?matchIds:[-1]),
    sb.rpc("get_my_tipping_home_summary_v1"),
    sb.rpc("get_my_stang_inn_private_leagues_v1",{p_season:SEASON}),
    sb.from("fantasy_user_teams").select("id,name").eq("season",SEASON).eq("user_id",user.id).maybeSingle()
