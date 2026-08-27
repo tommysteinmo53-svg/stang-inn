@@ -15,6 +15,7 @@ type Match={id:number;home_team:string;away_team:string;match_time:string|null;f
 type Tip={player_id?:string;match_id:number;home_tip:number;away_tip:number;points?:number|null};
 type League={league_id:string;league_name:string;member_count:number};
 type TippingSummary={points:number;standings_position:number;active_players:number};
+type FantasySummary={team_id:string;total_points:number;standings_position:number;participant_count:number};
 type Fantasy={teamId:string|null;teamName:string;players:number;teamCost:number;totalPoints:number;position:number|null;transfersRemaining:number;roundNo:number|null;deadline:string|null};
 const initialFantasy:Fantasy={teamId:null,teamName:"EHL Fantasy",players:0,teamCost:0,totalPoints:0,position:null,transfersRemaining:2,roundNo:null,deadline:null};
 function fmt(value:string|null){if(!value)return "Ikke satt";return new Intl.DateTimeFormat("nb-NO",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit",timeZone:"Europe/Oslo"}).format(new Date(value))}
@@ -41,13 +42,15 @@ export default function UnifiedHomeDashboard(){
   const summaryRow=Array.isArray(summary)?summary[0]:null;
   setTippingSummary(summaryRow?{points:Number(summaryRow.points||0),standings_position:Number(summaryRow.standings_position||0),active_players:Number(summaryRow.active_players||0)}:null);
   if(team){
-   const[{count},{data:ts},{data:board}]=await Promise.all([
+   const[{count},{data:ts},{data:fantasySummary,error:fantasySummaryError}]=await Promise.all([
     sb.from("fantasy_user_team_players").select("player_id",{count:"exact",head:true}).eq("team_id",team.id),
     sb.rpc("get_fantasy_transfer_status_v1",{p_season:SEASON}),
-    sb.rpc("get_fantasy_season_leaderboard",{p_season:SEASON})
+    sb.rpc("get_my_fantasy_home_summary_v1",{p_season:SEASON})
    ]);
-   const status=Array.isArray(ts)?ts[0]:null;const mine=(board||[]).find((r:any)=>r.team_id===team.id);
-   setFantasy({teamId:team.id,teamName:team.name||"Mitt Fantasy-lag",players:Number(count||0),teamCost:Number(status?.team_cost||0),totalPoints:Number(mine?.total_points||0),position:mine?.standings_position?Number(mine.standings_position):null,transfersRemaining:Number(status?.transfers_remaining??2),roundNo:status?.effective_round_no?Number(status.effective_round_no):null,deadline:status?.deadline_at||null});
+   if(fantasySummaryError)throw fantasySummaryError;
+   const status=Array.isArray(ts)?ts[0]:null;
+   const fantasySummaryRow=(Array.isArray(fantasySummary)?fantasySummary[0]:null) as FantasySummary|null;
+   setFantasy({teamId:team.id,teamName:team.name||"Mitt Fantasy-lag",players:Number(count||0),teamCost:Number(status?.team_cost||0),totalPoints:Number(fantasySummaryRow?.total_points||0),position:fantasySummaryRow?.standings_position?Number(fantasySummaryRow.standings_position):null,transfersRemaining:Number(status?.transfers_remaining??2),roundNo:status?.effective_round_no?Number(status.effective_round_no):null,deadline:status?.deadline_at||null});
   }
  }catch(e:any){setMessage(e?.message||String(e))}finally{setBusy(false)}})()},[pathname]);
 
