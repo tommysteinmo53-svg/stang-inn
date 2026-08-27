@@ -36,6 +36,12 @@ function hasCompleteProfile(profile: SessionProfile) {
   return name.length >= 2 && name.length <= 60;
 }
 
+function hasGoogleIdentity(user: any) {
+  const identities = Array.isArray(user?.identities) ? user.identities : [];
+  const providers = Array.isArray(user?.app_metadata?.providers) ? user.app_metadata.providers : [];
+  return identities.some((identity: any) => identity?.provider === "google") || user?.app_metadata?.provider === "google" || providers.includes("google");
+}
+
 function safeNext(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/onboarding")) return "/";
   return value;
@@ -79,6 +85,14 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         }
 
         const user = session.user;
+        if (!hasGoogleIdentity(user)) {
+          await supabase.auth.signOut({ scope: "local" });
+          if (cancelled) return;
+          const requested = `${window.location.pathname}${window.location.search}`;
+          window.location.replace(`/login?reason=google_required&next=${encodeURIComponent(requested)}`);
+          return;
+        }
+
         const { data: player } = await withTimeout(
           supabase
             .from("players")
@@ -173,7 +187,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         <aside style={{ position: "fixed", right: 12, bottom: 12, zIndex: 50, display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", borderRadius: 13, background: "rgba(8,20,37,.96)", border: "1px solid #223a5d", boxShadow: "0 12px 28px rgba(0,0,0,.3)", color: "#f4f8ff", fontSize: 12 }}>
           <div>
             <strong style={{ display: "block" }}>{profile?.display_name || "Spiller"}{profile?.admin ? " · Admin" : ""}</strong>
-            <span style={{ color: "#96a9c5" }}>Innlogget</span>
+            <span style={{ color: "#96a9c5" }}>Innlogget med Google</span>
           </div>
           <a href="/fantasy" style={{ borderRadius: 9, padding: "7px 9px", background: "#214b3d", color: "#e4fff4", textDecoration: "none", fontWeight: 800 }}>Fantasy</a>
           {profile?.admin && <a href="/admin" style={{ borderRadius: 9, padding: "7px 9px", background: "#1d3658", color: "#d9e8fb", textDecoration: "none", fontWeight: 800 }}>Admin</a>}
