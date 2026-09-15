@@ -37,7 +37,7 @@ export default function HomeLiveTable() {
       const [p, t, m] = await Promise.all([
         supabase.from("players").select("id,display_name").order("created_at"),
         supabase.from("tips").select("id,player_id,match_id,points"),
-        supabase.from("matches").select("id,finished,home_score,away_score,match_time"),
+        supabase.from("matches").select("id,finished,home_score,away_score,match_time").eq("cancelled", false),
       ]);
       setPlayers((p.data || []) as Player[]);
       setTips((t.data || []) as Tip[]);

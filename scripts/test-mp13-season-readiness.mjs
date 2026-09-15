@@ -58,7 +58,7 @@ check("Tabelltips lagres bare gjennom hardnet RPC", () => {
 });
 
 check("Tabelltips deadline og innsyn er eksplisitt i brukerflyten", () => {
-  assert.match(tableTips, /setLocked\(Boolean\(nextDeadline/);
+  assert.match(tableTips, /setLocked\(!nextDeadline/);
   assert.match(tableTips, /Tabelltipset er låst/);
   assert.match(tableTips, /Tipsene er hemmelige/);
   assert.match(tableTips, /Før fristen ser hver spiller bare sitt eget tabelltips/);

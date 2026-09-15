@@ -31,7 +31,7 @@ export default function UnifiedHomeDashboard(){
   const sb=getSupabaseBrowserClient();if(!sb)throw new Error("Supabase er ikke tilgjengelig");
   const{data:session}=await sb.auth.getSession();const user=session.session?.user;if(!user)throw new Error("Du må være logget inn");
   const nowIso=new Date().toISOString();
-  const{data:m,error:matchError}=await sb.from("matches").select("id,home_team,away_team,match_time,finished,home_score,away_score").eq("finished",false).gte("match_time",nowIso).order("match_time").limit(5);
+  const{data:m,error:matchError}=await sb.from("matches").select("id,home_team,away_team,match_time,finished,home_score,away_score").eq("cancelled", false).eq("finished",false).gte("match_time",nowIso).order("match_time").limit(5);
   if(matchError)throw matchError;
   const matchIds=(m||[]).map((x:any)=>Number(x.id));
   const[{data:t},{data:summary,error:summaryError},{data:l},{data:team}]=await Promise.all([

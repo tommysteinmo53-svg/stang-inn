@@ -37,7 +37,7 @@ export default function LeaderboardPage() {
     const [{ data: sessionData }, board, matches] = await Promise.all([
       supabase.auth.getSession(),
       supabase.rpc("get_tipping_leaderboard_v1"),
-      supabase.from("matches").select("id,finished,match_time"),
+      supabase.from("matches").select("id,finished,match_time").eq("cancelled", false),
     ]);
 
     setCurrentUserId(sessionData.session?.user.id ?? null);

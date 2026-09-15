@@ -31,6 +31,8 @@ jobs:
         run: npm run test:mp12:security
       - name: MP-12 test isolation regression
         run: npm run test:mp12:isolation
+      - name: Sparta withdrawal isolated database regression
+        run: npm run test:sparta
       - name: MP-13 tipping scoring regression
         run: npm run test:mp13:scoring
       - name: MP-13 season readiness regression

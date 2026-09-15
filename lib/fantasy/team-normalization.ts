@@ -15,7 +15,6 @@ export const EHL_TEAMS_2026_27 = [
   "Narvik",
   "Nidaros",
   "Ringerike",
-  "Sparta",
   "Stavanger",
   "Stjernen",
   "Storhamar",

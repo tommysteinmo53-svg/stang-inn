@@ -1,5 +1,7 @@
 # Stang Inn – PROJECT STATUS
 
+> **2026-09-15: Sparta-tilpasning pågår.** Nyere plan, regler og publiseringsstatus: [SPARTA_WITHDRAWAL_2026_27.md](SPARTA_WITHDRAWAL_2026_27.md). Ni lag skal delta; 40/48 kamper er uavklart. Tallene om 225 kamper og 239 kjøpbare spillere nedenfor er historisk launch-status.
+
 Sist kontrollert mot GitHub `main`: 2026-08-26
 
 ## Source of truth
