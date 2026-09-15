@@ -4,6 +4,7 @@ import { fetchHockeyLiveStandings } from "./providers/hockeylive";
 import { scoreFinishedMatches } from "./score-engine";
 import { syncFantasySchedule } from "./fantasy/import-service";
 import { processFinishedFantasyGames } from "./fantasy/production-import";
+import { isWithdrawnEhlMatch, isWithdrawnEhlTeam } from "./ehl-season";
 import type { ImportedMatch } from "../types/data-provider";
 
 export type SyncResult = {
@@ -125,7 +126,7 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
 
   try {
     const imported = await provider.fetchMatches();
-    const rows = imported.map((match) => ({
+    const rows = imported.filter(match => !isWithdrawnEhlMatch(match.season, match.homeTeam, match.awayTeam)).map((match) => ({
       external_id: match.externalId,
       season: match.season,
       round: match.round,
@@ -186,10 +187,14 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
       try {
         const standings = await fetchHockeyLiveStandings();
         const syncedAt = new Date().toISOString();
-        const standingRows = standings.map((standing) => ({
+        const standingRows = standings
+          .filter(standing => !isWithdrawnEhlTeam(standing.season, standing.team))
+          .sort((a, b) => a.position - b.position)
+          .map((standing, index) => ({
           season: standing.season,
           team: canonicalStandingTeam(standing.team),
-          position: standing.position,
+          position: index + 1,
+          active: true,
           played: standing.played,
           points: standing.points,
           source: "hockeylive:TournamentStandings",

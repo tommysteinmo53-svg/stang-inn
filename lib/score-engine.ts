@@ -60,7 +60,7 @@ export async function scoreFinishedMatches(supabase: SupabaseClient): Promise<Sc
   const rules = await loadPointRules(supabase);
   const { data: matchRows, error: matchError } = await supabase
     .from("matches")
-    .select("id,home_score,away_score")
+    .select("id,home_score,away_score").eq("cancelled", false)
     .eq("finished", true)
     .not("home_score", "is", null)
     .not("away_score", "is", null);

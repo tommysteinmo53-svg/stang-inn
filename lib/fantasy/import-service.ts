@@ -69,7 +69,7 @@ export async function syncFantasySchedule() {
   const season = process.env.NIF_SEASON_LABEL || "2026/27";
   const { data, error } = await supabase
     .from("matches")
-    .select("external_id,season,round,home_team,away_team,match_time,home_score,away_score,finished")
+    .select("external_id,season,round,home_team,away_team,match_time,home_score,away_score,finished").eq("cancelled", false)
     .eq("season", season)
     .order("match_time");
   if (error) throw error;

@@ -29,7 +29,7 @@ export default function TopStatusBar() {
     const [n, r, m, t] = await Promise.all([
       supabase.from("notifications").select("id,user_id,expires_at").order("created_at", { ascending: false }),
       supabase.from("notification_reads").select("notification_id,user_id").eq("user_id", userId),
-      supabase.from("matches").select("id,match_time,finished"),
+      supabase.from("matches").select("id,match_time,finished").eq("cancelled", false),
       supabase.from("tips").select("player_id,match_id").eq("player_id", userId),
     ]);
     setNotifications((n.data || []) as Notification[]);

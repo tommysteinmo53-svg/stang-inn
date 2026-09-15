@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { getSupabaseBrowserClient } from "../../../lib/supabase";
 
 type Player = { id: string; display_name: string };
-type Match = { id: number; home_team: string; away_team: string; match_time: string | null; home_score: number | null; away_score: number | null; finished: boolean; round: number | null };
+type Match = { cancelled: boolean; cancellation_reason: string | null; id: number; home_team: string; away_team: string; match_time: string | null; home_score: number | null; away_score: number | null; finished: boolean; round: number | null };
 type Tip = { id?: number; player_id: string; match_id: number; home_tip: number; away_tip: number; points: number | null };
 
 function isStarted(match: Match) { return match.finished || (!!match.match_time && Date.now() >= new Date(match.match_time).getTime()); }
@@ -35,7 +35,7 @@ export default function MatchPage() {
     const { data: session } = await supabase.auth.getSession();
     setMeId(session.session?.user.id || null);
     const [m,p,t] = await Promise.all([
-      supabase.from("matches").select("id,home_team,away_team,match_time,home_score,away_score,finished,round").eq("id", matchId).maybeSingle(),
+      supabase.from("matches").select("id,home_team,away_team,match_time,home_score,away_score,finished,round,cancelled,cancellation_reason").eq("id", matchId).maybeSingle(),
       supabase.from("players").select("id,display_name").order("created_at"),
       supabase.from("tips").select("id,player_id,match_id,home_tip,away_tip,points").eq("match_id", matchId),
     ]);
@@ -60,6 +60,8 @@ export default function MatchPage() {
 
   if (loading) return <main className="appShell"><p className="muted">Laster kampen …</p></main>;
   if (!match) return <main className="appShell"><article className="panel"><h2>Kampen ble ikke funnet</h2><a className="textButton" href="/tips">← Tilbake til tips</a></article></main>;
+
+  if (match.cancelled) return <main className="appShell"><article className="panel"><h1>{match.home_team} – {match.away_team}</h1><h2>Annullert</h2><p>{match.cancellation_reason || "Kampen er annullert."}</p><p>Kampen teller ikke i poeng, treffprosent eller streak.</p>{myTip && <p>Ditt innsendte tips: {myTip.home_tip}–{myTip.away_tip}. Tipset er bevart.</p>}<a href="/tips">Tilbake til kamptips</a></article></main>;
 
   const statusTitle = match.finished ? "Ferdigspilt" : live ? "LIVE" : started ? "Avventer sluttstatus" : "Kommende kamp";
   const statusShort = match.finished ? "Slutt" : live ? "LIVE" : started ? "Låst" : "Åpen";

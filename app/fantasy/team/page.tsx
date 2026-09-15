@@ -3,6 +3,8 @@
 import {useEffect,useMemo,useState} from "react";
 import {getSupabaseBrowserClient} from "../../../lib/supabase";
 import {canonicalFantasyTeam} from "../../../lib/fantasy/team-normalization";
+import SeasonChangeNotice from "../../../components/SeasonChangeNotice";
+import { isWithdrawnEhlTeam } from "../../../lib/ehl-season";
 import BonusCards from "./BonusCards";
 import "../fantasy.css";
 import "./fixtures.css";
@@ -88,6 +90,7 @@ export default function FantasyTeamPage(){
  }catch(e:any){setMsg(`Kunne ikke laste lagbygger: ${e.message||e}`)}})()},[]);
 
  const chosen=useMemo(()=>selected.map(id=>players.find(p=>p.id===id)).filter(Boolean)as Player[],[selected,players]),total=chosen.reduce((s,p)=>s+p.price,0),left=BUDGET-total;
+ const withdrawnSelected=chosen.filter(p=>isWithdrawnEhlTeam(SEASON,p.team));
  const marketPlayers=useMemo(()=>players.filter(p=>p.purchasable),[players]);
  const unavailableSelected=useMemo(()=>chosen.filter(p=>!p.purchasable),[chosen]);
  const counts=useMemo(()=>({F:chosen.filter(p=>group(p)==="F").length,C:chosen.filter(p=>p.position==="C").length,W:chosen.filter(p=>p.position==="W").length,D:chosen.filter(p=>p.position==="D").length,G:chosen.filter(p=>p.position==="G").length}),[chosen]);
@@ -103,6 +106,14 @@ export default function FantasyTeamPage(){
  const fixturesByTeam=useMemo(()=>{const m=new Map<string,Fixture[]>();if(targetRoundNo==null)return m;const games=roundGames.filter(g=>g.fantasy_round_no===targetRoundNo).sort((a,b)=>(a.starts_at||"").localeCompare(b.starts_at||""));for(const g of games){const home=canonicalFantasyTeam(g.home_team),away=canonicalFantasyTeam(g.away_team);m.set(home,[...(m.get(home)||[]),{opponent:away,venue:"H",starts_at:g.starts_at}]);m.set(away,[...(m.get(away)||[]),{opponent:home,venue:"B",starts_at:g.starts_at}])}return m},[roundGames,targetRoundNo]);
  const fixtureLabel=(team:string)=>{if(targetRoundNo==null)return"Gameweek: ikke tilgjengelig";const fixtures=fixturesByTeam.get(canonicalFantasyTeam(team))||[];return fixtures.length?`Runde ${targetRoundNo} · ${fixtures.map(f=>`${f.venue}: ${f.opponent}`).join(" · ")}`:`Runde ${targetRoundNo} · Ingen kamp`};
 
+ function removeWithdrawnPlayers(){
+  const removed=new Set(withdrawnSelected.map(p=>p.id));
+  const next=selected.filter(id=>!removed.has(id));
+  setSelected(next);setLine1(buildLine1(next,players,line1));
+  if(captain&&removed.has(captain))setCaptain(null);
+  if(viceCaptain&&removed.has(viceCaptain))setViceCaptain(null);
+  setMsg("Velg erstatninger og lagre laget. Endringen er ikke lagret ennå.");
+ }
  function toggle(p:Player){
   if(selected.includes(p.id)){const next=selected.filter(x=>x!==p.id);setSelected(next);setLine1(buildLine1(next,players,line1));if(captain===p.id)setCaptain(null);if(viceCaptain===p.id)setViceCaptain(null);return}
   if(!p.purchasable){setMsg(`${p.name} er ikke tilgjengelig for nye Fantasy-kjøp`);return}
@@ -145,9 +156,10 @@ export default function FantasyTeamPage(){
  }
 
  const linePlayers=(n:1|2)=>chosen.filter(p=>n===1?line1.includes(p.id):!line1.includes(p.id)).sort(lineupOrder);
- const renderPlayer=(p:Player,n:1|2)=>{const alternatives=linePlayers(n===1?2:1).filter(x=>group(x)===group(p)),noGame=targetRoundNo!=null&&(fixturesByTeam.get(canonicalFantasyTeam(p.team))||[]).length===0;return <div key={p.id} className="team-player-row"><span className={`team-pos team-pos-${group(p).toLowerCase()}`}>{group(p)}</span><div className="team-player-main"><strong onClick={()=>window.location.assign(`/fantasy/players/${p.id}`)} title="Åpne spillerprofil" style={{cursor:"pointer",textDecoration:"underline",textUnderlineOffset:3}}>{p.name}</strong><small>{p.team} · {p.position}</small>{!p.purchasable&&<small className="team-name-error">Ikke lenger kjøpbar · må erstattes før laget kan lagres</small>}<small className={`team-player-fixtures ${noGame?"no-game":""}`}>{fixtureLabel(p.team)}</small></div><span className="team-price">{p.price.toFixed(1)}m</span><div className="team-badges"><button className={captain===p.id?"active":""} onClick={()=>setC(p.id)} title="Kaptein">C</button><button className={viceCaptain===p.id?"active":""} onClick={()=>setVC(p.id)} title="Visekaptein">VC</button></div><select className="team-line-select" value="" onChange={e=>swapLine(p.id,e.target.value)}><option value="">Bytt rekke</option>{alternatives.map(x=><option key={x.id} value={x.id}>med {x.name}</option>)}</select><button className="team-remove" onClick={()=>toggle(p)} title="Fjern spiller">×</button></div>};
+ const renderPlayer=(p:Player,n:1|2)=>{const alternatives=linePlayers(n===1?2:1).filter(x=>group(x)===group(p)),noGame=targetRoundNo!=null&&(fixturesByTeam.get(canonicalFantasyTeam(p.team))||[]).length===0;return <div key={p.id} className="team-player-row"><span className={`team-pos team-pos-${group(p).toLowerCase()}`}>{group(p)}</span><div className="team-player-main"><strong onClick={()=>window.location.assign(`/fantasy/players/${p.id}`)} title="Åpne spillerprofil" style={{cursor:"pointer",textDecoration:"underline",textUnderlineOffset:3}}>{p.name}</strong><small>{p.team} · {p.position}</small>{!p.purchasable&&<small className="team-name-error">{isWithdrawnEhlTeam(SEASON,p.team)?"Sparta deltar ikke · bytt ut spilleren":"Ikke lenger kjøpbar · må erstattes før laget kan lagres"}</small>}<small className={`team-player-fixtures ${noGame?"no-game":""}`}>{fixtureLabel(p.team)}</small></div><span className="team-price">{p.price.toFixed(1)}m</span><div className="team-badges"><button className={captain===p.id?"active":""} onClick={()=>setC(p.id)} title="Kaptein">C</button><button className={viceCaptain===p.id?"active":""} onClick={()=>setVC(p.id)} title="Visekaptein">VC</button></div><select className="team-line-select" value="" onChange={e=>swapLine(p.id,e.target.value)}><option value="">Bytt rekke</option>{alternatives.map(x=><option key={x.id} value={x.id}>med {x.name}</option>)}</select><button className="team-remove" onClick={()=>toggle(p)} title="Fjern spiller">×</button></div>};
 
- return <main className="fantasy-shell team-builder-shell">
+ return <main className="fantasy-shell team-builder-shell"><SeasonChangeNotice />
+  {withdrawnSelected.length>0&&<aside className="team-panel"><h2>Du har Sparta-spillere på laget</h2><p>{withdrawnSelected.map(p=>p.name).join(", ")}</p><p>{!seasonStarted?"Du kan bytte dem ut fritt frem til første fantasy-deadline, uten å bruke ordinære bytter eller Bytteboost.":"Disse spillerne har ingen tellende kamper. Bytt dem ut i lagbyggeren."}</p><button type="button" onClick={removeWithdrawnPlayers}>Bytt ut Sparta-spillere</button></aside>}
   <section className="team-builder-head"><div><p className="fantasy-kicker">STANG INN · FANTASY 2026/27</p><h1>Mitt lag</h1><p>Bygg laget innenfor budsjettet. Normalt maks 2 spillerbytter per fantasy-runde.</p></div></section>
   <BonusCards/>
   <section className="team-metric-grid"><article><span>Spillere</span><strong>{selected.length}/12</strong></article><article><span>Budsjett brukt</span><strong>{total.toFixed(1)}m</strong></article><article><span>Igjen</span><strong className={left<0?"bad":""}>{left.toFixed(1)}m</strong></article><article><span>Rekker</span><strong>{lineupValid?"2/2 ✓":"Sett opp"}</strong></article></section>
