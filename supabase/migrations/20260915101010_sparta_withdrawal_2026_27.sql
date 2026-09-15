@@ -98,22 +98,6 @@ drop trigger if exists withdrawn_ehl_standing_guard on public.ehl_standings;
 create trigger withdrawn_ehl_standing_guard before insert or update on public.ehl_standings
 for each row execute function public.guard_withdrawn_ehl_standing();
 
-create or replace function public.guard_withdrawn_ehl_round_link()
-returns trigger language plpgsql security invoker
-set search_path = public, pg_temp
-as $$
-begin
-  if exists(select 1 from public.fantasy_games g where g.id=new.game_id and g.status='cancelled') then
-    raise exception 'An annulled game cannot be linked to a fantasy round';
-  end if;
-  return new;
-end;
-$$;
-revoke all on function public.guard_withdrawn_ehl_round_link() from public, anon, authenticated;
-drop trigger if exists withdrawn_ehl_round_link_guard on public.fantasy_round_games;
-create trigger withdrawn_ehl_round_link_guard before insert or update on public.fantasy_round_games
-for each row execute function public.guard_withdrawn_ehl_round_link();
-
 create or replace function public.guard_tip_deadline()
 returns trigger language plpgsql security invoker
 set search_path = public, pg_temp
@@ -180,7 +164,7 @@ from public.table_tips tt join public.ehl_standings es on es.team=tt.team and es
 where es.active and not public.is_withdrawn_ehl_team(es.season,es.team);
 
 -- One-time, pre-deadline correction. The transaction locks writes while archiving and converting.
-lock table public.matches, public.fantasy_games, public.fantasy_round_games,
+lock table public.matches, public.fantasy_games,
   public.fantasy_players, public.ehl_standings, public.table_tips,
   public.fantasy_rounds, public.fantasy_team_round_snapshots in share row exclusive mode;
 
@@ -232,8 +216,7 @@ begin
 
   update public.matches set cancelled=true where season='2026/27'
     and (public.is_withdrawn_ehl_team(season,home_team) or public.is_withdrawn_ehl_team(season,away_team));
-  delete from public.fantasy_round_games rg using public.fantasy_games g
-    where rg.game_id=g.id and (public.is_withdrawn_ehl_team(g.season,g.home_team) or public.is_withdrawn_ehl_team(g.season,g.away_team));
+  -- fantasy_round_games is an internal view; clearing the authoritative game links updates it.
   update public.fantasy_games set status='cancelled',updated_at=now() where season='2026/27'
     and (public.is_withdrawn_ehl_team(season,home_team) or public.is_withdrawn_ehl_team(season,away_team));
   update public.fantasy_players set active=false,on_current_roster=false,available_for_purchase=false,updated_at=now()

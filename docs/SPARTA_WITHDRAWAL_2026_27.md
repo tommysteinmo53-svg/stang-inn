@@ -54,6 +54,8 @@ Dette er kontrolltall, ikke konstante krav til antall brukere eller innleveringe
 
 ## Verifikasjon
 
+Første produksjonsforsøk ble atomisk avvist fordi `fantasy_round_games` er en intern view, ikke en tabell. Ingen skjema- eller dataendringer ble stående. Migreringen er rettet til å nullstille koblingene på den autoritative `fantasy_games`-tabellen; viewen følger automatisk. Testen bruker nå den faktiske view-definisjonen fra MP-12-schema-bridge og kontrollerer at kampene bevares. Produksjonens objekttyper og relevante constraints er kontrollert eksplisitt.
+
 - `npm run test:sparta`: in-memory PostgreSQL/PGlite med syntetiske data. Kontrollerer atomisk avvisning etter sesongstart, idempotens, bevarte tips/eierskap/priser/deadlines, rangrekkefølge, RLS/RPC/deadline, gamle synkdata, streak/poeng og fri fantasy-erstatning før fristen. Ingen nettverk eller produksjonscredentials.
 - Alle eksisterende `test:*`-skript og produksjonsbygg er kjørt lokalt uten feil.
 - Lokal nettleserkontroll med syntetisk API: ni lag, endring og lagring av tabelltips, annullerte tips, blokkert kampformular og erstatning av Sparta-spiller til gyldig 12/12-lag er kontrollert. Ingen JavaScript-feil. Desktop 1440 px og mobil 390 px er kontrollert. Backendens fantasy-lagring er separat testet i PostgreSQL-testen, ikke mot produksjon.

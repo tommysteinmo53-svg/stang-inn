@@ -39,7 +39,7 @@ await db.exec(`
   create table fantasy_games(id uuid primary key default gen_random_uuid(),external_id text unique,season text,
     home_team text,away_team text,home_score integer,away_score integer,status text,
     fantasy_round_id uuid references fantasy_rounds,fantasy_round_no integer,updated_at timestamptz);
-  create table fantasy_round_games(round_id uuid references fantasy_rounds,game_id uuid references fantasy_games);
+
   create table fantasy_players(id uuid primary key default gen_random_uuid(),name text,team text,position text,
     active boolean default true,on_current_roster boolean default true,available_for_purchase boolean default true,
     updated_at timestamptz);
@@ -60,7 +60,7 @@ await db.exec(`
   insert into fantasy_games(external_id,season,home_team,away_team,status,fantasy_round_id,fantasy_round_no)
     select external_id,season,home_team,away_team,'scheduled',
     (select id from fantasy_rounds limit 1),1 from matches where season='2026/27';
-  insert into fantasy_round_games select fantasy_round_id,id from fantasy_games;
+
   insert into fantasy_players(name,team,position) values('Synthetic Sparta player','Sparta','G');
   insert into fantasy_player_season_prices select id,'2026/27',5.5 from fantasy_players;
   insert into fantasy_user_teams(user_id,season,name,budget) values('${uid}','2026/27','Synthetic XI',100);
@@ -68,6 +68,11 @@ await db.exec(`
     select t.id,p.id,5.5 from fantasy_user_teams t cross join fantasy_players p;
   grant select on app_settings,ehl_standings,players,matches to authenticated;
 `);
+// Use the actual production compatibility view, never a synthetic link table.
+const bridge = fs.readFileSync("supabase/mp12-team-scoring-schema-bridge-v1.sql", "utf8");
+await db.exec(bridge.slice(bridge.indexOf("create or replace view public.fantasy_round_games"),
+  bridge.indexOf("create or replace view public.fantasy_game_player_points")));
+await db.exec("revoke all on public.fantasy_round_games from public,anon,authenticated,service_role");
 await db.exec(fs.readFileSync("supabase/v0.8-table-tips.sql", "utf8"));
 await db.exec(existingFunction("supabase/mp13-table-tips-contract-v1.sql", "table_tips_is_locked"));
 await db.exec(existingFunction("supabase/mp13-table-tips-contract-v1.sql", "guard_tip_deadline"));
@@ -125,7 +130,8 @@ assert.deepEqual(await one("select cancelled,finished,home_score,away_score from
 assert.deepEqual(await one("select status,fantasy_round_id,fantasy_round_no,home_score from fantasy_games where external_id='synthetic-sparta'"),
   { status: "cancelled", fantasy_round_id: null, fantasy_round_no: null, home_score: null });
 assert.equal((await one("select available_for_purchase from fantasy_players where team='Sparta'")).available_for_purchase, false);
-await assert.rejects(db.exec(`insert into fantasy_round_games select (select id from fantasy_rounds limit 1),id from fantasy_games where external_id='synthetic-sparta'`), /annulled game/);
+assert.equal((await one("select count(*)::int n from fantasy_round_games where game_id=(select id from fantasy_games where external_id='synthetic-sparta')")).n, 0);
+assert.equal((await one("select count(*)::int n from fantasy_games")).n, 2);
 await assert.rejects(db.exec(`insert into tips(player_id,match_id,home_tip,away_tip) select '${otherUid}',id,2,1 from matches where external_id='synthetic-sparta'`), /annullert/);
 
 // Run the production cache algorithm: an annulled match between two hits must not break a streak.
