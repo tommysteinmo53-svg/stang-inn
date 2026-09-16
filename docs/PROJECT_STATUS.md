@@ -1,5 +1,7 @@
 # Stang Inn – PROJECT STATUS
 
+> **Gjeldende serieformat 2026-09-16:** 40 kamper per klubb, 180 totalt og 45 fantasy-runder. Endelig terminliste er kontrollert mot HockeyLive. Første fantasy-/tabelltipsfrist blir kl. 19.00 norsk tid. [Fase 2 – kalender og Event Weeks](EHL_FINAL_CALENDAR_2026_27.md) overstyrer uavklart format i tidligere status.
+
 > **2026-09-16: Sparta-fase 1 er implementert og produksjonsdata korrigert.** 45 kamper annullert, ni aktive tabellag, 214 kjøpbare spillere. Tips, spillerpriser, eierskap og frister er bevart. Plan, verifikasjon og publiseringsspor: [SPARTA_WITHDRAWAL_2026_27.md](SPARTA_WITHDRAWAL_2026_27.md). 40/48 kamper er fortsatt uavklart. Tallene om 225 kamper og 239 kjøpbare spillere nedenfor er historisk launch-status.
 
 Sist kontrollert mot GitHub `main`: 2026-08-26

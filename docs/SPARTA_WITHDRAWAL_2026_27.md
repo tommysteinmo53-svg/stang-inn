@@ -1,5 +1,7 @@
 # Sparta ut av EHL 2026/27
 
+> **Oppdatert 2026-09-16:** 40 kamper er vedtatt og endelig terminliste kontrollert. Gjeldende kalender, frister og Event Week-vurdering står i [EHL_FINAL_CALENDAR_2026_27.md](EHL_FINAL_CALENDAR_2026_27.md). Historikken om uavklart format nedenfor gjelder fase 1.
+
 Status 2026-09-16: fase 1 er implementert, og produksjonsdata er korrigert og kontrollert. Koden leveres gjennom PR #90 og #91. Fase 2 avventer vedtatt terminliste. Dette addendumet overstyrer gamle forutsetninger om ti lag og 225 aktive kamper i launch-dokumentasjonen.
 
 ## Produksjonskontroll 2026-09-16

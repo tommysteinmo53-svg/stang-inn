@@ -33,6 +33,8 @@ jobs:
         run: npm run test:mp12:isolation
       - name: Sparta withdrawal isolated database regression
         run: npm run test:sparta
+      - name: Final EHL calendar isolated database regression
+        run: npm run test:ehl-calendar
       - name: MP-13 tipping scoring regression
         run: npm run test:mp13:scoring
       - name: MP-13 season readiness regression

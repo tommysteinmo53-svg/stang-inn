@@ -1,5 +1,7 @@
 # MP-14 – Endelig launch-gate EHL 2026/27
 
+> **Kalenderkontroll 2026-09-16:** 40-kampsserie og 180 publiserte kamper er kontrollert. 45 fantasy-runder beholdes, og fire frister justeres til første kampstart. Event Weeks beholdes med dokumenterte spillefrie klubber. Se [fase 2](EHL_FINAL_CALENDAR_2026_27.md); eldre 225/239-tall nedenfor er historikk.
+
 > **Ny endring 2026-09-15:** Sparta trekker seg. Tallene og PASS-markeringene nedenfor gjelder launch 2026-08-26. Endringen har egen gate og status i [SPARTA_WITHDRAWAL_2026_27.md](SPARTA_WITHDRAWAL_2026_27.md); ny terminliste er foreløpig ikke avklart.
 
 Fase 1 er produksjonskorrigert 2026-09-16: 45 annullerte kamper, ni aktive klubber, 214 kjøpbare spillere, uendrede frister og bevart brukerdata. Kalender-/Event Week-gaten må vurderes på nytt i fase 2 når 40/48 kamper og offisiell terminliste er vedtatt.
