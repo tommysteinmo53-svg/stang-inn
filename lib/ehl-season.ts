@@ -8,6 +8,7 @@ export const EHL_ACTIVE_TEAMS = [
 const withdrawnAliases = new Set([
   "sparta", "sparta elite", "sparta sarpsborg", "sparta ishockey elite",
   "sparta ishockey elite, il - ishockey",
+  "sparta ishockey elite, il - ishockey - men 1",
 ]);
 
 export function isWithdrawnEhlTeam(season: string, team: string) {
