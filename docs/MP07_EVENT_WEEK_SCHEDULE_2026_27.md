@@ -1,5 +1,7 @@
 # MP-07.11 – Event Week-plan 2026/27
 
+> **Revidert 2026-09-16:** Eventdatoene beholdes, men ti-lagsgrunnlaget nedenfor er historisk. GW15/GW38 har nå fire kamper og åtte spillende klubber; Frisk Asker/Vålerenga har spillefri. Se [endelig kalender](EHL_FINAL_CALENDAR_2026_27.md).
+
 > Produktbeslutning for hvilke fantasy-runder som skal brukes til Rik Onkel og Fattig Onkel. Produksjonskonfigurasjon og verifisering gjøres i Chat 07 før MP-07.11 markeres ✅.
 
 Sist oppdatert: 2026-08-23

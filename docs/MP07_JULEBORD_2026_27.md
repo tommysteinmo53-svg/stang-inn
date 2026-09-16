@@ -1,5 +1,7 @@
 # MP-07 – Julebord Event Week 2026/27
 
+> **Revidert 2026-09-16:** GW22 og reglene beholdes. Runden har fire kamper; Stavanger har spillefri. Se [endelig kalender](EHL_FINAL_CALENDAR_2026_27.md).
+
 Dato: 2026-08-23
 Sist produksjonsverifisert: 2026-08-25
 Status: **PRODUKSJONSVERIFISERT**

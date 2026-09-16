@@ -29,7 +29,8 @@
     "test:mp13:leagues": "node scripts/test-mp13-shared-leagues.mjs",
     "test:mp14:purchases": "node scripts/test-mp14-purchase-consistency.mjs",
     "backtest:availability:nitten": "node scripts/backtest-nitten-availability.mjs",
-    "test:sparta": "node scripts/test-sparta-withdrawal.mjs"
+    "test:sparta": "node scripts/test-sparta-withdrawal.mjs",
+    "test:ehl-calendar": "node scripts/test-ehl-final-calendar.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
