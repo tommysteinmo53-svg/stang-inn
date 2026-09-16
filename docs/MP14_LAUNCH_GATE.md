@@ -2,6 +2,8 @@
 
 > **Ny endring 2026-09-15:** Sparta trekker seg. Tallene og PASS-markeringene nedenfor gjelder launch 2026-08-26. Endringen har egen gate og status i [SPARTA_WITHDRAWAL_2026_27.md](SPARTA_WITHDRAWAL_2026_27.md); ny terminliste er foreløpig ikke avklart.
 
+Fase 1 er produksjonskorrigert 2026-09-16: 45 annullerte kamper, ni aktive klubber, 214 kjøpbare spillere, uendrede frister og bevart brukerdata. Kalender-/Event Week-gaten må vurderes på nytt i fase 2 når 40/48 kamper og offisiell terminliste er vedtatt.
+
 Sist oppdatert: 2026-08-26
 
 Sporbart kontrollregister for MP-14.1–MP-14.8. GitHub `main` og faktisk produksjonsstatus er source of truth. Statusverdier: **PASS / FAIL / BLOCKED / N/A**.

@@ -4,7 +4,8 @@ import fs from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import ts from "typescript";
 
-const migration = fs.readFileSync("supabase/migrations/20260915101010_sparta_withdrawal_2026_27.sql", "utf8");
+const migration = fs.readFileSync("supabase/migrations/20260915101010_sparta_withdrawal_2026_27.sql", "utf8")
+  + fs.readFileSync("supabase/migrations/20260915174852_sparta_fixture_alias_2026_27.sql", "utf8");
 const db = new PGlite();
 const uid = "00000000-0000-4000-8000-000000000001";
 const otherUid = "00000000-0000-4000-8000-000000000002";
@@ -54,7 +55,7 @@ await db.exec(`
   insert into fantasy_season_rules values('2026/27',3);
   insert into fantasy_rounds(season,round_no,deadline_at) values('2026/27',1,now()+interval '2 days');
   insert into matches(external_id,season,home_team,away_team,match_time) values
-    ('synthetic-sparta','2026/27','Sparta Elite','Narvik',now()+interval '2 days'),
+    ('synthetic-sparta','2026/27','Sparta Ishockey Elite, IL - Ishockey - MEN 1','Narvik',now()+interval '2 days'),
     ('synthetic-active','2026/27','Storhamar','Oilers',now()+interval '2 days'),
     ('synthetic-history','2025/26','Sparta Elite','Narvik',now()-interval '1 year');
   insert into fantasy_games(external_id,season,home_team,away_team,status,fantasy_round_id,fantasy_round_no)
@@ -116,7 +117,8 @@ assert.equal(format.status, "pending"); assert.equal(format.games_per_team, null
 
 // Repeated migration cannot shift rankings again or overwrite original audit rows.
 await db.exec(migration);
-assert.equal((await one("select count(*)::int n from competition_adjustment_audit")).n, 8);
+assert.equal((await one("select count(*)::int n from competition_adjustment_audit")).n, 12);
+assert.equal((await one("select jsonb_array_length(before_rows) n from competition_adjustment_audit where adjustment='sparta-withdrawal-2026-27-fixture-alias-v2' and scope='matches'")).n, 1);
 assert.equal((await one("select count(*)::int n from table_tips")).n, 18);
 
 // Stale source data, including false scores and round links, cannot reactivate Sparta.
@@ -193,6 +195,7 @@ const mod = { exports: {} }; new Function("exports", "module", compiled)(mod.exp
 assert.equal(mod.exports.EHL_ACTIVE_TEAMS.length, 9);
 for (const [season, team, expected] of [
   ["2026/27", " Sparta Elite ", true], ["2026/27", "Sparta Ishockey Elite, IL - Ishockey", true],
+  ["2026/27", "Sparta Ishockey Elite, IL - Ishockey - MEN 1", true],
   ["2025/26", "Sparta", false], ["2027/28", "Sparta", false], ["2026/27", "Sparta Praha", false],
 ]) {
   assert.equal(mod.exports.isWithdrawnEhlTeam(season, team), expected);
