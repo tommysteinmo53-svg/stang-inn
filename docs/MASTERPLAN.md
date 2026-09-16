@@ -1,6 +1,6 @@
 # Stang Inn – MASTERPLAN
 
-> **Aktiv prioritet 2026-09-15:** [Sparta ut av EHL – fase 1 og 2](SPARTA_WITHDRAWAL_2026_27.md). Fase 1 tilpasser konkurransene til ni lag. Endelig 40/48-kampsserie og revidert fantasy-kalender avventer vedtak.
+> **Aktiv prioritet 2026-09-16:** [Sparta ut av EHL – fase 1 og 2](SPARTA_WITHDRAWAL_2026_27.md). Fase 1 er implementert og produksjonsdata korrigert til ni lag; publiseringsspor er PR #90/#91. Endelig 40/48-kampsserie og revidert fantasy-kalender avventer vedtak. Eksisterende 45 fantasy-runder er foreløpige og beholder fristene.
 
 > Prosjektets operative kontrollsenter. GitHub `main` er teknisk source of truth. Denne filen gir oversikt, prioritering og sporbarhet.
 
