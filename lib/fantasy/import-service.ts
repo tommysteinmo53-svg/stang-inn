@@ -1,3 +1,4 @@
+import { canonicalMatchPlayerExternalId } from "./match-player-identities";
 import { hockeyLiveResult } from "../providers/hockeylive-result";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { fetchNifMatchBundle } from "./nif-client";
@@ -183,6 +184,14 @@ async function patchScoreFromGoals(supabase: SupabaseClient, game: any, goals: R
 async function upsertPlayer(supabase: SupabaseClient, raw: Row, fallbackTeam: string, goalie = false) {
   const identity = playerIdentity(raw);
   if (!identity.externalId || !identity.name) return null;
+  const sourceId = `nif:${identity.externalId}`;
+  const canonicalId = canonicalMatchPlayerExternalId(sourceId);
+  if (canonicalId !== sourceId) {
+    const {data,error}=await supabase.from("fantasy_players").select("id,external_id,name,team,position").eq("external_id",canonicalId).single();
+    if(error)throw error;
+    return data;
+  }
+
   const row = {
     external_id: `nif:${identity.externalId}`,
     name: identity.name,

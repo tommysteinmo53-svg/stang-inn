@@ -285,7 +285,7 @@ export async function syncMatches(providerName: ProviderName = "hockeylive", man
     if (fantasyError) operationalErrors.push(`Fantasy-livssyklus: ${fantasyError}`);
     if (competitionCacheError) operationalErrors.push(`Konkurranse-cache: ${competitionCacheError}`);
     if ((fantasyGames?.failed ?? 0) > 0) {
-      operationalErrors.push(`Fantasy-kampbehandling: ${fantasyGames!.failed} kamp(er) feilet`);
+      operationalErrors.push(`Fantasy-kampbehandling: ${fantasyGames!.failed} kamp(er) feilet: ${fantasyGames!.errors.map(e => `${e.externalId}: ${e.error}`).join("; ")}`);
     }
     if ((fantasyAutomation?.snapshotErrors ?? 0) > 0) {
       operationalErrors.push(`Fantasy-snapshots: ${fantasyAutomation!.snapshotErrors} feil`);

@@ -27,3 +27,10 @@ try{
  }
 }finally{globalThis.fetch=originalFetch}
 console.log('PASS official results, unplayed/live/malformed negatives, zero scores, tipping points and standings fields');
+
+const {canonicalMatchPlayerExternalId}=require('../lib/fantasy/match-player-identities.ts');
+assert.equal(canonicalMatchPlayerExternalId('nif:10593261'),'ep:21651');
+assert.equal(canonicalMatchPlayerExternalId('nif:10603500'),'nif:7738552');
+assert.equal(canonicalMatchPlayerExternalId('nif:10603533'),'nif:7738536');
+assert.equal(canonicalMatchPlayerExternalId('nif:123'),'nif:123');
+console.log('PASS reviewed player identities preserve existing priced roster IDs');
