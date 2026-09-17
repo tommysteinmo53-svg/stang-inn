@@ -35,13 +35,35 @@ try {
  // Optional live HTML files: same production discovery/date/parser pipeline, no DB writes.
  if(process.env.NITTEN_ARTICLE_HTML){
   article=fs.readFileSync(process.env.NITTEN_ARTICLE_HTML,'utf8');
-  const livePlayers=['John Beaton','Magnus Menkerud','Jakob Rian','Johan Ceder','William Kuisma','Emil Buskoven','Leo Andersen','Mattias Juntti','Lukas Rhodin','Eskil Wold'].map((name,i)=>({id:`fixture-${i}`,name,team:'Testklubb'}));
+  const livePlayers=process.env.NITTEN_ROSTER_JSON?JSON.parse(fs.readFileSync(process.env.NITTEN_ROSTER_JSON,'utf8')):['John Beaton','Magnus Menkerud','Jakob Rian','Johan Ceder','William Kuisma','Emil Buskoven','Leo Andersen','Mattias Juntti','Lukas Rhodin','Eskil Wold'].map((name,i)=>({id:`fixture-${i}`,name,team:'Testklubb'}));
   const home=fs.readFileSync(process.env.NITTEN_HOME_HTML,'utf8');
   const articleUrl='https://www.nitten.no/blogg/for-dropp-fulltallige-i-storkampen-stjernen-fravaer-i-nord';
   globalThis.fetch=async target=>new Response(target===source.url?home:target===articleUrl?article:'',{headers:{'content-type':'text/html'}});
   const live=await scanAvailabilitySources(livePlayers,[source]);
   assert.equal(live.findings.length,10);assert.ok(live.findings.every(f=>f.sourceUrl===articleUrl&&f.rawStatus==='out'&&f.sourcePublishedAt==='2026-09-17T12:00:00.000Z'));
+  assert.equal(new Set(live.findings.map(f=>f.proposedPlayerId)).size,10);
+  if(process.env.NITTEN_ROSTER_JSON)assert.equal(live.findings.filter(f=>f.reviewStatus==='needs_review').length,9);
   console.log('PASS live homepage discovery and article: 10 named absence candidates, correct date');
  }
+ const {matchAvailabilityFinding}=require('../lib/fantasy/availability-match.ts');
+ const actualNames=[['John Beaton','Neil John David Beaton'],['Magnus Menkerud','Magnus Grønvold Menkerud'],['Jakob Rian','Jakob Aasen Rian'],['Johan Ceder','Johan Martin Ceder'],['William Kuisma','William Steinsvik Kuisma'],['Emil Buskoven','Emil August Krabberød Buskoven'],['Leo Andersen','Leo Brandbu Andersen'],['Mattias Juntti','Mattias Alexandersen Juntti'],['Lukas Rhodin','Evald Lukas Rhodin'],['Eskil Wold','Eskil Wold']];
+ const actualRoster=actualNames.map(([,name],i)=>({id:`actual-${i}`,name,team:'Testklubb'}));
+ article=byline('17','09','2026')+actualNames.map(([name])=>`<p>${name} er ute.</p>`).join('');
+ globalThis.fetch=async target=>new Response(target===source.url?'<a href="/blogg/test">Artikkel</a>':article,{headers:{'content-type':'text/html'}});
+ const actualResult=await scanAvailabilitySources(actualRoster,[source]);
+ assert.equal(actualResult.findings.length,10);
+ actualNames.forEach(([name],i)=>assert.equal(actualResult.findings.find(f=>f.rawPlayerName===name)?.proposedPlayerId,`actual-${i}`));
+
+ const roster=[{id:'one',name:'Test Mellomnavn Spiller',team:'Narvik'}];
+ assert.equal(matchAvailabilityFinding('Test Spiller',null,roster).proposedPlayerId,'one');
+ assert.equal(matchAvailabilityFinding('Test Spiller',null,roster).reviewStatus,'needs_review');
+ assert.equal(matchAvailabilityFinding('Spiller',null,roster).proposedPlayerId,null);
+ assert.equal(matchAvailabilityFinding('Test Spiller',null,[...roster,{id:'two',name:'Test Annet Spiller',team:'Stjernen'}]).proposedPlayerId,null);
+ article=byline('17','09','2026')+'<p>Test Spiller er ute.</p>';
+ globalThis.fetch=async target=>new Response(target===source.url?'<a href="/blogg/test">Artikkel</a>':article,{headers:{'content-type':'text/html'}});
+ const shortened=await scanAvailabilitySources(roster,[source]);
+ assert.equal(shortened.findings.length,1);assert.equal(shortened.findings[0].rawPlayerName,'Test Spiller');assert.equal(shortened.findings[0].proposedPlayerId,'one');assert.equal(shortened.findings[0].reviewStatus,'needs_review');
+ article=byline('17','09','2026')+'<p>Test Mellomnavn Spiller er ute.</p>';
+ assert.equal((await scanAvailabilitySources(roster,[source])).findings.length,1);
  console.log('PASS Nitten production scan: split date, freshness, invalid/absent date, grouped absence and healthy-player negatives');
 } finally {globalThis.fetch=fetch;Date.now=now;}
