@@ -20,6 +20,8 @@ const statusFor=(sentence:string,name:string):NittenAvailabilityStatus|null=>{co
  if(/blir ikke med|blir hjemme|står over|eneste fravær/.test(afterWide))return"out";
  if(/har vært ute[^.;]{0,100}(?:med )?skad/.test(afterWide)||/har vært ute[^.;]{0,100}(?:med )?skad/.test(beforeWide))return"out";
  if(/troppen (?:er|blir|reiser|drar)[^.;]{0,120}\bmed\b/.test(beforeWide)&&/\bute\b/.test(afterWide))return"out";
+ // Explicit absence also covers coordinated lists before/after "er ute".
+ if(/\ber (?:fortsatt )?ute\b/.test(`${beforeWide} ${n} ${afterWide}`))return"out";
  if(/usikker|tvilsom|dag til dag/.test(local))return"questionable";return null};
 
 export function parseNittenAvailabilityArticle(text:string,playerNames:string[]):NittenAvailabilityFinding[]{const normalized=clean(text),lower=normalized.toLocaleLowerCase("nb-NO"),out:NittenAvailabilityFinding[]=[];for(const playerName of playerNames){let from=0;const needle=playerName.toLocaleLowerCase("nb-NO");while(from<normalized.length){const index=lower.indexOf(needle,from);if(index<0)break;const evidence=sentenceFor(normalized,index),status=statusFor(evidence,playerName);if(status){out.push({playerName,status,evidence});break}from=index+playerName.length}}return out}
