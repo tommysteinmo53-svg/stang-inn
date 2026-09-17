@@ -31,7 +31,8 @@
     "backtest:availability:nitten": "node scripts/backtest-nitten-availability.mjs",
     "test:sparta": "node scripts/test-sparta-withdrawal.mjs",
     "test:ehl-calendar": "node scripts/test-ehl-final-calendar.mjs",
-    "test:availability:nitten": "node scripts/test-nitten-source-scan.mjs"
+    "test:availability:nitten": "node scripts/test-nitten-source-scan.mjs",
+    "test:hockeylive:results": "node scripts/test-hockeylive-results.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

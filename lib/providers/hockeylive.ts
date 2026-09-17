@@ -1,3 +1,4 @@
+import { hockeyLiveResult } from "./hockeylive-result";
 import type { ImportedMatch, MatchProvider } from "../../types/data-provider";
 
 const API_BASE = "https://sf34-terminlister-prod-app.azurewebsites.net/";
@@ -97,12 +98,8 @@ function normalize(raw: Row, season: string): ImportedMatch | null {
   const away = first(raw.awayteamOverriddenName, raw.awayteam, raw.awayteamOrgName, raw.awayTeamName, raw.AwayTeamName, teamName(raw.awayTeam), teamName(raw.AwayTeam), teamName(raw.away), raw.teamNameAway);
   const time = matchDateTime(raw);
   if (!id || !home || !away || !time) return null;
-  const homeScore = numberOrNull(first(raw.hometeamScore, raw.homeTeamScore, raw.hometeamGoals, raw.homeTeamGoals, raw.HomeTeamGoals, raw.homeScore, raw.HomeScore, raw.homeGoals));
-  const awayScore = numberOrNull(first(raw.awayteamScore, raw.awayTeamScore, raw.awayteamGoals, raw.awayTeamGoals, raw.AwayTeamGoals, raw.awayScore, raw.AwayScore, raw.awayGoals));
-  const statusTypeId = numberOrNull(raw.statusTypeId);
-  const finishedByStatus = statusTypeId !== null && statusTypeId >= 4;
-  const finishedFallback = statusTypeId === null && Boolean(first(raw.finished, raw.isFinished, raw.matchFinished));
-  return { externalId: `hockeylive:${id}`, season, round: parseRound(raw), homeTeam: String(home), awayTeam: String(away), matchTime: time, homeScore, awayScore, finished: finishedByStatus || finishedFallback };
+  const {homeScore, awayScore, finished} = hockeyLiveResult(raw);
+  return { externalId: `hockeylive:${id}`, season, round: parseRound(raw), homeTeam: String(home), awayTeam: String(away), matchTime: time, homeScore, awayScore, finished };
 }
 
 function normalizeStanding(raw: Row, season: string): ImportedStanding | null {
@@ -119,8 +116,8 @@ function normalizeStanding(raw: Row, season: string): ImportedStanding | null {
   );
   const position = numberOrNull(first(raw.position, raw.Position, raw.rank, raw.Rank, raw.place, raw.Place, raw.tablePosition, raw.standing));
   if (!team || position === null || position < 1 || position > 10) return null;
-  const played = numberOrNull(first(raw.played, raw.Played, raw.matchesPlayed, raw.MatchesPlayed, raw.playedMatches, raw.gamesPlayed, raw.numberOfMatches)) ?? 0;
-  const points = numberOrNull(first(raw.points, raw.Points, raw.tablePoints, raw.TablePoints, raw.score, raw.Score)) ?? 0;
+  const played = numberOrNull(first(raw.totalMatches, raw.matches, raw.played, raw.Played, raw.matchesPlayed, raw.MatchesPlayed, raw.playedMatches, raw.gamesPlayed, raw.numberOfMatches)) ?? 0;
+  const points = numberOrNull(first(raw.totalPoints, raw.points, raw.Points, raw.tablePoints, raw.TablePoints, raw.score, raw.Score)) ?? 0;
   return { season, team: String(team), position, played, points };
 }
 
