@@ -1,3 +1,4 @@
+import { hockeyLiveResult } from "../providers/hockeylive-result";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { fetchNifMatchBundle } from "./nif-client";
 
@@ -136,9 +137,7 @@ async function ensureFantasyGame(supabase: SupabaseClient, matchId: number, seas
   const raw = rows.find((row) => matchIdOf(row) === matchId);
   if (!raw) throw new Error(`Fant ikke matchId ${matchId} i turnering ${tournamentId}`);
 
-  const statusTypeId = n(raw.statusTypeId, 0);
-  const homeScore = score(raw, "home");
-  const awayScore = score(raw, "away");
+  const {homeScore, awayScore, finished} = hockeyLiveResult(raw);
   const gameRow = {
     external_id: `hockeylive:${matchId}`,
     season,
@@ -148,7 +147,7 @@ async function ensureFantasyGame(supabase: SupabaseClient, matchId: number, seas
     away_team: teamName(raw, "away"),
     home_score: homeScore === null ? null : n(homeScore),
     away_score: awayScore === null ? null : n(awayScore),
-    status: statusTypeId >= 4 ? "finished" : "scheduled",
+    status: finished ? "finished" : "scheduled",
     updated_at: new Date().toISOString(),
   };
   if (!gameRow.home_team || !gameRow.away_team) throw new Error(`Kamp ${matchId} mangler lagnavn`);
@@ -158,7 +157,9 @@ async function ensureFantasyGame(supabase: SupabaseClient, matchId: number, seas
 }
 
 async function patchScoreFromGoals(supabase: SupabaseClient, game: any, goals: Row[]) {
-  if (!goals.length) return game;
+  // Never overwrite the official final score (including overtime/shootout outcomes).
+  if (game.home_score != null && game.away_score != null) return game;
+  if (game.status !== "finished" || !goals.length) return game;
   const homeKey = canonicalTeamKey(game.home_team);
   const awayKey = canonicalTeamKey(game.away_team);
   let home = 0;

@@ -59,6 +59,8 @@ jobs:
         run: npm run test:mp14:purchases
       - name: Nitten production source scan regression
         run: npm run test:availability:nitten
+      - name: HockeyLive published results regression
+        run: npm run test:hockeylive:results
       - name: Build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
