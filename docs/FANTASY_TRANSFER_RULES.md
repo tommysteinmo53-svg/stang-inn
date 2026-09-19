@@ -34,7 +34,7 @@ Ved deadline er rundens snapshot historisk fasit. Senere transfers skal aldri en
 
 ## Budsjett og faste spillerpriser
 
-Ordinært lag har 100m budsjett.
+Ordinært lag har 110m budsjett.
 
 For **2026/27 er spillerprisene faste gjennom hele sesongen**. Det skal ikke forekomme automatiske markedsprisendringer eller manuelle reprisinger etter sesongstart. Den autoritative prisen er spillerens rad i `fantasy_player_season_prices` for `2026/27`.
 
@@ -64,3 +64,5 @@ Ved flere samtidige bytter presenteres historikken som en batch (`UT: A, B` / `I
 ## Serveren er fasit
 
 UI kan forhåndsvise hvor mange bytter en endring vil bruke, men transfergrenser, budsjett, posisjoner, klubbgrense, deadline, snapshot-gate, Bytteboost, Event Week-sperre og låste sesongpriser skal alltid håndheves server-side.
+
+Fra 19. september 2026 har admin 4 permanente bytter per ordinær fantasy-runde. Rollen hentes fra `players.admin`. Brukte bytter teller fortsatt; Bytteboost gir ikke flere enn 4 og forbrukes ikke av adminens ordinære kvote. Budsjettet er 110m for alle eksisterende og nye ordinære lag. Eventbudsjetter og låste spillerpriser er uendret.

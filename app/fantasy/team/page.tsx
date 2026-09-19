@@ -17,7 +17,7 @@ type Round={id:string;round_no:number;deadline_at:string};
 type Game={game_id:string;fantasy_round_id:string;fantasy_round_no:number;starts_at:string|null;home_team:string;away_team:string};
 type Fixture={opponent:string;venue:"H"|"B";starts_at:string|null};
 
-const SEASON="2026/27",BUDGET=100;
+const SEASON="2026/27",BUDGET=110;
 const PLACEHOLDER_NAMES=new Set(["mitt lag","my team","lag"]);
 const group=(p:Player)=>p.position==="D"?"D":p.position==="G"?"G":"F";
 const lineupOrder=(a:Player,b:Player)=>({G:0,D:1,F:2}[group(a)]-({G:0,D:1,F:2}[group(b)]));
@@ -160,7 +160,7 @@ export default function FantasyTeamPage(){
 
  return <main className="fantasy-shell team-builder-shell"><SeasonChangeNotice />
   {withdrawnSelected.length>0&&<aside className="team-panel"><h2>Du har Sparta-spillere på laget</h2><p>{withdrawnSelected.map(p=>p.name).join(", ")}</p><p>{!seasonStarted?"Du kan bytte dem ut fritt frem til første fantasy-deadline, uten å bruke ordinære bytter eller Bytteboost.":"Disse spillerne har ingen tellende kamper. Bytt dem ut i lagbyggeren."}</p><button type="button" onClick={removeWithdrawnPlayers}>Bytt ut Sparta-spillere</button></aside>}
-  <section className="team-builder-head"><div><p className="fantasy-kicker">STANG INN · FANTASY 2026/27</p><h1>Mitt lag</h1><p>Bygg laget innenfor budsjettet. Normalt maks 2 spillerbytter per fantasy-runde.</p></div></section>
+  <section className="team-builder-head"><div><p className="fantasy-kicker">STANG INN · FANTASY 2026/27</p><h1>Mitt lag</h1><p>Bygg laget innenfor budsjettet. Normalt maks 2 spillerbytter per fantasy-runde; admin har 4.</p></div></section>
   <BonusCards/>
   <section className="team-metric-grid"><article><span>Spillere</span><strong>{selected.length}/12</strong></article><article><span>Budsjett brukt</span><strong>{total.toFixed(1)}m</strong></article><article><span>Igjen</span><strong className={left<0?"bad":""}>{left.toFixed(1)}m</strong></article><article><span>Rekker</span><strong>{lineupValid?"2/2 ✓":"Sett opp"}</strong></article></section>
   {seasonStarted&&transferStatus&&<section className="team-transfer-status"><strong>Bytter · runde {transferStatus.effective_round_no}</strong><span>{used}/{transferLimit} brukt · {transferStatus.transfers_remaining} igjen</span><small>Bytte av rekke, kaptein, visekaptein eller lagnavn teller ikke som spillerbytte.</small></section>}

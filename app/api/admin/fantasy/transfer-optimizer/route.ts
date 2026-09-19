@@ -199,7 +199,7 @@ export async function GET(request:NextRequest){
   const maxTransfers=normalizeOptimizerTransferLimit(statusRow.max_transfers_per_round);
   const transfersUsed=Math.max(0,Number(statusRow.transfers_used||0));
   const permanentTransfersAllowed=Boolean(statusRow.permanent_transfers_allowed)&&maxTransfers>0;
-  const budget=Number(economy?.[0]?.budget||100);
+  const budget=Number(economy?.[0]?.budget||110);
   const currentCost=current.reduce((s,p)=>s+p.price,0),currentScore=current.reduce((s,p)=>s+p.score,0);
   const baseline:Candidate={roster:current,score:currentScore,cost:currentCost,changes:[]};
   const bestByStrategy:Record<StrategyKey,Candidate>={balanced:baseline,conservative:baseline,offensive:baseline};
