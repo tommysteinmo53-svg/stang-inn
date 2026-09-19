@@ -99,7 +99,7 @@ export async function GET(request:NextRequest){
   const[{data:economy,error:economyError},{data:xfp,error:xfpError},{data:purchase,error:purchaseError},{data:approvedAvailability,error:approvedAvailabilityError}]=await Promise.all([
     userSb.rpc("get_fantasy_economy_admin_v1",{p_season:"2026/27"}),userSb.rpc("get_fantasy_xfp_round_horizons_admin_v2",{p_season:"2026/27"}),serviceSb.from("fantasy_players").select("id,active,on_current_roster,available_for_purchase"),serviceSb.from("fantasy_player_availability").select("player_id,status")]);
   if(economyError)return NextResponse.json({ok:false,error:economyError.message},{status:500});if(xfpError)return NextResponse.json({ok:false,error:xfpError.message},{status:500});if(purchaseError)return NextResponse.json({ok:false,error:purchaseError.message},{status:500});if(approvedAvailabilityError)return NextResponse.json({ok:false,error:approvedAvailabilityError.message},{status:500});
-  const economyRow=economy?.[0]||null,budget=requestedBudget??Number(economyRow?.budget||100);
+  const economyRow=economy?.[0]||null,budget=requestedBudget??Number(economyRow?.budget||110);
   const purchaseAllowed=new Set((purchase||[]).filter((p:any)=>p.active&&p.on_current_roster&&p.available_for_purchase!==false).map((p:any)=>p.id));
   const availabilityMap=new Map<string,string>((approvedAvailability||[]).map((r:any)=>[r.player_id,String(r.status||"available")]));
   const excludedByAvailability=((approvedAvailability||[]) as any[]).filter(r=>!isOptimizerEligibleAvailability(r.status)).map(r=>({player_id:r.player_id,status:r.status,reason:availabilityEligibilityReason(r.status)}));
