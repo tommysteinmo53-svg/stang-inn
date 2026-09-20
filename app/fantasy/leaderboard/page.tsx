@@ -5,6 +5,8 @@ import {getSupabaseBrowserClient} from "../../../lib/supabase";
 import SIIcon,{type SIIconName} from "../../../components/SIIcon";
 import "../fantasy.css";
 
+import {useVisibleRefresh} from "../../../lib/hooks/use-visible-refresh";
+
 type Standing={standings_position:number;previous_standings_position:number|null;position_change:number;participant_count:number;team_id:string;team_name:string;owner_name:string;total_points:number;rounds_scored:number;round_wins:number;best_round_points:number;average_round_points:number;last_round_no:number|null;last_round_points:number|null;last_round_position:number|null;last_round_participants:number|null};
 type HistoryRow={round_id:string;round_no:number;deadline_at:string;team_name?:string|null;owner_name?:string|null;round_points:number;round_position:number;booster_type?:string|null;event_type?:string|null;event_budget?:number|null};
 type Monthly={month_key:string;month_start:string;standings_position:number;team_id:string;team_name:string;owner_name:string;monthly_points:number;rounds_scored:number};
@@ -24,6 +26,7 @@ export default function FantasyLeaderboard(){
  useEffect(()=>{(async()=>{const sb=getSupabaseBrowserClient();if(!sb){setAuth(false);return}const{data}=await sb.auth.getSession();if(!data.session){setAuth(false);return}setAuth(true);const{data:team}=await sb.from("fantasy_user_teams").select("id").eq("season",SEASON).eq("user_id",data.session.user.id).maybeSingle();setMyTeamId(team?.id||null)})()},[]);
  async function load(){setBusy(true);setMessage("");try{const sb=getSupabaseBrowserClient();if(!sb)throw new Error("Supabase er ikke tilgjengelig");const[{data:r,error},{data:m,error:me},{data:a,error:ae}]=await Promise.all([sb.rpc("get_fantasy_competition_table_v2",{p_season:SEASON}),sb.rpc("get_fantasy_monthly_leaderboard_v2",{p_season:SEASON}),sb.rpc("get_fantasy_team_achievements",{p_season:SEASON})]);if(error)throw error;if(me)throw me;if(ae)throw ae;setRows((r||[]) as Standing[]);setMonthly((m||[]) as Monthly[]);const map:Record<string,Achievement>={};for(const x of (a||[]) as Achievement[])map[x.team_id]=x;setAchievements(map)}catch(e:any){setMessage(`Kunne ikke hente leaderboard: ${e?.message||e}`)}finally{setBusy(false)}}
  useEffect(()=>{if(auth)load()},[auth]);
+ useVisibleRefresh(load,auth===true);
  async function toggle(teamId:string){if(selected===teamId){setSelected(null);return}setSelected(teamId);if(history[teamId])return;const sb=getSupabaseBrowserClient();if(!sb)return;let data:any[]|null=null;let error:any=null;const v3=await sb.rpc("get_fantasy_team_season_history_v3",{p_team_id:teamId,p_season:SEASON});data=v3.data as any[]|null;error=v3.error;if(error){const v2=await sb.rpc("get_fantasy_team_season_history_v2",{p_team_id:teamId,p_season:SEASON});data=v2.data as any[]|null;error=v2.error}if(error){setMessage(`Kunne ikke hente rundehistorikk: ${error.message}`);return}setHistory(v=>({...v,[teamId]:(data||[]).map((x:any)=>({...x,round_no:Number(x.round_no),round_points:Number(x.round_points),round_position:Number(x.round_position),event_budget:x.event_budget==null?null:Number(x.event_budget)})) as HistoryRow[]}))}
  const winners=monthly.filter(x=>x.standings_position===1);
  const leader=rows[0],hasScoredRounds=rows.some(r=>r.rounds_scored>0),mostWins=useMemo(()=>rows.length?Math.max(...rows.map(r=>r.round_wins)):0,[rows]);
