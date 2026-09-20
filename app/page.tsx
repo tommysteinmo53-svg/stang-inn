@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../lib/supabase";
 
+import {useVisibleRefresh} from "../lib/hooks/use-visible-refresh";
+
 type Tab = "overview" | "matches" | "tabletips" | "stats" | "leagues" | "awards" | "profile";
 type MatchFilter = "upcoming" | "untipped" | "finished" | "all";
 type Player = { id: string; display_name: string; email: string | null; admin: boolean };
@@ -27,6 +29,15 @@ export default function Home() {
  const [tab,setTab]=useState<Tab>("overview"),[matchFilter,setMatchFilter]=useState<MatchFilter>("upcoming"),[query,setQuery]=useState(""),[roundFilter,setRoundFilter]=useState<number|"all">("all"),[showCount,setShowCount]=useState(20); const [players,setPlayers]=useState<Player[]>([]),[matches,setMatches]=useState<Match[]>([]),[tips,setTips]=useState<Tip[]>([]),[me,setMe]=useState<Player|null>(null),[loading,setLoading]=useState(isSupabaseConfigured); const [tableOrder,setTableOrder]=useState<string[]>(tablePrediction),[tableTipDeadline,setTableTipDeadline]=useState<string|null>(null),[tableTipLocked,setTableTipLocked]=useState(false),[tableTipSaving,setTableTipSaving]=useState(false),[tableTipStatus,setTableTipStatus]=useState("");
  async function load(){if(!isSupabaseConfigured){setLoading(false);return}const supabase=getSupabaseBrowserClient();if(!supabase)return;const{data:sessionData}=await supabase.auth.getSession();const uid=sessionData.session?.user.id;const[p,m,t,tt,tableSettings]=await Promise.all([supabase.from("players").select("id,display_name,email,admin").order("created_at"),supabase.from("matches").select("id,home_team,away_team,match_time,home_score,away_score,finished,round").eq("cancelled", false).order("match_time"),supabase.from("tips").select("id,player_id,match_id,home_tip,away_tip"),uid?supabase.from("table_tips").select("team,position").eq("player_id",uid).order("position"):Promise.resolve({data:[] as TableTipRow[]}),supabase.from("app_settings").select("value").eq("key","table_tips").maybeSingle()]);if(p.data){setPlayers(p.data as Player[]);setMe((p.data as Player[]).find(x=>x.id===uid)??null)}if(m.data)setMatches(m.data as Match[]);if(t.data)setTips(t.data as Tip[]);const ownTableTip=(tt.data||[])as TableTipRow[];if(ownTableTip.length===tablePrediction.length)setTableOrder(ownTableTip.map(row=>row.team));const settings=tableSettings.data?.value as{deadline?:string|null}|undefined;const deadline=settings?.deadline||null;setTableTipDeadline(deadline);setTableTipLocked(Boolean(deadline&&Date.now()>=new Date(deadline).getTime()));setLoading(false)}
  useEffect(()=>{load()},[]);useEffect(()=>{setShowCount(20)},[matchFilter,query,roundFilter]);
+ useVisibleRefresh(async()=>{
+  const sb=getSupabaseBrowserClient();if(!sb)return;
+  const[m,t]=await Promise.all([
+   sb.from("matches").select("id,home_team,away_team,match_time,home_score,away_score,finished,round").eq("cancelled",false).order("match_time"),
+   sb.from("tips").select("id,player_id,match_id,home_tip,away_tip")
+  ]);
+  if(m.error)throw m.error;if(t.error)throw t.error;
+  setMatches((m.data||[]) as Match[]);setTips((t.data||[]) as Tip[]);
+ },isSupabaseConfigured&&!loading);
  function moveTableTeam(index:number,direction:-1|1){if(tableTipLocked)return;const target=index+direction;if(target<0||target>=tableOrder.length)return;setTableOrder(current=>{const next=[...current];[next[index],next[target]]=[next[target],next[index]];return next});setTableTipStatus("")}
  async function saveTableTips(){const supabase=getSupabaseBrowserClient();if(!supabase||!me||tableTipLocked||tableTipSaving)return;setTableTipSaving(true);setTableTipStatus("Lagrer tabelltips …");const{error}=await supabase.rpc("save_table_tip_rankings",{teams:tableOrder});setTableTipSaving(false);if(error){setTableTipStatus(`Feil: ${error.message}`);return}setTableTipStatus("✓ Tabelltipset er lagret.");await load()}
  const completedMatches=useMemo(()=>matches.filter(m=>m.finished||(m.home_score!==null&&m.away_score!==null)),[matches]);const ownTips=useMemo(()=>tips.filter(t=>t.player_id===me?.id),[tips,me]);const ownTipMap=useMemo(()=>new Map(ownTips.map(t=>[t.match_id,t])),[ownTips]);

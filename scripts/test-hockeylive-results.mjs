@@ -34,3 +34,5 @@ assert.equal(canonicalMatchPlayerExternalId('nif:10603500'),'nif:7738552');
 assert.equal(canonicalMatchPlayerExternalId('nif:10603533'),'nif:7738536');
 assert.equal(canonicalMatchPlayerExternalId('nif:123'),'nif:123');
 console.log('PASS reviewed player identities preserve existing priced roster IDs');
+
+assert.equal(canonicalMatchPlayerExternalId('nif:10577828'),'ep:244694');
