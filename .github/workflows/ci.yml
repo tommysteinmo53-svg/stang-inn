@@ -61,6 +61,8 @@ jobs:
         run: npm run test:mp14:purchases
       - name: Nitten production source scan regression
         run: npm run test:availability:nitten
+      - name: Resolved provisional identity regression
+        run: node scripts/test-resolved-provisional-identities.mjs
       - name: HockeyLive published results regression
         run: npm run test:hockeylive:results
       - name: Build
