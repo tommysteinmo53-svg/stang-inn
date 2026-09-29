@@ -65,6 +65,8 @@ jobs:
         run: node scripts/test-resolved-provisional-identities.mjs
       - name: HockeyLive published results regression
         run: npm run test:hockeylive:results
+      - name: Live provisional points regression
+        run: node scripts/test-live-points.mjs
       - name: Build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
