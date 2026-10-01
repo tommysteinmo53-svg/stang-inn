@@ -44,8 +44,9 @@ const tables={
 };
 const fakeDb={from(table){assert.ok(table in tables,`Unexpected table ${table}`);let from=0,to=999;const q={select(){return q},eq(){return q},neq(){return q},lte(){return q},gte(){return q},in(){return q},order(){return q},range(a,b){from=a;to=b;return q},then(resolve){return Promise.resolve({data:tables[table].slice(from,to+1),error:null}).then(resolve)}};return q}};
 Module._load=function(id,...args){if(id==='@supabase/supabase-js')return {createClient:()=>fakeDb};return originalLoad.call(this,id,...args)};
-const nif=require('../lib/fantasy/nif-client.ts'), originalBundle=nif.fetchNifMatchBundle;
-nif.fetchNifMatchBundle=async()=>({...bundle,players:[{personId:7969949,shots:1}],goalies:bundle.goalies});
+const nif=require('../lib/fantasy/hockey-live-events.ts'), originalBundle=nif.liveEventsBundle, originalFetchEvents=nif.fetchHockeyLiveEvents;
+nif.fetchHockeyLiveEvents=async()=>[];
+nif.liveEventsBundle=()=>({...bundle,players:[{personId:7969949,shots:1}],goalies:bundle.goalies});
 try{
  const {getLivePoints}=require('../lib/fantasy/live-service.ts');
  const projection=await getLivePoints();
@@ -56,4 +57,4 @@ try{
  tables.fantasy_rounds=[];
  assert.deepEqual((await getLivePoints()).rounds,[],'Finalized rounds leave live view');
  console.log('PASS projection integration: frozen lineup, late entry exclusion, latest official score, live combination and final handover');
-}finally{Module._load=originalLoad;nif.fetchNifMatchBundle=originalBundle}
+}finally{Module._load=originalLoad;nif.liveEventsBundle=originalBundle;nif.fetchHockeyLiveEvents=originalFetchEvents}

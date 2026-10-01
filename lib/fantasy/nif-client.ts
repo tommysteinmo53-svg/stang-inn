@@ -6,6 +6,8 @@ type Row = Record<string, unknown>;
 
 export type NifMatchBundle = {
   matchId: number;
+  liveStarted?: boolean;
+  liveScoreUnavailable?: boolean;
   players: Row[];
   goalies: Row[];
   goals: Row[];

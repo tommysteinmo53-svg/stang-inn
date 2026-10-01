@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { fetchNifMatchBundle } from "./nif-client";
+import { fetchHockeyLiveEvents, liveEventsBundle } from "./hockey-live-events";
 import { liveMatchStats, lineupPoints, roundPoints } from "./live-points";
 import type { FantasyScoringConfig } from "./scoring";
 
@@ -47,7 +47,13 @@ export async function getLivePoints(): Promise<LivePoints> {
   await Promise.all(current.map(async g => {
     const matchId = Number(String(g.external_id).replace(/^(hockeylive|nif):/, ""));
     if (!Number.isInteger(matchId) || matchId <= 0) return;
-    const bundle = await fetchNifMatchBundle(matchId);
+    let bundle;
+    try { bundle = liveEventsBundle(matchId, await fetchHockeyLiveEvents(matchId)); }
+    catch (error) {
+      console.warn("HockeyLive event feed unavailable", matchId, error instanceof Error ? error.message : String(error));
+      result.matches.push({ externalId: g.external_id, homeScore: null, awayScore: null, complete: false });
+      return;
+    }
     const stats = liveMatchStats(bundle, g.home_team, g.away_team, config);
     live.set(g.id, stats);
     result.matches.push({ externalId: g.external_id, homeScore: stats.score?.homeScore ?? null,

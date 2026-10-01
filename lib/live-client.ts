@@ -10,7 +10,7 @@ async function requestLivePoints(): Promise<LivePoints> {
   const session = db ? (await db.auth.getSession()).data.session : null;
   if (!session) throw new Error("Logg inn for å se live-poeng.");
   const response = await fetch("/api/live-points", { headers: { Authorization: `Bearer ${session.access_token}` },
-    cache: "no-store", signal: AbortSignal.timeout(25000) });
+    cache: "no-store", signal: AbortSignal.timeout(55000) });
   if (!response.ok) throw new Error("Live-data er midlertidig utilgjengelig. Prøver igjen automatisk.");
   return response.json();
 }
