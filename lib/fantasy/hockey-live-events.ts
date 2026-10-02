@@ -29,7 +29,7 @@ async function readEvents(matchId: number): Promise<Event[]> {
     const remaining = 45000 - (Date.now() - started);
     if (remaining <= 0) throw new Error("Live history timed out before reaching its end");
     const response = await fetch(`${HISTORY}${encodeURIComponent(`match:${matchId}:all`)}?count=100&reverse=true&include_token=true&string_message_token=true&uuid=stang-inn-live&start=${cursor}`,
-      { cache: "no-store", signal: AbortSignal.timeout(Math.min(10000, remaining)) });
+      { cache: "no-store", signal: AbortSignal.timeout(Math.min(20000, remaining)) });
     if (!response.ok) throw new Error(`Live history HTTP ${response.status}`);
     // History boundary tokens may still be JSON integers exceeding JS safe precision.
     const body = (await response.text()).replace(/([[:,]\s*)(\d{16,})(?=\s*[,}\]])/g, '$1"$2"');
