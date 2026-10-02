@@ -67,6 +67,8 @@ jobs:
         run: npm run test:hockeylive:results
       - name: Live provisional points regression
         run: node scripts/test-live-points.mjs
+      - name: HockeyLive event stream regression
+        run: node scripts/test-hockey-live-events.mjs
       - name: Build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co

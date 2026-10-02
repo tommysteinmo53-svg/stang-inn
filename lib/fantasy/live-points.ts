@@ -18,10 +18,10 @@ export function liveMatchStats(bundle: NifMatchBundle, home: string, away: strin
   const special = specialTeamsFromGoals(bundle.goals);
   const skaters = new Map(bundle.players.map(r => [canonicalMatchPlayerExternalId(`nif:${r.personId}`), r]));
   const goalies = new Map(bundle.goalies.map(r => [canonicalMatchPlayerExternalId(`nif:${r.personId}`), r]));
-  const activity = bundle.players.some(r => n(r.playerTime) > 0 || n(r.playerTimeSeconds) > 0 || n(r.shots) > 0 || n(r.pim) > 0)
+  const activity = Boolean(bundle.liveStarted) || bundle.players.some(r => n(r.playerTime) > 0 || n(r.playerTimeSeconds) > 0 || n(r.shots) > 0 || n(r.pim) > 0)
     || bundle.goalies.some(r => n(r.saves) > 0 || n(r.goalsAgainst) > 0 || n(r.playerTimeSeconds) > 0) || bundle.goals.length > 0;
   let homeScore = 0, awayScore = 0;
-  let scoreKnown = bundle.availability.goals && activity;
+  let scoreKnown = bundle.availability.goals && activity && !bundle.liveScoreUnavailable;
   for (const goal of bundle.goals) {
     // A shootout feed is not an ordinary goal count. Wait for the official result.
     if (/shootout|straffeslag/i.test(String(goal.goalType) + " " + String(goal.periodName))) { scoreKnown = false; continue; }

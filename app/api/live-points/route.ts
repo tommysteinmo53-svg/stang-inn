@@ -5,9 +5,9 @@ import { getLivePoints } from "../../../lib/fantasy/live-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+export const maxDuration = 60;
 // All authenticated users share the same read-only projection. No tokens/user data in cache.
-const live = unstable_cache(getLivePoints, ["live-points-v1"], { revalidate: 30 });
+const live = unstable_cache(getLivePoints, ["live-points-events-v2"], { revalidate: 30 });
 export async function GET(request: NextRequest) {
   const token = request.headers.get("authorization")?.match(/^Bearer (.+)$/)?.[1];
   if (!token) return NextResponse.json({ error: "Du må være logget inn." }, { status: 401 });
