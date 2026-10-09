@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "status": "staged-not-approved",
+  "matches": [
+    {
+      "matchId": 8393583,
+      "externalId": "hockeylive:8393583",
+      "finalScore": {
+        "home": 4,
+        "away": 1
+      },
+      "events": [
+        {
+          "time": "21:23",
+          "scorer": "nif:6849262",
+          "assists": [
+            "nif:10473631",
+            "nif:8156791"
+          ],
+          "strength": "EV"
+        },
+        {
+          "time": "42:09",
+          "scorer": "nif:9459227",
+          "assists": [
+            "nif:10473631",
+            "nif:10440558"
+          ],
+          "strength": "PP"
+        },
+        {
+          "time": "52:20",
+          "scorer": "nif:10473631",
+          "assists": [
+            "nif:10440558",
+            "nif:9459227"
+          ],
+          "strength": "PP"
+        },
+        {
+          "time": "55:55",
+          "scorer": "nif:9459227",
+          "assists": [
+            "nif:10589867",
+            "nif:8313562"
+          ],
+          "strength": "EN"
+        },
+        {
+          "time": null,
+          "scorer": "nif:7151757",
+          "assists": [
+            "nif:8568129",
+            "nif:10589192"
+          ],
+          "strength": "EV",
+          "note": "Exact goal time pending final boxscore verification"
+        }
+      ],
+      "sources": [
+        "https://hockey.nif.no/live/BoxScore/Boxscore/8393583",
+        "https://www.hockey4you.no/kampsenter/?kamp=8393583"
+      ]
+    },
+    {
+      "matchId": 8393611,
+      "externalId": "hockeylive:8393611",
+      "finalScore": {
+        "home": 6,
+        "away": 3
+      },
+      "events": [
+        {
+          "time": "00:48",
+          "scorer": "ep:244694",
+          "assists": [
+            "nif:10379149",
+            "nif:7531512"
+          ],
+          "strength": "EV"
+        },
+        {
+          "time": "02:07",
+          "scorer": "nif:10188899",
+          "assists": [
+            "nif:5488470"
+          ],
+          "strength": "EV"
+        },
+        {
+          "time": "18:05",
+          "scorer": "nif:9430975",
+          "assists": [
+            "nif:7818088",
+            "nif:5656129"
+          ],
+          "strength": "PP"
+        },
+        {
+          "time": "24:31",
+          "scorer": "nif:7738536",
+          "assists": [],
+          "strength": "PS"
+        },
+        {
+          "time": "36:49",
+          "scorer": "nif:7738552",
+          "assists": [
+            "nif:10379236",
+            "nif:7738536"
+          ],
+          "strength": "PP"
+        },
+        {
+          "time": "42:18",
+          "scorer": "nif:7738552",
+          "assists": [
+            "nif:7738536"
+          ],
+          "strength": "EV"
+        },
+        {
+          "time": "46:41",
+          "scorer": "nif:9830252",
+          "assists": [
+            "nif:5502138",
+            "nif:4532203"
+          ],
+          "strength": "EV"
+        },
+        {
+          "time": "56:45",
+          "scorer": "nif:7747130",
+          "assists": [
+            "nif:10188899",
+            "nif:8309849"
+          ],
+          "strength": "EV",
+          "note": "Ole Indergaard assist provisional pending official final boxscore"
+        },
+        {
+          "time": "57:39",
+          "scorer": "nif:7738552",
+          "assists": [
+            "nif:10379236"
+          ],
+          "strength": "EN"
+        }
+      ],
+      "sources": [
+        "https://www.vif-hockey.no/article/r5satml-49ejd/view",
+        "https://www.flashscore.fr/match/hockey/nidaros-QXuY3vcR/valerenga-rHMTGU45/"
+      ]
+    }
+  ]
+}
