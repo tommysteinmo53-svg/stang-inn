@@ -23,11 +23,17 @@ async function scoringConfig(db: SupabaseClient, season: string): Promise<Fantas
     .eq("active", true);
   if (error) throw error;
 
-  const global = new Map(
-    (data ?? [])
-      .filter((row: any) => row.position === null || row.position === "")
-      .map((row: any) => [String(row.key), num(row.points)]),
-  );
+  const global = new Map<string, number>();
+  for (const row of data ?? []) {
+    if (row.position !== null && row.position !== "") continue;
+    const key = String(row.key);
+    const value = num(row.points);
+    const existing = global.get(key);
+    if (existing !== undefined && existing !== value) {
+      throw new Error(`Conflicting active global fantasy scoring rules for ${season}: ${key} (${existing} vs ${value}). Resolve the duplicate rules before materializing points.`);
+    }
+    global.set(key, value);
+  }
 
   return {
     powerplayGoalBonus: global.get("powerplay_goal_bonus") ?? 0,

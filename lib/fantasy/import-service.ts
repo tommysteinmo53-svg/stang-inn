@@ -1,7 +1,7 @@
 import { canonicalMatchPlayerExternalId } from "./match-player-identities";
 import { hockeyLiveResult } from "../providers/hockeylive-result";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { fetchNifMatchBundle } from "./nif-client";
+import { fetchNifMatchBundle, type NifMatchBundle } from "./nif-client";
 
 type Row = Record<string, any>;
 type FantasyPosition = "G" | "D" | "W" | "C";
@@ -241,13 +241,56 @@ function goalieWasActive(raw: Row) {
   return stat.saves > 0 || seconds > 0 || n(stat.minutes_played, 0) > 0 || stat.goals_against > 0;
 }
 
-export async function importFantasyMatch(matchId: number, options?: { season?: string; tournamentId?: string }) {
+export async function importFantasyMatch(matchId: number, options?: { season?: string; tournamentId?: string; bundle?: NifMatchBundle }) {
   const supabase = serverClient();
   const season = options?.season || "2025/26";
   const tournamentId = options?.tournamentId || "435587";
-  const bundle = await fetchNifMatchBundle(matchId);
+  const bundle = options?.bundle ?? await fetchNifMatchBundle(matchId, tournamentId);
   let game = await ensureFantasyGame(supabase, matchId, season, tournamentId);
+  // Validate the event feed before mutating even the game score. A failed import
+  // must not partially persist a score inferred from incomplete goal events.
+  // Validate the event feed before writing any player statistics.
+  const expectedGoals = Number(game.home_score ?? 0) + Number(game.away_score ?? 0);
+  if (game.status === "finished" && expectedGoals > 0 && !bundle.availability.goals) {
+    throw new Error(`HockeyLive goal endpoint unavailable for finished match ${matchId}`);
+  }
+  if (game.status === "finished" && expectedGoals > 0 && bundle.goals.length < expectedGoals) {
+    throw new Error(`Incomplete HockeyLive goal feed for ${matchId}: ${bundle.goals.length}/${expectedGoals}`);
+  }
+  if (game.status === "finished" && (!bundle.availability.players || !bundle.availability.goalies)) {
+    throw new Error(`HockeyLive player or goalie endpoint unavailable for finished match ${matchId}`);
+  }
+  // Fail before any player upsert if the event feed cannot identify its scorers.
+  // The enrichment phase must never discover this only after base stats were written.
+  if (game.status === "finished") {
+    const unresolvedScorers = bundle.goals.filter((goal) => {
+      const values = [goal.personId, goal.PersonId, goal.scorerPersonId, goal.ScorerPersonId,
+        goal.goalScorerPersonId, goal.GoalScorerPersonId, goal.playerId, goal.PlayerId];
+      const ids = [...new Set(values.filter((value) => value !== null && value !== undefined && String(value).trim() !== "").map(String))];
+      return ids.length !== 1;
+    }).length;
+    if (unresolvedScorers > 0) {
+      throw new Error(`HockeyLive goal feed has ${unresolvedScorers} unidentified scorers for match ${matchId}`);
+    }
+  }
+  // Every credited scorer must be present in the fetched match roster.
+  // Otherwise the enrichment phase would silently skip their goal points.
+  if (game.status === "finished" && bundle.goals.length > 0) {
+    const rosterIds = new Set([...bundle.players, ...bundle.goalies]
+      .map((row) => text(first(row.personId, row.PersonId, row.playerId, row.PlayerId)))
+      .filter(Boolean));
+    const missingScorers = bundle.goals
+      .map((goal) => text(first(goal.personId, goal.PersonId, goal.scorerPersonId,
+        goal.ScorerPersonId, goal.goalScorerPersonId, goal.GoalScorerPersonId,
+        goal.playerId, goal.PlayerId)))
+      .filter((id) => id && !rosterIds.has(id));
+    if (missingScorers.length > 0) {
+      throw new Error(`HockeyLive match ${matchId} has ${missingScorers.length} scorers absent from match roster`);
+    }
+  }
+  // Only now is it safe to persist a score inferred from a complete event feed.
   game = await patchScoreFromGoals(supabase, game, bundle.goals);
+
   let importedSkaters = 0;
   let importedGoalies = 0;
   let skipped = 0;

@@ -29,6 +29,16 @@ async function gameMaterializationState(gameId: string) {
   const playedIds = [...new Set(stats.filter((row: any) => row.did_play === true).map((row: any) => row.player_id))];
   if (!playedIds.length) return { complete: false, statRows: stats.length, playedRows: 0, pointRows: 0 };
 
+  const { data: game, error: gameError } = await db.from("fantasy_games").select("home_score,away_score,status").eq("id", gameId).single();
+  if (gameError) throw gameError;
+  const expectedGoals = Number(game?.home_score ?? 0) + Number(game?.away_score ?? 0);
+  const { data: goalRows, error: goalError } = await db.from("fantasy_player_game_stats").select("goals").eq("game_id", gameId);
+  if (goalError) throw goalError;
+  const importedGoals = (goalRows ?? []).reduce((sum: number, row: any) => sum + Number(row.goals ?? 0), 0);
+  // A shootout may add one winning goal to the published final score without a player goal event.
+  // A deficit of two or more cannot be explained by that single shootout goal.
+  const incompleteGoalStats = game?.status === "finished" && expectedGoals > 0 && importedGoals < expectedGoals - 1;
+
   const { data: points, error: pointsError } = await db
     .from("fantasy_player_points")
     .select("player_id")
@@ -39,7 +49,7 @@ async function gameMaterializationState(gameId: string) {
   const pointIds = new Set((points ?? []).map((row: any) => row.player_id));
 
   return {
-    complete: playedIds.every((id) => pointIds.has(id)),
+    complete: !incompleteGoalStats && playedIds.every((id) => pointIds.has(id)),
     statRows: stats.length,
     playedRows: playedIds.length,
     pointRows: pointIds.size,
@@ -52,6 +62,15 @@ export async function importAndMaterializeFantasyMatch(
 ) {
   const db = serverClient();
   const imported = await importEnrichedFantasyMatch(matchId, options);
+  // Do not accept partial HockeyLive feeds as a completed scoring import.
+  // A finished game must have all scoring events before its points can be trusted.
+  const expectedGoals = Number(imported.game?.homeScore ?? 0) + Number(imported.game?.awayScore ?? 0);
+  if (expectedGoals > 0 && imported.sourceRows.goals < expectedGoals) {
+    throw new Error(`Incomplete goal feed for ${matchId}: ${imported.sourceRows.goals}/${expectedGoals} goals. Retrying on next sync.`);
+  }
+  if (imported.enrichment.eventScoringUnresolved > 0) {
+    throw new Error(`Unresolved scoring events for ${matchId}: ${imported.enrichment.eventScoringUnresolved}.`);
+  }
   const candidates = [`hockeylive:${matchId}`, String(matchId), `nif:${matchId}`];
   const { data: game, error: gameError } = await db
     .from("fantasy_games")

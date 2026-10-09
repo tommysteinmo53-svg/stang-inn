@@ -19,6 +19,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: Two-match fantasy recovery staging consistency
+        run: npm run test:fantasy:two-match-recovery
       - name: MP-01 production operations regression
         run: npm run test:mp01:operations
       - name: MP-01 user admin lifecycle regression
@@ -69,6 +71,8 @@ jobs:
         run: node scripts/test-live-points.mjs
       - name: HockeyLive event stream regression
         run: node scripts/test-hockey-live-events.mjs
+      - name: Incomplete Fantasy scoring import regression
+        run: node --test scripts/test-fantasy-incomplete-goal-import.mjs
       - name: Build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
