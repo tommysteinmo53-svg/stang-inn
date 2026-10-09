@@ -29,6 +29,14 @@ async function gameMaterializationState(gameId: string) {
   const playedIds = [...new Set(stats.filter((row: any) => row.did_play === true).map((row: any) => row.player_id))];
   if (!playedIds.length) return { complete: false, statRows: stats.length, playedRows: 0, pointRows: 0 };
 
+  const { data: game, error: gameError } = await db.from("fantasy_games").select("home_score,away_score,status").eq("id", gameId).single();
+  if (gameError) throw gameError;
+  const expectedGoals = Number(game?.home_score ?? 0) + Number(game?.away_score ?? 0);
+  const { data: goalRows, error: goalError } = await db.from("fantasy_player_game_stats").select("goals").eq("game_id", gameId);
+  if (goalError) throw goalError;
+  const importedGoals = (goalRows ?? []).reduce((sum: number, row: any) => sum + Number(row.goals ?? 0), 0);
+  const incompleteGoalStats = game?.status === "finished" && expectedGoals > 0 && importedGoals === 0;
+
   const { data: points, error: pointsError } = await db
     .from("fantasy_player_points")
     .select("player_id")
@@ -39,7 +47,7 @@ async function gameMaterializationState(gameId: string) {
   const pointIds = new Set((points ?? []).map((row: any) => row.player_id));
 
   return {
-    complete: playedIds.every((id) => pointIds.has(id)),
+    complete: !incompleteGoalStats && playedIds.every((id) => pointIds.has(id)),
     statRows: stats.length,
     playedRows: playedIds.length,
     pointRows: pointIds.size,
