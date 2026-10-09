@@ -31,11 +31,18 @@ All event claims from third-party reports must be checked against the official m
 
 ## Blockers that require human/source verification
 
-1. Narvik scorer described as 'Daniel Byrkjeland' is **not uniquely matched**: the match roster includes Douglas Emrik Byrkjeland (`nif:7151757`) and Kåre Benjamin Byrkjeland (`nif:9241671`). Do not assign the goal until the official match report establishes the scorer's full identity.
-2. Narvik assist described as 'Eirik Vold' does not exactly match the roster's Esbjørn Leiv Fogstad Vold (`nif:8568129`). Verify official identity.
-3. Nidaros assist described as 'Oskar Indergaard' does not exactly match rostered Ole Indergaard (`nif:8309849`). Verify official identity.
+1. **RESOLVED** Narvik scorer #41 D. Byrkjeland = Douglas Emrik Byrkjeland (`nif:7151757`), not Kåre Benjamin Byrkjeland (#20). Source: https://hockey.nif.no/live/BoxScore/Boxscore/8393583 and https://www.hockey4you.no/kampsenter/?kamp=8393583 .
+2. **RESOLVED** Narvik assist #57 E. Vold = Esbjørn Leiv Fogstad Vold (`nif:8568129`). Same official boxscore and Hockey4You roster sources.
+3. **LIKELY RESOLVED, needs official final boxscore confirmation**: Nidaros assist #36 O. Indergaard is rostered Ole Indergaard (`nif:8309849`), not the previously stated 'Oskar Indergaard'. Flashscore credits O. Indergaard: https://www.flashscore.fr/match/hockey/nidaros-QXuY3vcR/valerenga-rHMTGU45/ ; roster #36: https://www.hockey4you.no/kampsenter/?kamp=8393611 .
 4. Nidaros goal scorer Alexander Bjurström currently has `ep:244694` rather than a NIF identity in the match stats. Verify this is the intended fantasy identity.
-5. Verify goal type (PP, SH, penalty shot, empty net), home/away score progression, exact assists and timestamp for every event. A penalty-shot goal is not a shootout-deciding goal.
+5. Verify goal type (PP, SH, penalty shot, empty net), home/away score progression, exact assists and timestamp for every event. Ponthus scored a **penalty-shot goal during play**, not a shootout winner (Vålerenga report: https://www.vif-hockey.no/article/r5satml-49ejd/view). Note that Hockey4You match 8393611 currently serves an outdated LIVE 2–2 partial snapshot; do not use it as a final 6–3 event source. Use Flashscore and the Vålerenga club report for final scoring.
+
+## Verified source references
+
+- Official NIF Ringerike–Narvik boxscore: https://hockey.nif.no/live/BoxScore/Boxscore/8393583
+- Ringerike–Narvik full roster and named events: https://www.hockey4you.no/kampsenter/?kamp=8393583
+- Vålerenga–Nidaros final scoring: https://www.flashscore.fr/match/hockey/nidaros-QXuY3vcR/valerenga-rHMTGU45/
+- Vålerenga club report: https://www.vif-hockey.no/article/r5satml-49ejd/view
 
 ## Safe repair sequence
 
