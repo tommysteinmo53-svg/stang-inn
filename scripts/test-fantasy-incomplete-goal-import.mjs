@@ -36,3 +36,10 @@ test("failed HockeyLive endpoints block finished-game import before stat writes"
   assert.ok(base.indexOf("!bundle.availability.players || !bundle.availability.goalies") < write);
   assert.match(base, /fetchNifMatchBundle\(matchId, tournamentId\)/);
 });
+
+test("second HockeyLive fetch is checked before enrichment stat writes", () => {
+  const guard = enrichment.indexOf("bundle.goals.length<expectedGoals");
+  const write = enrichment.indexOf('from("fantasy_player_game_stats").update');
+  assert.ok(guard >= 0 && write > guard);
+  assert.ok(enrichment.indexOf("!bundle.availability.players||!bundle.availability.goalies") < write);
+});
