@@ -248,6 +248,11 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
   const bundle = await fetchNifMatchBundle(matchId);
   let game = await ensureFantasyGame(supabase, matchId, season, tournamentId);
   game = await patchScoreFromGoals(supabase, game, bundle.goals);
+  // Validate the event feed before writing any player statistics.
+  const expectedGoals = Number(game.home_score ?? 0) + Number(game.away_score ?? 0);
+  if (game.status === "finished" && expectedGoals > 0 && bundle.goals.length < expectedGoals) {
+    throw new Error(`Incomplete HockeyLive goal feed for ${matchId}: ${bundle.goals.length}/${expectedGoals}`);
+  }
   let importedSkaters = 0;
   let importedGoalies = 0;
   let skipped = 0;
