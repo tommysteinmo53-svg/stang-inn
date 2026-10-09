@@ -52,6 +52,12 @@ export async function importAndMaterializeFantasyMatch(
 ) {
   const db = serverClient();
   const imported = await importEnrichedFantasyMatch(matchId, options);
+  // Do not accept partial HockeyLive feeds as a completed scoring import.
+  // A finished game must have all scoring events before its points can be trusted.
+  const expectedGoals = Number(imported.game?.homeScore ?? 0) + Number(imported.game?.awayScore ?? 0);
+  if (expectedGoals > 0 && imported.sourceRows.goals < expectedGoals) {
+    throw new Error(`Incomplete goal feed for ${matchId}: ${imported.sourceRows.goals}/${expectedGoals} goals. Retrying on next sync.`);
+  }
   const candidates = [`hockeylive:${matchId}`, String(matchId), `nif:${matchId}`];
   const { data: game, error: gameError } = await db
     .from("fantasy_games")
