@@ -35,7 +35,9 @@ async function gameMaterializationState(gameId: string) {
   const { data: goalRows, error: goalError } = await db.from("fantasy_player_game_stats").select("goals").eq("game_id", gameId);
   if (goalError) throw goalError;
   const importedGoals = (goalRows ?? []).reduce((sum: number, row: any) => sum + Number(row.goals ?? 0), 0);
-  const incompleteGoalStats = game?.status === "finished" && expectedGoals > 0 && importedGoals === 0;
+  // A shootout may add one winning goal to the published final score without a player goal event.
+  // A deficit of two or more cannot be explained by that single shootout goal.
+  const incompleteGoalStats = game?.status === "finished" && expectedGoals > 0 && importedGoals < expectedGoals - 1;
 
   const { data: points, error: pointsError } = await db
     .from("fantasy_player_points")
