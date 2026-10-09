@@ -247,7 +247,8 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
   const tournamentId = options?.tournamentId || "435587";
   const bundle = options?.bundle ?? await fetchNifMatchBundle(matchId, tournamentId);
   let game = await ensureFantasyGame(supabase, matchId, season, tournamentId);
-  game = await patchScoreFromGoals(supabase, game, bundle.goals);
+  // Validate the event feed before mutating even the game score. A failed import
+  // must not partially persist a score inferred from incomplete goal events.
   // Validate the event feed before writing any player statistics.
   const expectedGoals = Number(game.home_score ?? 0) + Number(game.away_score ?? 0);
   if (game.status === "finished" && expectedGoals > 0 && !bundle.availability.goals) {
@@ -287,6 +288,9 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
       throw new Error(`HockeyLive match ${matchId} has ${missingScorers.length} scorers absent from match roster`);
     }
   }
+  // Only now is it safe to persist a score inferred from a complete event feed.
+  game = await patchScoreFromGoals(supabase, game, bundle.goals);
+
   let importedSkaters = 0;
   let importedGoalies = 0;
   let skipped = 0;
