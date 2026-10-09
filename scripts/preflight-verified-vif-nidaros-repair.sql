@@ -35,8 +35,17 @@ begin
      where game_id=(select id from public.fantasy_games where external_id='hockeylive:8393611'))<>42
  then raise exception 'Expected 42 existing materialized point rows'; end if;
 end $$;
--- No UPDATE yet: points and team-round totals must be recalculated in the
--- same controlled maintenance workflow; this script is a validated preflight.
+-- Preview the exact Fantasy points to be awarded per affected player.
+select p.name, r.external_id, r.goals,r.assists,r.pp_goals,r.pp_assists,
+ case when upper(coalesce(s.position_snapshot,p.position))='D' then 15 else 10 end*r.goals
+ + case when upper(coalesce(s.position_snapshot,p.position))='D' then 8 else 6 end*r.assists
+ + 2*r.pp_goals+r.pp_assists as added_fantasy_points
+from recovery_scoring r
+join public.fantasy_players p on p.external_id=r.external_id
+join public.fantasy_player_game_stats s on s.player_id=p.id
+join public.fantasy_games g on g.id=s.game_id
+where g.external_id='hockeylive:8393611'
+order by added_fantasy_points desc;
 select count(*) as mapped_players,sum(goals) as goals,sum(assists) as assists,
 sum(pp_goals) as powerplay_goals,sum(pp_assists) as powerplay_assists
 from recovery_scoring;
