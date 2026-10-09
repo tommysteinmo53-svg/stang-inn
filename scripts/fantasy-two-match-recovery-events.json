@@ -47,17 +47,17 @@
           "strength": "EN"
         },
         {
-          "time": null,
+          "time": "58:52",
           "scorer": "nif:7151757",
           "assists": [
             "nif:8568129",
             "nif:10589192"
           ],
-          "strength": "EV",
-          "note": "Exact goal time pending final boxscore verification"
+          "strength": "EV"
         }
       ],
       "sources": [
+        "https://vglive.vg.no/hockey/ringerike-panthers-narvik-ik/773223/info",
         "https://hockey.nif.no/live/BoxScore/Boxscore/8393583",
         "https://www.hockey4you.no/kampsenter/?kamp=8393583"
       ]
