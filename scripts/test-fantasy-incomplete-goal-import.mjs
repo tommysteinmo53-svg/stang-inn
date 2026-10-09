@@ -43,3 +43,10 @@ test("second HockeyLive fetch is checked before enrichment stat writes", () => {
   assert.ok(guard >= 0 && write > guard);
   assert.ok(enrichment.indexOf("!bundle.availability.players||!bundle.availability.goalies") < write);
 });
+
+test("unattributed scorers are rejected before base stats are overwritten", () => {
+  const guard = base.indexOf("if (unresolvedScorers > 0)");
+  const write = base.indexOf('from("fantasy_player_game_stats").upsert');
+  assert.ok(guard >= 0 && guard < write);
+  assert.match(base, /HockeyLive goal feed has/);
+});
