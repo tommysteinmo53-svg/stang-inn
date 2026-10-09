@@ -75,3 +75,10 @@ test("all goal and assist participants are checked before base stat writes", () 
   assert.ok(preflight >= 0 && baseImport > preflight);
   assert.match(enrichment, /scoring participants absent from match roster/);
 });
+
+test("goal events with more than two credited assists fail before base import", () => {
+  const guard = enrichment.indexOf("invalidAssistEvents.length>0");
+  const baseImport = enrichment.indexOf("const base=await importBaseMatch");
+  assert.ok(guard >= 0 && baseImport > guard);
+  assert.match(enrichment, /more than two credited assists/);
+});
