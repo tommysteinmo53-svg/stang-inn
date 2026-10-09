@@ -4,8 +4,8 @@
 with staged(external_id, player_external_id, goals, assists, pp_goals, pp_assists) as (
  values
  ('hockeylive:8393583','nif:6849262',1,0,0,0),
- ('hockeylive:8393583','nif:9459227',2,1,1,0),
- ('hockeylive:8393583','nif:10473631',1,2,1,0),
+ ('hockeylive:8393583','nif:9459227',2,1,1,1),
+ ('hockeylive:8393583','nif:10473631',1,2,1,1),
  ('hockeylive:8393583','nif:10440558',0,2,0,2),
  ('hockeylive:8393583','nif:8156791',0,1,0,0),
  ('hockeylive:8393583','nif:10589867',0,1,0,0),
