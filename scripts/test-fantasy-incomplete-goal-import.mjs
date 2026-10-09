@@ -50,3 +50,10 @@ test("unattributed scorers are rejected before base stats are overwritten", () =
   assert.ok(guard >= 0 && guard < write);
   assert.match(base, /HockeyLive goal feed has/);
 });
+
+test("scorers missing from match roster block import before stat writes", () => {
+  const guard = base.indexOf("if (missingScorers.length > 0)");
+  const write = base.indexOf('from("fantasy_player_game_stats").upsert');
+  assert.ok(guard >= 0 && guard < write);
+  assert.match(base, /scorers absent from match roster/);
+});
