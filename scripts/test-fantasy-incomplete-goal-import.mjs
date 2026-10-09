@@ -6,8 +6,8 @@ const production = readFileSync(new URL("../lib/fantasy/production-import.ts", i
 const base = readFileSync(new URL("../lib/fantasy/import-service.ts", import.meta.url), "utf8");
 const enrichment = readFileSync(new URL("../lib/fantasy/import-enrichment.ts", import.meta.url), "utf8");
 
-test("finished games with nonzero score and zero imported goals are retried", () => {
-  assert.match(production, /expectedGoals > 0 && importedGoals === 0/);
+test("finished games with multiple missing goals are retried", () => {
+  assert.match(production, /expectedGoals > 0 && importedGoals < expectedGoals - 1/);
   assert.match(production, /complete: !incompleteGoalStats && playedIds\.every/);
 });
 
