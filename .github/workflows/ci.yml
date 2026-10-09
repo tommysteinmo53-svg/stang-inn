@@ -19,6 +19,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: Two-match fantasy recovery staging consistency
+        run: npm run test:fantasy:two-match-recovery
       - name: MP-01 production operations regression
         run: npm run test:mp01:operations
       - name: MP-01 user admin lifecycle regression
