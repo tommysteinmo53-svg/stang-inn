@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 const path = new URL("./fantasy-two-match-recovery-events.json", import.meta.url);
 const data = JSON.parse(readFileSync(path, "utf8"));
 assert.equal(data.schemaVersion, 1);
-assert.equal(data.status, "staged-not-approved");
+assert.ok(["staged-not-approved", "official-screenshots-verified-for-8393611;8393583-requires-final-source-check", "production-repaired-and-verified"].includes(data.status), "Unexpected recovery verification status");
 assert.equal(data.matches.length, 2);
 const expected = new Map([[8393583,{goals:5,home:4,away:1}],[8393611,{goals:9,home:6,away:3}]]);
 const seen = new Set();
