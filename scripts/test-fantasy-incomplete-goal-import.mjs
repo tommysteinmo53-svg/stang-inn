@@ -57,3 +57,7 @@ test("scorers missing from match roster block import before stat writes", () => 
   assert.ok(guard >= 0 && guard < write);
   assert.match(base, /scorers absent from match roster/);
 });
+
+test("materialization detects multiple missing goals while allowing one possible shootout goal", () => {
+  assert.match(production, /importedGoals < expectedGoals - 1/);
+});
