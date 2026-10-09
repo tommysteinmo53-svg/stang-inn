@@ -272,6 +272,21 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
       throw new Error(`HockeyLive goal feed has ${unresolvedScorers} unidentified scorers for match ${matchId}`);
     }
   }
+  // Every credited scorer must be present in the fetched match roster.
+  // Otherwise the enrichment phase would silently skip their goal points.
+  if (game.status === "finished" && bundle.goals.length > 0) {
+    const rosterIds = new Set([...bundle.players, ...bundle.goalies]
+      .map((row) => text(first(row.personId, row.PersonId, row.playerId, row.PlayerId)))
+      .filter(Boolean));
+    const missingScorers = bundle.goals
+      .map((goal) => text(first(goal.personId, goal.PersonId, goal.scorerPersonId,
+        goal.ScorerPersonId, goal.goalScorerPersonId, goal.GoalScorerPersonId,
+        goal.playerId, goal.PlayerId)))
+      .filter((id) => id && !rosterIds.has(id));
+    if (missingScorers.length > 0) {
+      throw new Error(`HockeyLive match ${matchId} has ${missingScorers.length} scorers absent from match roster`);
+    }
+  }
   let importedSkaters = 0;
   let importedGoalies = 0;
   let skipped = 0;
