@@ -61,3 +61,10 @@ test("scorers missing from match roster block import before stat writes", () => 
 test("materialization detects multiple missing goals while allowing one possible shootout goal", () => {
   assert.match(production, /importedGoals < expectedGoals - 1/);
 });
+
+test("base import and enrichment use the same HockeyLive match bundle", () => {
+  assert.match(enrichment, /const bundle=await fetchNifMatchBundle\(matchId,options\?\.tournamentId\)/);
+  assert.match(enrichment, /importBaseMatch\(matchId,\{\.\.\.options,bundle\}\)/);
+  assert.match(enrichment, /enrich\(matchId,bundle\)/);
+  assert.match(base, /options\?\.bundle \?\? await fetchNifMatchBundle/);
+});
