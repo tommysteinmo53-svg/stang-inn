@@ -33,7 +33,8 @@
     "test:sparta": "node scripts/test-sparta-withdrawal.mjs",
     "test:ehl-calendar": "node scripts/test-ehl-final-calendar.mjs",
     "test:availability:nitten": "node scripts/test-nitten-source-scan.mjs",
-    "test:hockeylive:results": "node scripts/test-hockeylive-results.mjs"
+    "test:hockeylive:results": "node scripts/test-hockeylive-results.mjs",
+    "test:fantasy:two-match-recovery": "node scripts/validate-fantasy-two-match-recovery.mjs && node scripts/test-fantasy-two-match-recovery-consistency.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
