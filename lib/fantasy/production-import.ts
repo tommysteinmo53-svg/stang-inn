@@ -58,6 +58,9 @@ export async function importAndMaterializeFantasyMatch(
   if (expectedGoals > 0 && imported.sourceRows.goals < expectedGoals) {
     throw new Error(`Incomplete goal feed for ${matchId}: ${imported.sourceRows.goals}/${expectedGoals} goals. Retrying on next sync.`);
   }
+  if (imported.enrichment.eventScoringUnresolved > 0) {
+    throw new Error(`Unresolved scoring events for ${matchId}: ${imported.enrichment.eventScoringUnresolved}.`);
+  }
   const candidates = [`hockeylive:${matchId}`, String(matchId), `nif:${matchId}`];
   const { data: game, error: gameError } = await db
     .from("fantasy_games")
