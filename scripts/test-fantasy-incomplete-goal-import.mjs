@@ -27,3 +27,12 @@ test("completed game is not materialized on incomplete goal feed", () => {
   assert.match(production, /imported.sourceRows.goals < expectedGoals/);
   assert.ok(production.indexOf("imported.sourceRows.goals < expectedGoals") < production.indexOf("materializeFantasyPlayerPointsForGame(game.id"));
 });
+
+test("failed HockeyLive endpoints block finished-game import before stat writes", () => {
+  const write = base.indexOf('from("fantasy_player_game_stats").upsert');
+  assert.ok(base.indexOf("!bundle.availability.goals") >= 0);
+  assert.ok(base.indexOf("!bundle.availability.players || !bundle.availability.goalies") >= 0);
+  assert.ok(base.indexOf("!bundle.availability.goals") < write);
+  assert.ok(base.indexOf("!bundle.availability.players || !bundle.availability.goalies") < write);
+  assert.match(base, /fetchNifMatchBundle\(matchId, tournamentId\)/);
+});
