@@ -136,7 +136,7 @@
             "nif:8309849"
           ],
           "strength": "EV",
-          "note": "Ole Indergaard assist provisional pending official final boxscore"
+          "note": "Ole Indergaard assist corroborated by HockeyNews match event recap; official final boxscore not yet accessible."
         },
         {
           "time": "57:39",
@@ -149,7 +149,8 @@
       ],
       "sources": [
         "https://www.vif-hockey.no/article/r5satml-49ejd/view",
-        "https://www.flashscore.fr/match/hockey/nidaros-QXuY3vcR/valerenga-rHMTGU45/"
+        "https://www.flashscore.fr/match/hockey/nidaros-QXuY3vcR/valerenga-rHMTGU45/",
+        "https://hockeynews.se/matcher/valerenga-nidaros-2026-10-08-426659"
       ]
     }
   ]
