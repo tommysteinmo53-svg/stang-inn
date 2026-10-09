@@ -1,7 +1,7 @@
 import { canonicalMatchPlayerExternalId } from "./match-player-identities";
 import { hockeyLiveResult } from "../providers/hockeylive-result";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { fetchNifMatchBundle } from "./nif-client";
+import { fetchNifMatchBundle, type NifMatchBundle } from "./nif-client";
 
 type Row = Record<string, any>;
 type FantasyPosition = "G" | "D" | "W" | "C";
@@ -241,11 +241,11 @@ function goalieWasActive(raw: Row) {
   return stat.saves > 0 || seconds > 0 || n(stat.minutes_played, 0) > 0 || stat.goals_against > 0;
 }
 
-export async function importFantasyMatch(matchId: number, options?: { season?: string; tournamentId?: string }) {
+export async function importFantasyMatch(matchId: number, options?: { season?: string; tournamentId?: string; bundle?: NifMatchBundle }) {
   const supabase = serverClient();
   const season = options?.season || "2025/26";
   const tournamentId = options?.tournamentId || "435587";
-  const bundle = await fetchNifMatchBundle(matchId, tournamentId);
+  const bundle = options?.bundle ?? await fetchNifMatchBundle(matchId, tournamentId);
   let game = await ensureFantasyGame(supabase, matchId, season, tournamentId);
   game = await patchScoreFromGoals(supabase, game, bundle.goals);
   // Validate the event feed before writing any player statistics.
