@@ -68,3 +68,10 @@ test("base import and enrichment use the same HockeyLive match bundle", () => {
   assert.match(enrichment, /enrich\(matchId,bundle\)/);
   assert.match(base, /options\?\.bundle \?\? await fetchNifMatchBundle/);
 });
+
+test("all goal and assist participants are checked before base stat writes", () => {
+  const preflight = enrichment.indexOf("const missingEventIds=[...eventScoring.totals.keys()]");
+  const baseImport = enrichment.indexOf("const base=await importBaseMatch");
+  assert.ok(preflight >= 0 && baseImport > preflight);
+  assert.match(enrichment, /scoring participants absent from match roster/);
+});
