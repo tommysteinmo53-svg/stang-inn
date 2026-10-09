@@ -259,6 +259,19 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
   if (game.status === "finished" && (!bundle.availability.players || !bundle.availability.goalies)) {
     throw new Error(`HockeyLive player or goalie endpoint unavailable for finished match ${matchId}`);
   }
+  // Fail before any player upsert if the event feed cannot identify its scorers.
+  // The enrichment phase must never discover this only after base stats were written.
+  if (game.status === "finished") {
+    const unresolvedScorers = bundle.goals.filter((goal) => {
+      const values = [goal.personId, goal.PersonId, goal.scorerPersonId, goal.ScorerPersonId,
+        goal.goalScorerPersonId, goal.GoalScorerPersonId, goal.playerId, goal.PlayerId];
+      const ids = [...new Set(values.filter((value) => value !== null && value !== undefined && String(value).trim() !== "").map(String))];
+      return ids.length !== 1;
+    }).length;
+    if (unresolvedScorers > 0) {
+      throw new Error(`HockeyLive goal feed has ${unresolvedScorers} unidentified scorers for match ${matchId}`);
+    }
+  }
   let importedSkaters = 0;
   let importedGoalies = 0;
   let skipped = 0;
