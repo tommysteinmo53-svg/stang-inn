@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "staged-not-approved",
+  "status": "official-screenshots-verified-for-8393611;8393583-requires-final-source-check",
   "matches": [
     {
       "matchId": 8393583,
@@ -135,8 +135,7 @@
             "nif:10188899",
             "nif:8309849"
           ],
-          "strength": "EV",
-          "note": "Ole Indergaard assist corroborated by HockeyNews match event recap; official final boxscore not yet accessible."
+          "strength": "EV"
         },
         {
           "time": "57:39",
@@ -148,10 +147,12 @@
         }
       ],
       "sources": [
+        "https://live.hockey.no/match?seasonId=201071&tournamentId=448981&matchId=8393611&matchDate=2026-10-08T00:00:00",
         "https://www.vif-hockey.no/article/r5satml-49ejd/view",
         "https://www.flashscore.fr/match/hockey/nidaros-QXuY3vcR/valerenga-rHMTGU45/",
         "https://hockeynews.se/matcher/valerenga-nidaros-2026-10-08-426659"
-      ]
+      ],
+      "status": "verified-against-user-supplied-official-hockeylive-screenshots"
     }
   ]
 }
