@@ -145,6 +145,7 @@ export async function GET(request:NextRequest){
   const horizon=request.nextUrl.searchParams.get("horizon")||"next3";
   if(!["next_game","next3"].includes(horizon))return NextResponse.json({ok:false,error:"Ugyldig horisont."},{status:400});
   const lockedIds=parseLockedPlayerIds(request.nextUrl.searchParams.get("locked"));
+  const planningMode=request.nextUrl.searchParams.get("planning")==="1";
 
   const[{data:team,error:teamError},{data:status,error:statusError},{data:xfp,error:xfpError},{data:economy,error:economyError},{data:catalog,error:catalogError},{data:availability,error:availabilityError}]=await Promise.all([
     sb.from("fantasy_user_teams").select("id,name").eq("season","2026/27").maybeSingle(),
@@ -195,10 +196,10 @@ export async function GET(request:NextRequest){
   const current=storedLineupValid?storedCurrent.map(withEffectiveScore):optimizeLineup(storedCurrent);
   const all=((catalog||[]) as CatalogRow[]).map(c=>buildPlayer(c)).filter(Boolean) as Player[];
   const statusRow:any=status?.[0]||{};
-  const remaining=normalizeOptimizerTransferLimit(statusRow.transfers_remaining);
+  const remaining=planningMode?4:normalizeOptimizerTransferLimit(statusRow.transfers_remaining);
   const maxTransfers=normalizeOptimizerTransferLimit(statusRow.max_transfers_per_round);
   const transfersUsed=Math.max(0,Number(statusRow.transfers_used||0));
-  const permanentTransfersAllowed=Boolean(statusRow.permanent_transfers_allowed)&&maxTransfers>0;
+  const permanentTransfersAllowed=planningMode||(Boolean(statusRow.permanent_transfers_allowed)&&maxTransfers>0);
   const budget=Number(economy?.[0]?.budget||110);
   const currentCost=current.reduce((s,p)=>s+p.price,0),currentScore=current.reduce((s,p)=>s+p.score,0);
   const baseline:Candidate={roster:current,score:currentScore,cost:currentCost,changes:[]};
@@ -247,10 +248,10 @@ export async function GET(request:NextRequest){
   const lockedPlayers=current.filter(p=>lockedIds.has(p.id)).map(p=>({id:p.id,name:p.name}));
 
   return NextResponse.json({
-    ok:true,team,status:statusRow,economy:economy?.[0]||null,horizon,current:current.map(serialize),strategies,optimized:balanced.optimized,changes:balanced.changes,
+    ok:true,team,status:statusRow,economy:economy?.[0]||null,horizon,planning_mode:planningMode,current:current.map(serialize),strategies,optimized:balanced.optimized,changes:balanced.changes,
     current_cost:round(currentCost,1),optimized_cost:balanced.optimized_cost,current_score:round(currentScore),optimized_score:balanced.optimized_score,xfp_gain:balanced.xfp_gain,transfers_available:remaining,
     proposal_risk_score:balanced.proposal_risk_score,proposal_risk_label:balanced.proposal_risk_label,locked_player_ids:[...lockedIds],locked_players:lockedPlayers,
-    transfer_policy:{max_transfers:maxTransfers,transfers_used:transfersUsed,transfers_remaining:remaining,boost_active:String(statusRow.active_booster||"")==="Bytteboost",active_booster:statusRow.active_booster||null,is_event_week:Boolean(statusRow.is_event_week),event_week_booster:statusRow.event_week_booster||null,permanent_transfers_allowed:permanentTransfersAllowed,reason:optimizerTransferReason(maxTransfers,transfersUsed,remaining),no_bank:true,no_points_hit:true},
+    transfer_policy:{planning_mode:planningMode,max_transfers:planningMode?4:maxTransfers,transfers_used:transfersUsed,transfers_remaining:remaining,boost_active:String(statusRow.active_booster||"")==="Bytteboost",active_booster:statusRow.active_booster||null,is_event_week:Boolean(statusRow.is_event_week),event_week_booster:statusRow.event_week_booster||null,permanent_transfers_allowed:permanentTransfersAllowed,reason:planningMode?"Kun analyse – forslagene kan ikke utføres før faktiske transferregler tillater det.":optimizerTransferReason(maxTransfers,transfersUsed,remaining),no_bank:true,no_points_hit:true},
     search_policy:{bounded:true,candidate_caps:SEARCH_CAP,reason:"Bytteboost kan gi fire bytter; kandidatpoolen balanserer xFP, verdi, pris, risiko og modellert oppside før full regelvalidering."},
     strategy_policy:{balanced:"expected Fantasy-xFP - moderate incoming risk penalty + small modeled upside weight",conservative:"expected Fantasy-xFP - strong incoming risk penalty; rewards stable availability and confidence indirectly through lower risk",offensive:"expected Fantasy-xFP - light risk penalty + modeled upside from availability headroom and confidence uncertainty",invariant:"Fantasy scoring, availability factors, roster constraints, line multipliers and C/VC multipliers are identical for all strategies"},
     projection_policy:{player_xfp:"base xFP × availability factor",availability_factors:{available:1,returning:.85,questionable:.60,out:0,long_term:0,not_in_lineup:0},effective_fantasy_xfp:"availability-adjusted xFP × line multiplier × C/VC multiplier"},
