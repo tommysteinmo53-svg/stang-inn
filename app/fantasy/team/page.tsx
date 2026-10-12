@@ -95,13 +95,13 @@ export default function FantasyTeamPage(){
  const unavailableSelected=useMemo(()=>chosen.filter(p=>!p.purchasable),[chosen]);
  const counts=useMemo(()=>({F:chosen.filter(p=>group(p)==="F").length,C:chosen.filter(p=>p.position==="C").length,W:chosen.filter(p=>p.position==="W").length,D:chosen.filter(p=>p.position==="D").length,G:chosen.filter(p=>p.position==="G").length}),[chosen]);
  const clubCounts=useMemo(()=>{const m=new Map<string,number>();for(const p of chosen)m.set(p.team,(m.get(p.team)||0)+1);return m},[chosen]);
- const clubs=useMemo(()=>Array.from(new Set(marketPlayers.map(p=>p.team))).sort((a,b)=>a.localeCompare(b,"nb")),[marketPlayers]);
+ const clubs=useMemo(()=>Array.from(new Set(marketPlayers.map(p=>canonicalFantasyTeam(p.team)))).sort((a,b)=>a.localeCompare(b,"nb")),[marketPlayers]);
  const nameError=teamNameError(teamName),nameValid=!nameError,nameChanged=Boolean(teamId)&&normalizeTeamName(teamName)!==savedTeamName;
  const clubOverflow=[...clubCounts.entries()].find(([,n])=>n>rules.max_players_per_club),lineupValid=validLine1(line1,chosen);
  const rosterValid=selected.length===12&&chosen.length===selected.length&&unavailableSelected.length===0&&left>=0&&counts.F===6&&counts.D===4&&counts.G===2&&!clubOverflow&&!!captain&&!!viceCaptain&&captain!==viceCaptain&&lineupValid;
  const valid=rosterValid&&nameValid&&!nameNeedsCompletion;
  const pendingTransfers=seasonStarted&&teamId?selected.filter(id=>!initialRoster.includes(id)).length:0,transferLimit=transferStatus?.max_transfers_per_round??2,used=transferStatus?.transfers_used??0;
- const visible=marketPlayers.filter(p=>(filter==="ALL"||(filter==="F"?group(p)==="F":p.position===filter))&&(clubFilter==="ALL"||p.team===clubFilter)&&(!q||`${p.name} ${p.team}`.toLowerCase().includes(q.toLowerCase())));
+ const visible=marketPlayers.filter(p=>(filter==="ALL"||(filter==="F"?group(p)==="F":p.position===filter))&&(clubFilter==="ALL"||canonicalFantasyTeam(p.team)===clubFilter)&&(!q||`${p.name} ${p.team}`.toLowerCase().includes(q.toLowerCase())));
  const targetRoundNo=transferStatus?.effective_round_no??rounds.find(r=>new Date(r.deadline_at).getTime()>Date.now())?.round_no??rounds.at(-1)?.round_no??null;
  const fixturesByTeam=useMemo(()=>{const m=new Map<string,Fixture[]>();if(targetRoundNo==null)return m;const games=roundGames.filter(g=>g.fantasy_round_no===targetRoundNo).sort((a,b)=>(a.starts_at||"").localeCompare(b.starts_at||""));for(const g of games){const home=canonicalFantasyTeam(g.home_team),away=canonicalFantasyTeam(g.away_team);m.set(home,[...(m.get(home)||[]),{opponent:away,venue:"H",starts_at:g.starts_at}]);m.set(away,[...(m.get(away)||[]),{opponent:home,venue:"B",starts_at:g.starts_at}])}return m},[roundGames,targetRoundNo]);
  const fixtureLabel=(team:string)=>{if(targetRoundNo==null)return"Gameweek: ikke tilgjengelig";const fixtures=fixturesByTeam.get(canonicalFantasyTeam(team))||[];return fixtures.length?`Runde ${targetRoundNo} · ${fixtures.map(f=>`${f.venue}: ${f.opponent}`).join(" · ")}`:`Runde ${targetRoundNo} · Ingen kamp`};
