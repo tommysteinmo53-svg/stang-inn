@@ -17,8 +17,10 @@ begin
   if split_at = 0 then raise exception 'Freeze function structure has changed'; end if;
   -- There are two roster validations: event first, permanent second.
   split_at := strpos(original_def, marker);
-  split_at := strpos(substr(original_def, split_at + length(marker)), marker) + split_at + length(marker) - 1;
-  if split_at < length(marker) then raise exception 'Permanent roster validation not found'; end if;
+  if strpos(substr(original_def, split_at + length(marker)), marker) = 0 then
+    raise exception 'Permanent roster validation not found';
+  end if;
+  split_at := split_at + length(marker) - 1 + strpos(substr(original_def, split_at + length(marker)), marker);
   suffix := substr(original_def, split_at);
   if strpos(suffix, 'from fantasy_user_team_players tp') = 0 then
     raise exception 'Expected permanent-team validation missing';
