@@ -1,3 +1,4 @@
+import { completeGoalFeed } from "./shootout-goals";
 import { canonicalMatchPlayerExternalId } from "./match-player-identities";
 import { hockeyLiveResult } from "../providers/hockeylive-result";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -254,7 +255,7 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
   if (game.status === "finished" && expectedGoals > 0 && !bundle.availability.goals) {
     throw new Error(`HockeyLive goal endpoint unavailable for finished match ${matchId}`);
   }
-  if (game.status === "finished" && expectedGoals > 0 && bundle.goals.length < expectedGoals) {
+  if (game.status === "finished" && expectedGoals > 0 && !completeGoalFeed(game, bundle.goals)) {
     throw new Error(`Incomplete HockeyLive goal feed for ${matchId}: ${bundle.goals.length}/${expectedGoals}`);
   }
   if (game.status === "finished" && (!bundle.availability.players || !bundle.availability.goalies)) {
