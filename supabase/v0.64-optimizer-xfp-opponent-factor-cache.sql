@@ -17,7 +17,7 @@ BEGIN
   END IF;
   v_sql := replace(v_sql,
     'fixture_xfp as materialized (',
-    'opponent_factors as materialized (select distinct o.opponent,o.player_position, fantasy_xfp_opponent_factor(o.opponent,o.player_position,p_season) as factor from (select distinct opponent,player_position from fixtures) o), fixture_xfp as materialized (');
+    'opponent_factors as materialized (select distinct o.opponent,o.player_position, fantasy_xfp_opponent_factor(o.opponent,o.player_position,p_season) as factor from (select distinct fx.opponent,fx.player_position from fixtures fx) o), fixture_xfp as materialized (');
   v_sql := replace(v_sql,
     'fantasy_xfp_opponent_factor(x.opponent,x.player_position,p_season)',
     'ofac.factor');
