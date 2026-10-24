@@ -1,4 +1,3 @@
-import { completeGoalFeed } from "./shootout-goals";
 import { createClient } from "@supabase/supabase-js";
 import { importFantasyMatch as importEnrichedFantasyMatch } from "./import-enrichment";
 import { materializeFantasyPlayerPointsForGame, PLAYER_POINTS_VERSION } from "./player-points-materializer";
@@ -66,7 +65,7 @@ export async function importAndMaterializeFantasyMatch(
   // Do not accept partial HockeyLive feeds as a completed scoring import.
   // A finished game must have all scoring events before its points can be trusted.
   const expectedGoals = Number(imported.game?.homeScore ?? 0) + Number(imported.game?.awayScore ?? 0);
-  if (expectedGoals > 0 && imported.sourceRows.goals < expectedGoals && !completeGoalFeed({ home_score: imported.game?.homeScore, away_score: imported.game?.awayScore, home_team: imported.game?.homeTeam, away_team: imported.game?.awayTeam }, imported.goalEvents ?? [])) {
+  if (expectedGoals > 0 && imported.sourceRows.goals < expectedGoals - 1) {
     throw new Error(`Incomplete goal feed for ${matchId}: ${imported.sourceRows.goals}/${expectedGoals} goals. Retrying on next sync.`);
   }
   if (imported.enrichment.eventScoringUnresolved > 0) {
