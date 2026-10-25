@@ -1,0 +1,20 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import vm from "node:vm";
+import ts from "typescript";
+
+const source = fs.readFileSync(new URL("../lib/fantasy/shootout-reconciliation.ts", import.meta.url), "utf8");
+const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+const exports = {};
+vm.runInNewContext(js, { exports });
+const check = exports.isShootoutScoreDifference;
+const goal = (teamName) => ({ teamName });
+const fixture = (homeScore, awayScore, goals) => ({homeScore,awayScore,homeTeam:"Nidaros",awayTeam:"Stjernen",goals});
+assert.equal(check(fixture(2,1,[goal("Nidaros"),goal("Stjernen")])),true,"shootout winner not a player goal");
+assert.equal(check(fixture(1,2,[goal("Nidaros"),goal("Stjernen")])),true,"away shootout winner");
+assert.equal(check(fixture(2,1,[goal("Nidaros"),goal("Nidaros")])),false,"missing regulation goal must not be accepted");
+assert.equal(check(fixture(3,1,[goal("Nidaros"),goal("Stjernen"),goal("Stjernen")])),false,"two-goal final margin");
+assert.equal(check(fixture(2,1,[goal("Nidaros")])),false,"two missing goal events");
+assert.equal(check(fixture(2,1,[goal("Nidaros"),{}])),false,"unknown team cannot prove tie");
+assert.equal(check(fixture(2,1,[goal("Nidaros"),goal("Stjernen"),goal("Nidaros")])),false,"full feed is not a shootout difference");
+console.log("Shootout reconciliation checks passed");
