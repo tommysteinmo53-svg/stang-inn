@@ -254,7 +254,7 @@ export async function importFantasyMatch(matchId: number, options?: { season?: s
   if (game.status === "finished" && expectedGoals > 0 && !bundle.availability.goals) {
     throw new Error(`HockeyLive goal endpoint unavailable for finished match ${matchId}`);
   }
-  if (game.status === "finished" && expectedGoals > 0 && bundle.goals.length < expectedGoals) {
+  if (game.status === "finished" && expectedGoals > 0 && bundle.goals.length < expectedGoals && !(await verifiedShootoutGoalGap(matchId,bundle.goals,Number(game.home_score??0),Number(game.away_score??0)))) {
     throw new Error(`Incomplete HockeyLive goal feed for ${matchId}: ${bundle.goals.length}/${expectedGoals}`);
   }
   if (game.status === "finished" && (!bundle.availability.players || !bundle.availability.goalies)) {
