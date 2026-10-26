@@ -165,7 +165,7 @@ begin
 
   -- Replace only the temporary event roster. Permanent fantasy_user_team_players
   -- and transfer ledgers are intentionally untouched.
-  delete from fantasy_event_team_players where event_team_id=v_event_team;
+  delete from fantasy_event_team_players etp where etp.event_team_id=v_event_team;
 
   insert into fantasy_event_team_players(
     event_team_id,player_id,purchase_price,line_no,is_captain,is_vice_captain
