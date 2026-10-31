@@ -1,1 +1,39 @@
 .team-launch-wrap{max-width:1320px;margin:14px auto 0;padding:0 18px}.team-launch-status{border:1px solid rgba(212,175,55,.16);border-radius:16px;background:linear-gradient(180deg,#101419,#090c10);padding:14px 16px;color:#f2eee4;box-shadow:0 14px 34px rgba(0,0,0,.22)}.team-launch-status.ready{border-color:rgba(79,214,156,.26);background:linear-gradient(180deg,rgba(18,46,36,.52),#0b1110)}.team-launch-status.needs-work{border-color:rgba(212,175,55,.3);background:linear-gradient(180deg,rgba(64,48,16,.28),#0b0d10)}.team-launch-title{display:flex;justify-content:space-between;gap:18px;align-items:center}.team-launch-title span,.team-launch-deadline small{display:block;color:#8f8c84;font-size:.7rem;font-weight:900;letter-spacing:.08em}.team-launch-title strong{display:block;margin-top:3px;color:#f7f3e9;font-size:1rem}.team-launch-deadline{text-align:right}.team-launch-deadline b{display:block;margin-top:3px;color:#d8b65e}.team-launch-checks{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.team-launch-checks span{padding:7px 9px;border:1px solid rgba(212,175,55,.2);border-radius:999px;background:#17130c;color:#d4bd87;font-size:.76rem;font-weight:800}.team-launch-checks span.ok{border-color:rgba(79,214,156,.25);background:rgba(20,64,47,.28);color:#78ddb0}.team-launch-status>p{margin:10px 0 0;color:#d1b874}.team-launch-note{display:block;margin-top:10px;color:#8f8c84;font-size:.72rem}@media(max-width:700px){.team-launch-wrap{padding:0 10px}.team-launch-title{align-items:flex-start;flex-direction:column}.team-launch-deadline{text-align:left}.team-launch-checks{display:grid;grid-template-columns:1fr 1fr}.team-launch-checks span{border-radius:10px}}@media(max-width:460px){.team-launch-checks{grid-template-columns:1fr}}
+
+/* Keep the transfer quota readable at narrow mobile widths. */
+.team-transfer-status-clear {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 14px 16px;
+  line-height: 1.5;
+}
+.team-transfer-status-clear strong,
+.team-transfer-status-clear .team-transfer-status-count {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: normal;
+  opacity: 1;
+}
+.team-transfer-status-clear .team-transfer-status-count {
+  color: #f2c66a;
+  white-space: normal;
+}
+.team-transfer-status-clear small {
+  flex-basis: 100%;
+  display: block;
+  font-size: 13px;
+  line-height: 1.55;
+  opacity: 1;
+  color: #d0d5dd;
+}
+@media (max-width: 600px) {
+  .team-transfer-status-clear {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .team-transfer-status-clear small { flex-basis: auto; }
+}
