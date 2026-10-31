@@ -8,6 +8,7 @@ import { isWithdrawnEhlTeam } from "../../../lib/ehl-season";
 import BonusCards from "./BonusCards";
 import "../fantasy.css";
 import "./fixtures.css";
+import "./team-launch.css";
 
 type Pos="C"|"W"|"D"|"G";
 type Player={id:string;name:string;team:string;position:Pos;price:number;active:boolean;on_current_roster:boolean;available_for_purchase:boolean;purchasable:boolean};
