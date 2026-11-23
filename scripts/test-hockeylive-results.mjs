@@ -10,6 +10,12 @@ const {createHockeyLiveProvider,fetchHockeyLiveStandings}=require('../lib/provid
 const {calculateTipPoints}=require('../lib/score-engine.ts');
 const final={statusTypeId:1,matchResult:{homeGoals:2,awayGoals:0,matchEndResult:'2-0'}};
 assert.deepEqual(hockeyLiveResult(final),{homeScore:2,awayScore:0,finished:true});
+const shootout={statusTypeId:1,resultTypeName:'After penalties',matchResult:{homeGoals:2,awayGoals:1,matchEndResult:'1-1'}};
+assert.deepEqual(hockeyLiveResult(shootout),{homeScore:2,awayScore:1,finished:true});
+assert.equal(hockeyLiveResult({...shootout,resultTypeName:undefined}).finished,false,'Do not infer shootout without explicit evidence');
+assert.equal(hockeyLiveResult({...shootout,matchResult:{homeGoals:3,awayGoals:1,matchEndResult:'1-1'}}).finished,false,'Reject impossible shootout margin');
+assert.deepEqual(hockeyLiveResult({statusTypeId:1,matchResult:{homeGoals:2,awayGoals:1,matchEndResult:'2-1'}}),{homeScore:2,awayScore:1,finished:true});
+
 for(const raw of [{statusTypeId:1,matchResult:null},{statusTypeId:1,homeScore:3,awayScore:2,matchResult:null},{statusTypeId:1,homeScore:0,awayScore:0},{...final,matchResult:{homeGoals:2,awayGoals:0,matchEndResult:'3-0'}},{statusTypeId:1,finished:'false',homeScore:2,awayScore:1}])assert.equal(hockeyLiveResult(raw).finished,false);
 assert.equal(hockeyLiveResult({...final,matchResult:{homeGoals:0,awayGoals:0,matchEndResult:'0-0'}}).finished,true);
 assert.equal(calculateTipPoints(2,0,2,0),5);assert.equal(calculateTipPoints(3,1,2,0),3);assert.equal(calculateTipPoints(0,2,2,0),0);
